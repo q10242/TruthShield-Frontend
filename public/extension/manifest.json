@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "TruthShield Link Tooltip",
+  "version": "0.1.0",
+  "description": "Show credibility tags for news links before opening them.",
+  "action": {
+    "default_title": "TruthShield",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "options_page": "options.html",
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

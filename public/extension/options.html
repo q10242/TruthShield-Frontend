@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>TruthShield Settings</title>
+    <style>
+      body { margin: 0; background: #09090b; color: #f4f4f5; font: 14px system-ui, sans-serif; }
+      main { max-width: 680px; margin: 0 auto; padding: 28px; }
+      label { display: block; margin: 18px 0; color: #a1a1aa; }
+      input { width: 100%; box-sizing: border-box; margin-top: 8px; border: 1px solid #27272a; border-radius: 8px; background: #18181b; color: #fff; padding: 10px; }
+      button { border: 0; border-radius: 8px; background: #67e8f9; color: #09090b; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+      .row { display: flex; gap: 10px; align-items: center; }
+      .row input { width: auto; }
+      #status { margin-top: 12px; color: #86efac; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>TruthShield Settings</h1>
+      <label>Web iframe origin <input id="tooltipOrigin" /></label>
+      <label>API origin <input id="apiOrigin" /></label>
+      <label class="row"><input id="enableTooltip" type="checkbox" /> Enable hover tooltip</label>
+      <label class="row"><input id="enablePanel" type="checkbox" /> Enable article vote panel</label>
+      <label class="row"><input id="enableReportButton" type="checkbox" /> Show untracked-news report button</label>
+      <button id="save">Save</button>
+      <button id="checkHealth" type="button">Check API health</button>
+      <div id="status"></div>
+      <div id="health"></div>
+      <p id="version"></p>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>
