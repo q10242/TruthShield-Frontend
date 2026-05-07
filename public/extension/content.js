@@ -24,6 +24,10 @@ const FALLBACK_NEWS_DOMAINS = [
   'www.setn.com',
   'news.ltn.com.tw',
   'tw.news.yahoo.com',
+  'youtube.com',
+  'www.youtube.com',
+  'm.youtube.com',
+  'youtu.be',
 ]
 
 let newsDomains = [...FALLBACK_NEWS_DOMAINS]
@@ -306,6 +310,10 @@ function isCurrentNewsPage() {
 }
 
 function isLikelyArticlePage() {
+  if (isYouTubeVideoPage()) {
+    return true
+  }
+
   if (isLocalTruthShieldDemoPage()) {
     return true
   }
@@ -349,6 +357,23 @@ function isLikelyArticlePage() {
   }
 
   return pathParts.length >= 2 || path.includes('news')
+}
+
+function isYouTubeVideoPage() {
+  const host = window.location.hostname.toLowerCase()
+  const path = window.location.pathname.toLowerCase()
+
+  if (host === 'youtu.be') {
+    return path.split('/').filter(Boolean).length >= 1
+  }
+
+  if (!['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(host)) {
+    return false
+  }
+
+  return (path === '/watch' && new URLSearchParams(window.location.search).has('v'))
+    || path.startsWith('/shorts/')
+    || path.startsWith('/live/')
 }
 
 function isLocalTruthShieldDemoPage() {
@@ -542,6 +567,9 @@ function canonicalStatusUrl(value) {
     const url = new URL(value, window.location.href)
     url.hash = ''
 
+    const videoUrl = canonicalVideoStatusUrl(url)
+    if (videoUrl) return videoUrl
+
     for (const key of [...url.searchParams.keys()]) {
       const normalizedKey = key.toLowerCase()
       if (
@@ -562,6 +590,27 @@ function canonicalStatusUrl(value) {
   } catch {
     return value
   }
+}
+
+function canonicalVideoStatusUrl(url) {
+  const host = url.hostname.toLowerCase()
+  const path = url.pathname
+  let videoId = ''
+
+  if (['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host)) {
+    if (path === '/watch') {
+      videoId = url.searchParams.get('v') || ''
+    } else {
+      const match = path.match(/^\/(?:shorts|live|embed)\/([^/?]+)/)
+      videoId = match?.[1] || ''
+    }
+  }
+
+  if (host === 'youtu.be') {
+    videoId = path.split('/').filter(Boolean)[0] || ''
+  }
+
+  return videoId ? `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}` : ''
 }
 
 async function fetchStatus(url) {
@@ -876,20 +925,28 @@ function schedulePageInjection() {
 
 function observeArticleChanges() {
   let currentHref = window.location.href
-  const observer = new MutationObserver(() => {
-    if (currentHref !== window.location.href) {
-      currentHref = window.location.href
-      closeVotePanelModal()
-      removeArticleBanner()
-      votePanelUrl = ''
-      articleReadSeconds = 0
-      stopArticleReadTimer()
+  const handleUrlChange = () => {
+    if (currentHref === window.location.href) {
+      return
     }
 
+    currentHref = window.location.href
+    closeVotePanelModal()
+    removeArticleBanner()
+    votePanelUrl = ''
+    articleReadSeconds = 0
+    stopArticleReadTimer()
+    schedulePageInjection()
+  }
+
+  const observer = new MutationObserver(() => {
+    handleUrlChange()
     schedulePageInjection()
   })
 
   observer.observe(document.documentElement, { childList: true, subtree: true })
+  window.addEventListener('popstate', handleUrlChange)
+  window.addEventListener('yt-navigate-finish', handleUrlChange)
 }
 
 function ensureReportButton() {
