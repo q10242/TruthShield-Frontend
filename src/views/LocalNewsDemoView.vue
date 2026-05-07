@@ -12,7 +12,7 @@ const secondUrl = 'https://news.pts.org.tw/article/999001'
       </h1>
       <p class="mt-3 text-sm leading-6 text-zinc-400">
         這個頁面是 HTTP 本地測試頁，會被 Chrome 插件視為新聞頁。打開已載入的 TruthShield extension 後，
-        滑鼠停留在文中的新聞連結上應該出現 tooltip；頁面頂部應該自動出現 TruthShield 橫幅，點擊後開啟投票與證據面板。
+        滑鼠停留在文中的新聞連結上應該出現 tooltip；頁面頂部應該自動出現 TruthShield 狀態橫幅。查看、投票與回報請使用右鍵選單。
       </p>
 
       <section class="mt-8 space-y-6 text-base leading-8 text-zinc-200">
@@ -41,7 +41,7 @@ const secondUrl = 'https://news.pts.org.tw/article/999001'
         </p>
 
         <p>
-          真正投票不在 tooltip 裡，而是在頂部 TruthShield 橫幅開啟的面板中完成。請點橫幅的「查看結果 / 補證據」，或在頁面右鍵使用 TruthShield 選單，登入
+          真正投票不在 tooltip 裡，而是在頁面右鍵使用 TruthShield 選單開啟面板後完成。登入
           <span class="rounded bg-white/10 px-1.5 py-0.5 font-mono text-sm">tester@truthshield.local</span>
           後等待閱讀秒數達標，再送出標籤、證據連結與簡短說明。
         </p>

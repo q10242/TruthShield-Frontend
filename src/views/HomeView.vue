@@ -77,14 +77,14 @@ import { RouterLink } from 'vue-router'
 
       <aside class="self-center rounded-lg border border-cyan-300/20 bg-zinc-900/90 p-6 shadow-2xl shadow-cyan-950/50">
         <div class="flex items-center justify-between border-b border-white/10 pb-4">
-          <span class="text-sm text-zinc-400">Browser Tooltip</span>
+          <span class="text-sm text-zinc-400">Browser Signal</span>
           <span class="rounded bg-red-500/20 px-2 py-1 text-xs font-semibold text-red-200">標題殺人</span>
         </div>
         <div class="space-y-5 pt-5">
           <p class="text-2xl font-semibold text-white">最大重點標籤</p>
           <div class="h-3 rounded bg-red-500" />
           <p class="text-sm leading-6 text-zinc-400">
-            插件 hover 新聞連結時載入 iframe tooltip，回傳高度給 content script，自動貼齊頁面。
+            插件 hover 新聞連結時顯示純提示；新聞頁頂部橫幅只作為狀態標記，操作入口維持右鍵選單。
           </p>
         </div>
       </aside>

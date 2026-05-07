@@ -63,32 +63,6 @@ function bindActions() {
   byId('openHub').addEventListener('click', () => openTab(state.settings.tooltipOrigin))
   byId('openOptions').addEventListener('click', () => chrome.runtime.openOptionsPage())
   byId('openDemo').addEventListener('click', () => openTab(truthUrl('/local-news-demo')))
-
-  byId('openStatus').addEventListener('click', () => {
-    if (!currentUrl()) return
-    openWindow(truthUrl('/iframe-tooltip', { news_url: currentUrl() }), 420, 260)
-  })
-
-  byId('openVote').addEventListener('click', () => {
-    if (!currentUrl()) return
-    openWindow(truthUrl('/iframe-vote-panel', { news_url: currentUrl() }), 460, 720)
-  })
-
-  byId('reportDomain').addEventListener('click', () => {
-    if (!currentUrl()) return
-    openWindow(truthUrl('/report-domain', { url: currentUrl(), page_title: currentTitle() }), 540, 760)
-  })
-
-  byId('showInlinePanel').addEventListener('click', async () => {
-    if (!state.tab?.id) return
-
-    try {
-      const response = await chrome.tabs.sendMessage(state.tab.id, { type: 'TRUTH_SHIELD_SHOW_VOTE_PANEL' })
-      setStatus(response?.ok ? '已在目前頁面顯示 TruthShield 橫幅 / 面板' : '目前頁面無法注入面板', !response?.ok)
-    } catch {
-      setStatus('目前頁面無法注入面板，請改用彈出投票視窗', true)
-    }
-  })
 }
 
 chrome.storage.sync.get(defaults, async (settings) => {
@@ -98,10 +72,7 @@ chrome.storage.sync.get(defaults, async (settings) => {
   const url = currentUrl()
   byId('currentUrl').textContent = url || '無法取得目前分頁'
   const disabled = !url || url.startsWith('chrome://') || url.startsWith('chrome-extension://')
-  const pageActionIds = ['openStatus', 'openVote', 'showInlinePanel', 'reportDomain']
-  pageActionIds.forEach((id) => {
-    byId(id).disabled = disabled
-  })
+  setStatus(disabled ? '目前分頁不支援右鍵 TruthShield 動作' : '目前頁面請用右鍵選單操作')
 
   bindActions()
   await loadSummary()

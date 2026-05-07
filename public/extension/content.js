@@ -351,9 +351,6 @@ function ensureArticleBanner() {
       return
     }
 
-    if (target?.closest?.('[data-truthshield-open-panel]')) {
-      openVotePanelModal()
-    }
   })
 
   document.documentElement.appendChild(articleBanner)
@@ -404,8 +401,7 @@ function renderArticleBanner(payload, loading = false, failed = false) {
     <div style="display:flex;align-items:center;justify-content:center;gap:12px;max-width:1180px;margin:0 auto;">
       <strong style="color:${tone.accent};white-space:nowrap;font-size:12px;letter-spacing:0;">TruthShield</strong>
       <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.4;">${escapeHtml(displayText)}</span>
-      <span style="color:#a1a1aa;white-space:nowrap;font-size:12px;">${escapeHtml(statusText)}</span>
-      <button data-truthshield-open-panel type="button" style="border:1px solid rgba(103,232,249,.45);border-radius:6px;background:#67e8f9;color:#09090b;padding:7px 10px;font:700 12px system-ui;cursor:pointer;white-space:nowrap;">查看結果 / 補證據</button>
+      <span style="color:#a1a1aa;white-space:nowrap;font-size:12px;">${escapeHtml(statusText)} · 右鍵開啟 TruthShield</span>
       <button data-truthshield-close-banner type="button" aria-label="關閉 TruthShield 橫幅" style="border:1px solid rgba(255,255,255,.16);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 9px;font:700 12px system-ui;cursor:pointer;">×</button>
     </div>
   `

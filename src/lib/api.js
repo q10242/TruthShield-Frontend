@@ -352,15 +352,21 @@ export async function reportNewsDomain(payload) {
 }
 
 export async function reportUrlClassification(payload) {
+  const token = localStorage.getItem('truthshield_api_token')
+
   return request('/api/url-classification-reports', {
     method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: JSON.stringify(payload),
   })
 }
 
 export async function suggestTrustedSource(payload) {
+  const token = localStorage.getItem('truthshield_api_token')
+
   return request('/api/trusted-source-suggestions', {
     method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: JSON.stringify(payload),
   })
 }
