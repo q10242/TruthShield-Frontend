@@ -18,6 +18,7 @@ const labels = {
   pending_evidence_reports: '待審證據檢舉',
   open_abuse_events: '待處理濫用事件',
   pending_appeals: '待審申訴',
+  pending_user_data_requests: '待審資料請求',
   moderation_events_24h: '24 小時審核事件',
   extension_failures_24h: '24 小時插件失敗',
   audit_events_24h: '24 小時稽核事件',
@@ -43,7 +44,7 @@ const sections = [
   {
     title: '治理狀態',
     description: '待審、申訴、稽核與審核操作量。',
-    keys: ['pending_domain_reports', 'pending_evidence_reports', 'open_abuse_events', 'pending_appeals', 'moderation_events_24h', 'audit_events_24h'],
+    keys: ['pending_domain_reports', 'pending_evidence_reports', 'open_abuse_events', 'pending_appeals', 'pending_user_data_requests', 'moderation_events_24h', 'audit_events_24h'],
   },
   {
     title: '風險監控',
