@@ -5,6 +5,8 @@ const TOOLTIP_STATUS_CACHE_TTL_MS = 5 * 60 * 1000
 const TOOLTIP_STATUS_CACHE_MAX = 250
 const TELEMETRY_CACHE_TTL_MS = 5 * 60 * 1000
 const TELEMETRY_CACHE_MAX = 300
+const TELEMETRY_BATCH_MAX = 20
+const TELEMETRY_FLUSH_DELAY_MS = 5000
 let enableTooltip = true
 let enablePanel = true
 let enableReportButton = true
@@ -30,6 +32,8 @@ let tooltipBox = null
 const tooltipStatusCache = new Map()
 const tooltipStatusRequests = new Map()
 const telemetryCache = new Map()
+const telemetryQueue = []
+let telemetryFlushTimer = null
 let articleBanner = null
 let articleBannerUrl = ''
 const articleBannerStatusCache = new Map()
@@ -60,19 +64,61 @@ function reportExtensionEvent(eventType, success = true, metadata = {}) {
       return
     }
 
-    fetch(`${API_ORIGIN}/api/extension/events`, {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        domain: window.location.hostname,
-        event_type: eventType,
-        extension_version: extensionVersion(),
-        success,
-        metadata,
-      }),
-    }).catch(() => null)
+    telemetryQueue.push({
+      domain: window.location.hostname,
+      event_type: eventType,
+      extension_version: extensionVersion(),
+      success,
+      metadata,
+    })
+
+    if (telemetryQueue.length >= TELEMETRY_BATCH_MAX) {
+      flushExtensionTelemetry()
+      return
+    }
+
+    scheduleTelemetryFlush()
   } catch {
     // Telemetry must never break page behavior.
+  }
+}
+
+function scheduleTelemetryFlush() {
+  if (telemetryFlushTimer) {
+    return
+  }
+
+  telemetryFlushTimer = window.setTimeout(flushExtensionTelemetry, TELEMETRY_FLUSH_DELAY_MS)
+}
+
+function flushExtensionTelemetry() {
+  window.clearTimeout(telemetryFlushTimer)
+  telemetryFlushTimer = null
+
+  if (telemetryQueue.length === 0) {
+    return
+  }
+
+  const events = telemetryQueue.splice(0, TELEMETRY_BATCH_MAX)
+  const payload = JSON.stringify({ events })
+  const url = `${API_ORIGIN}/api/extension/events/batch`
+
+  try {
+    if (navigator.sendBeacon) {
+      const blob = new Blob([payload], { type: 'application/json' })
+      if (navigator.sendBeacon(url, blob)) {
+        return
+      }
+    }
+
+    fetch(url, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: payload,
+      keepalive: true,
+    }).catch(() => null)
+  } catch {
+    // Dropping telemetry is acceptable; page behavior is more important.
   }
 }
 
@@ -333,14 +379,15 @@ async function showTooltip(anchor) {
   activeAnchor = anchor
 
   const box = ensureTooltipBox()
-  const cached = getTooltipStatusCache(anchor.href)
+  const statusUrl = canonicalStatusUrl(anchor.href)
+  const cached = getTooltipStatusCache(statusUrl)
   renderTooltip(cached?.payload || null, !cached, cached?.state === 'failed')
   box.style.display = 'block'
   positionTooltip(anchor)
   reportExtensionEvent('tooltip_shown', true, { href_host: new URL(anchor.href).hostname, mode: 'inline_dom' })
 
   try {
-    const payload = await fetchTooltipStatus(anchor.href)
+    const payload = await fetchTooltipStatus(statusUrl)
     if (activeAnchor === anchor) renderTooltip(payload)
   } catch {
     if (activeAnchor === anchor) renderTooltip(null, false, true)
@@ -402,6 +449,33 @@ function setTooltipStatusCache(url, value) {
   const oldestKey = tooltipStatusCache.keys().next().value
   if (oldestKey) {
     tooltipStatusCache.delete(oldestKey)
+  }
+}
+
+function canonicalStatusUrl(value) {
+  try {
+    const url = new URL(value, window.location.href)
+    url.hash = ''
+
+    for (const key of [...url.searchParams.keys()]) {
+      const normalizedKey = key.toLowerCase()
+      if (
+        normalizedKey.startsWith('utm_') ||
+        ['fbclid', 'gclid', 'dclid', 'mc_cid', 'mc_eid', 'igshid', 'ref', 'ref_src', 'spm'].includes(normalizedKey)
+      ) {
+        url.searchParams.delete(key)
+      }
+    }
+
+    const sortedParams = [...url.searchParams.entries()].sort(([a], [b]) => a.localeCompare(b))
+    url.search = ''
+    for (const [key, itemValue] of sortedParams) {
+      url.searchParams.append(key, itemValue)
+    }
+
+    return url.toString()
+  } catch {
+    return value
   }
 }
 
@@ -508,7 +582,8 @@ function renderArticleBanner(payload, loading = false, failed = false) {
 }
 
 function renderArticleBannerFromCache(url) {
-  const cached = articleBannerStatusCache.get(url)
+  const cacheKey = canonicalStatusUrl(url)
+  const cached = articleBannerStatusCache.get(cacheKey)
 
   if (cached?.state === 'success') {
     renderArticleBanner(cached.payload)
@@ -524,24 +599,26 @@ function renderArticleBannerFromCache(url) {
 }
 
 function loadArticleBannerStatusOnce(url) {
-  if (articleBannerStatusCache.has(url) || articleBannerStatusRequests.has(url)) {
+  const cacheKey = canonicalStatusUrl(url)
+
+  if (articleBannerStatusCache.has(cacheKey) || articleBannerStatusRequests.has(cacheKey)) {
     return
   }
 
-  const request = fetchStatus(url)
+  const request = fetchStatus(cacheKey)
     .then((payload) => {
-      articleBannerStatusCache.set(url, { state: 'success', payload })
+      articleBannerStatusCache.set(cacheKey, { state: 'success', payload })
       if (articleBannerUrl === url) renderArticleBanner(payload)
     })
     .catch(() => {
-      articleBannerStatusCache.set(url, { state: 'failed' })
+      articleBannerStatusCache.set(cacheKey, { state: 'failed' })
       if (articleBannerUrl === url) renderArticleBanner(null, false, true)
     })
     .finally(() => {
-      articleBannerStatusRequests.delete(url)
+      articleBannerStatusRequests.delete(cacheKey)
     })
 
-  articleBannerStatusRequests.set(url, request)
+  articleBannerStatusRequests.set(cacheKey, request)
 }
 
 function ensureVotePanelFrame() {
@@ -795,6 +872,8 @@ window.addEventListener('scroll', () => {
     positionTooltip(activeAnchor)
   }
 })
+
+window.addEventListener('pagehide', flushExtensionTelemetry)
 
 window.addEventListener('message', (event) => {
   if (event.origin !== TOOLTIP_ORIGIN) {
