@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 520" role="img" aria-label="TruthShield community verification network">
+  <rect width="720" height="520" rx="28" fill="#0f172a"/>
+  <path d="M64 82h592v356H64z" fill="#09090b" stroke="#334155" stroke-width="2"/>
+  <path d="M64 82h592v54H64z" fill="#111827"/>
+  <circle cx="98" cy="109" r="7" fill="#f43f5e"/>
+  <circle cx="122" cy="109" r="7" fill="#f59e0b"/>
+  <circle cx="146" cy="109" r="7" fill="#34d399"/>
+  <path d="M190 105h214" stroke="#475569" stroke-width="10" stroke-linecap="round"/>
+  <path d="M100 176h220M100 209h184M100 242h238" stroke="#e4e4e7" stroke-opacity=".72" stroke-width="12" stroke-linecap="round"/>
+  <path d="M100 285h196M100 315h230M100 345h172" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <rect x="390" y="170" width="218" height="132" rx="14" fill="#18181b" stroke="#f43f5e" stroke-opacity=".55" stroke-width="2"/>
+  <path d="M416 199h128M416 227h166M416 255h116" stroke="#fecdd3" stroke-width="9" stroke-linecap="round"/>
+  <path d="M413 279h72" stroke="#f43f5e" stroke-width="8" stroke-linecap="round"/>
+  <rect x="388" y="326" width="220" height="74" rx="14" fill="#0f2a20" stroke="#34d399" stroke-opacity=".5" stroke-width="2"/>
+  <path d="M416 352h118M416 375h154" stroke="#bbf7d0" stroke-width="8" stroke-linecap="round"/>
+  <path d="M352 143 487 260M352 143 497 363M352 143 216 286" stroke="#67e8f9" stroke-opacity=".35" stroke-width="2"/>
+  <g fill="#67e8f9">
+    <circle cx="352" cy="143" r="7"/>
+    <circle cx="487" cy="260" r="6"/>
+    <circle cx="497" cy="363" r="6"/>
+    <circle cx="216" cy="286" r="6"/>
+  </g>
+  <g transform="translate(290 318)">
+    <path d="M70 0 126 20v44c0 38-21 65.4-56 81-35-15.6-56-43-56-81V20z" fill="#111827" stroke="#67e8f9" stroke-width="5"/>
+    <path d="M39 70 59 90l43-49" fill="none" stroke="#34d399" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M35 29h70" stroke="#f43f5e" stroke-width="7" stroke-linecap="round"/>
+  </g>
+</svg>

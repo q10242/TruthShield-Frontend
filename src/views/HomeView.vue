@@ -10,11 +10,11 @@ const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
 const { t } = useI18n()
 
 const primaryLinks = computed(() => [
-  { to: '/local-news-demo', label: t('common.localNewsDemo'), description: t('home.localNewsDemoDesc') },
-  { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc') },
-  { to: '/ranking', label: t('common.ranking'), description: t('home.rankingDesc') },
-  { to: '/transparency', label: t('common.transparency'), description: t('home.transparencyDesc') },
-  { to: '/donate', label: t('common.donate'), description: t('home.donateDesc') },
+  { to: '/local-news-demo', label: t('common.localNewsDemo'), description: t('home.localNewsDemoDesc'), mark: '01' },
+  { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc'), mark: '02' },
+  { to: '/ranking', label: t('common.ranking'), description: t('home.rankingDesc'), mark: '03' },
+  { to: '/transparency', label: t('common.transparency'), description: t('home.transparencyDesc'), mark: '04' },
+  { to: '/donate', label: t('common.donate'), description: t('home.donateDesc'), mark: '05' },
 ])
 
 const authLabel = computed(() => token.value ? (user.value?.name || t('common.profile')) : t('common.signIn'))
@@ -69,7 +69,13 @@ const pledges = computed(() => [
   <main class="min-h-screen bg-zinc-950 text-zinc-100">
     <section class="mx-auto max-w-6xl px-6 py-8">
       <nav class="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
-        <RouterLink class="text-sm font-semibold tracking-wide text-white" to="/">TruthShield</RouterLink>
+        <RouterLink class="flex items-center gap-3 text-sm font-semibold text-white" to="/" aria-label="TruthShield">
+          <img class="h-10 w-10" src="/brand/truthshield-mark.svg" alt="" />
+          <span class="leading-tight">
+            <span class="block text-base font-semibold text-white">TruthShield</span>
+            <span class="block text-xs font-medium text-zinc-500">真相護盾</span>
+          </span>
+        </RouterLink>
         <div class="flex flex-wrap items-center gap-2">
           <RouterLink
             v-for="link in secondaryLinks.slice(0, 5)"
@@ -91,10 +97,10 @@ const pledges = computed(() => [
         </div>
       </nav>
 
-      <div class="grid gap-8 py-10 lg:grid-cols-[minmax(0,1fr)_390px]">
+      <div class="grid gap-8 py-10 lg:grid-cols-[minmax(0,1fr)_430px]">
         <section class="space-y-6">
           <div>
-            <p class="text-sm font-semibold text-cyan-300">{{ t('home.missionEyebrow') }}</p>
+            <p class="inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-sm font-semibold text-cyan-100">{{ t('home.missionEyebrow') }}</p>
             <h1 class="mt-3 max-w-3xl text-4xl font-semibold leading-tight text-white md:text-5xl">{{ t('home.missionTitle') }}</h1>
             <p class="mt-4 max-w-2xl text-base leading-7 text-zinc-300">
               {{ t('home.missionLead') }}
@@ -122,12 +128,13 @@ const pledges = computed(() => [
           </div>
         </section>
 
-        <aside class="rounded-lg border border-cyan-300/20 bg-zinc-900 p-5 shadow-2xl shadow-cyan-950/40">
-          <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <aside class="overflow-hidden rounded-lg border border-cyan-300/20 bg-zinc-900 shadow-2xl shadow-cyan-950/40">
+          <img class="w-full border-b border-white/10 bg-zinc-950" src="/brand/mission-network.svg" :alt="t('home.heroVisualAlt')" />
+          <div class="flex items-center justify-between border-b border-white/10 p-5 pb-4">
             <span class="text-sm font-semibold text-white">{{ t('home.articleStatus') }}</span>
             <span class="rounded bg-red-500/20 px-2 py-1 text-xs font-semibold text-red-100">{{ t('home.tagExample') }}</span>
           </div>
-          <div class="space-y-4 pt-5">
+          <div class="space-y-4 p-5 pt-5">
             <div class="rounded-md border border-red-300/30 bg-red-500/10 p-4">
               <p class="text-sm font-semibold text-red-100">{{ t('home.warningExample') }}</p>
               <p class="mt-2 text-xs text-red-100/75">{{ t('home.evidenceHint') }}</p>
@@ -196,10 +203,13 @@ const pledges = computed(() => [
             :to="link.to"
           >
             <div class="flex items-center justify-between gap-4">
-              <h3 class="text-base font-semibold text-white">{{ link.label }}</h3>
+              <span class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-cyan-300/20 bg-cyan-300/10 text-xs font-semibold text-cyan-100">{{ link.mark }}</span>
               <span class="text-lg text-cyan-200">→</span>
             </div>
-            <p class="mt-3 text-sm leading-6 text-zinc-400 group-hover:text-zinc-300">{{ link.description }}</p>
+            <div class="mt-4">
+              <h3 class="text-base font-semibold text-white">{{ link.label }}</h3>
+              <p class="mt-3 text-sm leading-6 text-zinc-400 group-hover:text-zinc-300">{{ link.description }}</p>
+            </div>
           </RouterLink>
         </div>
       </section>

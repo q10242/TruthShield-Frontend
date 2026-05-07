@@ -93,6 +93,7 @@ export const messages = {
       pledgeCommunityDesc: '好的證據與逆風正確判斷會提升信用，讓專業投入累積成公共資產。',
       toolsEyebrow: '現在就能使用',
       toolsTitle: '把使命變成行動',
+      heroVisualAlt: 'TruthShield 社群查證網路示意圖',
     },
     auth: {
       title: '登入後參與加權查證',
@@ -620,6 +621,7 @@ export const messages = {
       pledgeCommunityDesc: 'Strong evidence and correct contrarian judgment can raise trust, turning expertise into public value.',
       toolsEyebrow: 'Ready to use now',
       toolsTitle: 'Turn the mission into action',
+      heroVisualAlt: 'TruthShield community verification network illustration',
     },
     auth: {
       title: 'Sign in to join weighted fact-checking',
