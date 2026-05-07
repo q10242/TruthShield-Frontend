@@ -129,8 +129,8 @@ onMounted(load)
               <p class="mt-2 text-sm leading-6 text-zinc-400">{{ task.description }}</p>
               <p class="mt-2 break-all text-xs text-zinc-600">{{ task.subject_key }}</p>
             </div>
-            <RouterLink v-if="task.action_url?.startsWith('/')" class="rounded-md border border-cyan-300/40 px-3 py-2 text-sm font-semibold text-cyan-100" :to="task.action_url">
-              {{ t('communityTasks.openAction') }}
+            <RouterLink class="rounded-md border border-cyan-300/40 px-3 py-2 text-sm font-semibold text-cyan-100" :to="`/community-tasks/${task.id}`">
+              {{ t('communityTasks.openDetail') }}
             </RouterLink>
           </div>
           <div v-if="metricRows(task.metrics).length" class="mt-4 grid gap-2 sm:grid-cols-4">

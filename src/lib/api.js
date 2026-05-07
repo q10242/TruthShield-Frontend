@@ -249,6 +249,22 @@ export async function fetchCommunityTaskStats() {
   })
 }
 
+export async function fetchCommunityTask(id) {
+  return request(`/api/community/tasks/${encodeURIComponent(id)}`, {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
+export async function sendCommunityTaskSignal(token, id, payload) {
+  return request(`/api/community/tasks/${encodeURIComponent(id)}/signal`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function fetchApiDocs() {
   return request('/api/docs', {
     headers: { 'Content-Type': undefined },

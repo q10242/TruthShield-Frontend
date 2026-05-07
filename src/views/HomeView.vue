@@ -1,12 +1,14 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { fetchCommunityTaskStats } from '../lib/api'
 import { useI18n } from '../i18n'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
+const communityStats = ref(null)
 const { t } = useI18n()
 
 const primaryLinks = computed(() => [
@@ -65,6 +67,16 @@ const pledges = computed(() => [
   { title: t('home.pledgeTransparentTitle'), description: t('home.pledgeTransparentDesc') },
   { title: t('home.pledgeCommunityTitle'), description: t('home.pledgeCommunityDesc') },
 ])
+
+const communityCards = computed(() => [
+  { value: communityStats.value?.open_tasks ?? 0, label: t('communityTasks.openTasks') },
+  { value: communityStats.value?.escalated_tasks ?? 0, label: t('communityTasks.escalatedTasks') },
+  { value: communityStats.value?.authenticated_signals ?? 0, label: t('communityTasks.authSignals') },
+])
+
+onMounted(async () => {
+  communityStats.value = await fetchCommunityTaskStats().catch(() => null)
+})
 </script>
 
 <template>
@@ -161,6 +173,25 @@ const pledges = computed(() => [
           </div>
         </aside>
       </div>
+
+      <section class="border-t border-white/10 py-8">
+        <div class="grid gap-5 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div>
+            <p class="text-sm font-semibold text-cyan-300">{{ t('communityTasks.eyebrow') }}</p>
+            <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.communityMissionTitle') }}</h2>
+            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('home.communityMissionDesc') }}</p>
+            <RouterLink class="mt-4 inline-flex rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" to="/community-tasks">
+              {{ t('common.communityTasks') }}
+            </RouterLink>
+          </div>
+          <div class="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+            <div v-for="card in communityCards" :key="card.label" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+              <p class="text-xs text-zinc-500">{{ card.label }}</p>
+              <p class="mt-1 text-2xl font-semibold text-white">{{ card.value }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section class="border-t border-white/10 py-8">
         <div class="max-w-2xl">

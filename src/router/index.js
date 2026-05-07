@@ -31,6 +31,7 @@ import DataRequestView from '../views/DataRequestView.vue'
 import VisionReadinessView from '../views/VisionReadinessView.vue'
 import LocalQaChecklistView from '../views/LocalQaChecklistView.vue'
 import CommunityTasksView from '../views/CommunityTasksView.vue'
+import CommunityTaskDetailView from '../views/CommunityTaskDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -57,6 +58,7 @@ const router = createRouter({
     { path: '/local-news-demo', name: 'local-news-demo', component: LocalNewsDemoView },
     { path: '/local-qa-checklist', name: 'local-qa-checklist', component: LocalQaChecklistView },
     { path: '/community-tasks', name: 'community-tasks', component: CommunityTasksView },
+    { path: '/community-tasks/:id', name: 'community-task-detail', component: CommunityTaskDetailView },
     { path: '/donate', name: 'donate', component: DonateView },
     { path: '/donate/return', name: 'donate-return', component: DonateView },
     { path: '/privacy', name: 'privacy', component: PrivacyView },

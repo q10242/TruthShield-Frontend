@@ -22,7 +22,7 @@ const sections = [
   {
     titleKey: 'transparency.communityAutomation',
     descriptionKey: 'transparency.communityAutomationDesc',
-    keys: ['community_open_tasks', 'community_escalated_tasks', 'community_resolved_tasks', 'community_signals', 'community_authenticated_signals', 'community_demoted_evidence'],
+    keys: ['community_open_tasks', 'community_escalated_tasks', 'community_resolved_tasks', 'community_signals', 'community_authenticated_signals', 'community_demoted_evidence', 'community_signal_abuse_events'],
   },
   {
     titleKey: 'transparency.riskMonitoring',
