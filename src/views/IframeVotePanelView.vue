@@ -267,7 +267,7 @@ async function submitVote() {
   }
 
   if (selectedTag.value?.requires_evidence && !evidenceUrl.value.trim()) {
-    voteError.value = '此標籤需要截圖或相關新聞連結。'
+    voteError.value = '此標籤需要截圖、雲端硬碟圖片或相關新聞連結。'
     notifyHeight()
     return
   }
@@ -365,6 +365,10 @@ async function react(item, helpful) {
 }
 
 function evidencePreviewUrl(item) {
+  if (item.evidence_type === 'cloud_drive') {
+    return ''
+  }
+
   if (item.preview_url) return item.preview_url
   if (item.evidence_type !== 'image') return ''
 
@@ -512,12 +516,12 @@ onMounted(async () => {
         </div>
 
         <label class="block text-xs text-zinc-400">
-          截圖或相關新聞連結
+          截圖、雲端硬碟圖片或相關新聞連結
           <input
             v-model="evidenceUrl"
             class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
             :disabled="!isVotingOpen"
-            :placeholder="selectedTag?.requires_evidence ? '必填：Imgur 圖片或澄清報導 URL' : '可選填'"
+            :placeholder="selectedTag?.requires_evidence ? '必填：Google Drive、Dropbox、OneDrive、Imgur 或澄清報導 URL' : '可選填'"
           />
         </label>
 
@@ -558,14 +562,14 @@ onMounted(async () => {
         <p v-if="reportMessage" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs text-emerald-100">{{ reportMessage }}</p>
 
         <div v-if="evidence.length === 0" class="rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm text-zinc-400">
-          尚無證據。負面投票會要求提供截圖或澄清連結。
+          尚無證據。負面投票會要求提供截圖、雲端硬碟圖片或澄清連結。
         </div>
 
         <article v-for="item in evidence" :key="item.id" class="space-y-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
           <div class="flex items-center justify-between gap-2">
             <span class="rounded bg-white/10 px-2 py-1 text-[11px] font-semibold text-zinc-200">{{ item.tag.name }}</span>
             <span class="text-[11px]" :class="item.is_trusted_evidence ? 'text-emerald-300' : 'text-zinc-500'">
-              {{ item.is_trusted_evidence ? '可信來源' : '未驗證來源' }} · 淨權重 {{ Number(item.net_helpful_weight).toFixed(2) }}
+              {{ item.evidence_type === 'cloud_drive' ? '雲端硬碟' : item.is_trusted_evidence ? '可信來源' : '未驗證來源' }} · 淨權重 {{ Number(item.net_helpful_weight).toFixed(2) }}
             </span>
           </div>
 
