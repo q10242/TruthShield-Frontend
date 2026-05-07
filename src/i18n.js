@@ -1974,7 +1974,11 @@ export const messages = {
 }
 
 const browserLocale = typeof navigator === 'undefined' ? DEFAULT_LOCALE : navigator.language
+const queryLocale = typeof window === 'undefined'
+  ? ''
+  : new URLSearchParams(window.location.search).get('locale') || ''
 const initialLocale = localStorage.getItem(STORAGE_KEY)
+  || (messages[queryLocale] ? queryLocale : '')
   || (browserLocale.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en')
 
 const state = reactive({

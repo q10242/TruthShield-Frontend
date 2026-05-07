@@ -916,6 +916,7 @@ function openVotePanelModal(targetUrl = window.location.href) {
   const panelUrl = new URL('/iframe-vote-panel', TOOLTIP_ORIGIN)
   panelUrl.searchParams.set('news_url', targetUrl)
   panelUrl.searchParams.set('expanded', '1')
+  panelUrl.searchParams.set('locale', contentLocale)
   if (targetUrl === window.location.href) {
     panelUrl.searchParams.set('title_snapshot', document.title || '')
     const canonical = document.querySelector('link[rel="canonical"]')?.href || ''
@@ -1056,6 +1057,7 @@ function ensureReportButton() {
     const reportUrl = new URL('/report-domain', TOOLTIP_ORIGIN)
     reportUrl.searchParams.set('url', window.location.href)
     reportUrl.searchParams.set('page_title', document.title || '')
+    reportUrl.searchParams.set('locale', contentLocale)
     const youtubeChannelUrl = currentYoutubeChannelUrl()
     if (youtubeChannelUrl) {
       reportUrl.searchParams.set('youtube_channel_url', youtubeChannelUrl)

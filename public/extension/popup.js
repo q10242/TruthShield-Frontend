@@ -21,9 +21,13 @@ function setStatus(message, danger = false) {
 
 function truthUrl(path, params = {}) {
   const url = new URL(path, state.settings.tooltipOrigin)
+  const locale = state.settings.locale === 'zh-TW' || state.settings.locale === 'en'
+    ? state.settings.locale
+    : ''
   Object.entries(params).forEach(([key, value]) => {
     if (value) url.searchParams.set(key, value)
   })
+  if (locale) url.searchParams.set('locale', locale)
 
   return url.toString()
 }

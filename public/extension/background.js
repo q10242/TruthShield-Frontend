@@ -103,6 +103,7 @@ async function openStatus(url) {
   const settings = await getSettings()
   const target = new URL('/iframe-tooltip', settings.tooltipOrigin)
   target.searchParams.set('news_url', url)
+  if (settings.locale === 'zh-TW' || settings.locale === 'en') target.searchParams.set('locale', settings.locale)
   openTruthShieldWindow(target.toString(), 420, 260)
 }
 
@@ -122,6 +123,7 @@ async function openVote(url, tab = null) {
   const target = new URL('/iframe-vote-panel', settings.tooltipOrigin)
   target.searchParams.set('news_url', url)
   target.searchParams.set('expanded', '1')
+  if (settings.locale === 'zh-TW' || settings.locale === 'en') target.searchParams.set('locale', settings.locale)
   openTruthShieldWindow(target.toString(), 460, 720)
 }
 
@@ -130,6 +132,7 @@ async function openReport(url, title = '') {
   const target = new URL('/report-domain', settings.tooltipOrigin)
   target.searchParams.set('url', url)
   target.searchParams.set('page_title', title)
+  if (settings.locale === 'zh-TW' || settings.locale === 'en') target.searchParams.set('locale', settings.locale)
   openTruthShieldWindow(target.toString(), 540, 760)
 }
 
