@@ -17,6 +17,11 @@
           <p class="mt-2 text-sm leading-6 text-zinc-400">公開頁只揭露操作類型、原因、狀態與時間，不洩漏私人資料。</p>
         </div>
       </div>
+      <div class="mt-6 flex flex-wrap gap-2">
+        <RouterLink class="rounded-md border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100" to="/transparency">透明儀表板</RouterLink>
+        <RouterLink class="rounded-md border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100" to="/moderation-events">公開審核紀錄</RouterLink>
+        <RouterLink class="rounded-md border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100" to="/appeals">提出申訴</RouterLink>
+      </div>
     </section>
   </main>
 </template>
