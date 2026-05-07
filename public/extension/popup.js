@@ -82,6 +82,13 @@ function bindActions() {
   byId('openReport').addEventListener('click', () => openWindow(truthUrl('/report-domain', { url: currentUrl(), page_title: currentTitle() }), 540, 760))
   byId('openReadiness').addEventListener('click', () => openTab(truthUrl('/vision-readiness')))
   byId('openHealth').addEventListener('click', () => openTab(truthUrl('/health')))
+  byId('openBugReport').addEventListener('click', () => openWindow(truthUrl('/bug-report', {
+    url: currentUrl(),
+    title: currentTitle(),
+    report_type: 'extension',
+    source: 'extension_popup',
+    extension_version: chrome.runtime.getManifest().version,
+  }), 560, 820))
   byId('openInstall').addEventListener('click', () => openTab(truthUrl('/extension-install')))
 }
 

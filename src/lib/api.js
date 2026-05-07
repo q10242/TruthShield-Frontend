@@ -604,3 +604,13 @@ export async function createUserDataRequest(payload) {
     body: JSON.stringify(withChallengePayload(payload)),
   })
 }
+
+export async function createBugReport(payload) {
+  const token = localStorage.getItem('truthshield_api_token')
+
+  return request('/api/bug-reports', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: JSON.stringify(withChallengePayload(payload)),
+  })
+}
