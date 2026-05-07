@@ -470,3 +470,9 @@ export async function fetchDonationMonthly() {
 
   return payload.data || []
 }
+
+export async function fetchDonationConfig() {
+  return request('/api/donations/config', {
+    headers: { 'Content-Type': undefined },
+  })
+}

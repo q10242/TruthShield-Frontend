@@ -1,10 +1,10 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { createDonation, fetchDonation, fetchDonationMonthly, fetchDonationSummary, fetchDonationSupporters } from '../lib/api'
+import { createDonation, fetchDonation, fetchDonationConfig, fetchDonationMonthly, fetchDonationSummary, fetchDonationSupporters } from '../lib/api'
 
 const route = useRoute()
-const amounts = [100, 300, 500, 1000, 2000, 5000]
+const amounts = ref([100, 300, 500, 1000, 2000, 5000])
 const impactItems = [
   { label: '伺服器與 Redis 快取', percentage: 45 },
   { label: '資料庫備份與監控', percentage: 25 },
@@ -25,7 +25,7 @@ const returnLoading = ref(false)
 const summary = ref(null)
 const supporters = ref([])
 const monthly = ref([])
-const monthlyGoal = 15000
+const monthlyGoal = ref(15000)
 const isReturn = computed(() => route.path === '/donate/return')
 const tradeNo = computed(() => String(route.query.trade_no || ''))
 
@@ -89,6 +89,10 @@ onMounted(async () => {
   }).catch(() => null)
   fetchDonationMonthly().then((payload) => {
     monthly.value = payload
+  }).catch(() => null)
+  fetchDonationConfig().then((payload) => {
+    amounts.value = payload.amounts?.length ? payload.amounts : amounts.value
+    monthlyGoal.value = payload.monthly_goal || monthlyGoal.value
   }).catch(() => null)
 
   if (!isReturn.value || !tradeNo.value) return
