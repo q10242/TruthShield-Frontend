@@ -9,6 +9,7 @@ const ruleKeys = [
   'oneVote',
   'evidenceFirst',
   'weightedTrust',
+  'antiManipulation',
   'rightOfReply',
   'appealable',
   'transparent',

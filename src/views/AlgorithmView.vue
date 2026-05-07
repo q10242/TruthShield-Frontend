@@ -50,6 +50,15 @@ const rules = computed(() => (payload.value?.rules || []).map((rule) => {
   }
 }))
 
+const antiManipulationPoints = computed(() => [
+  { title: t('algorithmDefense.weightedVotesTitle'), description: t('algorithmDefense.weightedVotesDesc') },
+  { title: t('algorithmDefense.readingGateTitle'), description: t('algorithmDefense.readingGateDesc') },
+  { title: t('algorithmDefense.oneEvidenceTitle'), description: t('algorithmDefense.oneEvidenceDesc') },
+  { title: t('algorithmDefense.coordinatedSignalsTitle'), description: t('algorithmDefense.coordinatedSignalsDesc') },
+  { title: t('algorithmDefense.freezeWindowTitle'), description: t('algorithmDefense.freezeWindowDesc') },
+  { title: t('algorithmDefense.transparentReviewTitle'), description: t('algorithmDefense.transparentReviewDesc') },
+])
+
 onMounted(async () => {
   payload.value = await fetchAlgorithm()
 })
@@ -92,6 +101,18 @@ onMounted(async () => {
             <h2 class="mt-2 text-lg font-semibold text-white">{{ rule.title }}</h2>
             <p class="mt-2 text-sm leading-6 text-zinc-400">{{ rule.description }}</p>
           </article>
+        </section>
+
+        <section class="rounded-lg border border-red-300/20 bg-red-500/[0.05] p-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-red-200">{{ t('algorithmDefense.eyebrow') }}</p>
+          <h2 class="mt-2 text-xl font-semibold text-white">{{ t('algorithmDefense.title') }}</h2>
+          <p class="mt-2 text-sm leading-6 text-zinc-300">{{ t('algorithmDefense.intro') }}</p>
+          <div class="mt-4 grid gap-3 md:grid-cols-2">
+            <article v-for="point in antiManipulationPoints" :key="point.title" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+              <h3 class="text-sm font-semibold text-white">{{ point.title }}</h3>
+              <p class="mt-2 text-xs leading-5 text-zinc-400">{{ point.description }}</p>
+            </article>
+          </div>
         </section>
 
         <div class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
