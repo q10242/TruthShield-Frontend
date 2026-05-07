@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { createDonation, fetchDonation } from '../lib/api'
+import { createDonation, fetchDonation, fetchDonationSummary } from '../lib/api'
 
 const route = useRoute()
 const amounts = [100, 300, 500, 1000, 2000, 5000]
@@ -16,6 +16,7 @@ const error = ref('')
 const checkout = ref(null)
 const donation = ref(null)
 const returnLoading = ref(false)
+const summary = ref(null)
 const isReturn = computed(() => route.path === '/donate/return')
 const tradeNo = computed(() => String(route.query.trade_no || ''))
 
@@ -57,6 +58,10 @@ async function submitDonation() {
 }
 
 onMounted(async () => {
+  fetchDonationSummary().then((payload) => {
+    summary.value = payload
+  }).catch(() => null)
+
   if (!isReturn.value || !tradeNo.value) return
 
   returnLoading.value = true
@@ -145,6 +150,16 @@ onMounted(async () => {
 
         <aside class="rounded-lg border border-cyan-300/20 bg-zinc-900 p-5">
           <h2 class="text-lg font-semibold text-white">捐款原則</h2>
+          <div v-if="summary" class="mt-4 grid grid-cols-2 gap-2 text-center text-sm">
+            <div class="rounded-md bg-white/[0.04] p-3">
+              <div class="font-semibold text-white">NT$ {{ summary.total_amount }}</div>
+              <div class="mt-1 text-xs text-zinc-500">累積支持</div>
+            </div>
+            <div class="rounded-md bg-white/[0.04] p-3">
+              <div class="font-semibold text-white">{{ summary.paid_count }}</div>
+              <div class="mt-1 text-xs text-zinc-500">完成筆數</div>
+            </div>
+          </div>
           <div class="mt-4 space-y-3 text-sm leading-6 text-zinc-400">
             <p>所有核心演算法與審核紀錄維持公開。</p>
             <p>付款由綠界處理，TruthShield 不保存信用卡號。</p>

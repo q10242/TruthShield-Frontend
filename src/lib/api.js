@@ -445,3 +445,9 @@ export async function fetchDonation(tradeNo) {
     headers: { 'Content-Type': undefined },
   })
 }
+
+export async function fetchDonationSummary() {
+  return request('/api/donations/summary', {
+    headers: { 'Content-Type': undefined },
+  })
+}
