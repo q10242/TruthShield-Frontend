@@ -54,7 +54,6 @@ onMounted(async () => {
         </RouterLink>
         <div class="flex flex-wrap gap-2">
           <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/transparency">{{ t('common.transparency') }}</RouterLink>
-          <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/launch-ops">{{ t('common.launchOps') }}</RouterLink>
         </div>
       </nav>
 

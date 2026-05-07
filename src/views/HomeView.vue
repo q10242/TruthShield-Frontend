@@ -37,7 +37,6 @@ const secondaryLinks = computed(() => [
   { to: '/extension-coverage', label: t('common.extensionCoverage') },
   { to: '/community-tasks', label: t('common.communityTasks') },
   { to: '/account-graph', label: t('common.accountGraph') },
-  { to: '/launch-ops', label: t('common.launchOps') },
   { to: '/vision-readiness', label: t('common.visionReadiness') },
   { to: '/donate', label: t('common.donate') },
   { to: '/algorithm', label: t('common.algorithm') },

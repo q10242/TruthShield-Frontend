@@ -1,11 +1,54 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchAlgorithm } from '../lib/api'
 import { useI18n } from '../i18n'
 
 const payload = ref(null)
-const { t } = useI18n()
+const { locale, t } = useI18n()
+
+const zhPrinciples = {
+  'TruthShield does not remove news articles.': 'TruthShield 不刪除新聞文章。',
+  'Votes are weighted by user trust score, identity multiplier, and abuse multiplier.': '投票會依使用者信用分、身份倍率與濫用風險倍率加權。',
+  'Evidence usefulness can affect future trust score.': '證據有用度會影響未來信用分。',
+  'Results are finalized after the voting window closes.': '投票窗口截止後，結果會定案並保存快照。',
+}
+
+const zhRules = {
+  voting_window: {
+    title: '72 小時定案窗口',
+    description: 'URL 首次收錄後 72 小時內開放加權投票與證據評分。截止後，結果會凍結成快照。',
+  },
+  vote_weight: {
+    title: '加權投票',
+    description: '票重由使用者信用分、身份倍率與濫用風險倍率計算。低信用或受限制帳號可被封頂。',
+  },
+  evidence_quality: {
+    title: '證據有用度',
+    description: '有用與沒幫助的證據評分會被加權。證據品質可影響後續信用結算。',
+  },
+  anti_abuse: {
+    title: '反操縱防線',
+    description: '協同投票、重複證據 URL、低閱讀秒數與新帳號爆量行為，都可能降低後續濫用風險倍率。',
+  },
+  article_snapshots: {
+    title: '不保存全文的新聞快照',
+    description: 'TruthShield 保存中繼資料、可用性與變更紀錄，讓被刪除或修改的新聞可稽核，同時不鏡像受版權保護全文。',
+  },
+}
+
+const principles = computed(() => (payload.value?.principles || []).map((item) => (
+  locale.value === 'zh-TW' ? zhPrinciples[item] || item : item
+)))
+
+const rules = computed(() => (payload.value?.rules || []).map((rule) => {
+  const localized = locale.value === 'zh-TW' ? zhRules[rule.key] : null
+  return {
+    ...rule,
+    title: localized?.title || rule.title,
+    description: localized?.description || rule.description,
+  }
+}))
 
 onMounted(async () => {
   payload.value = await fetchAlgorithm()
@@ -19,6 +62,7 @@ onMounted(async () => {
         <RouterLink class="text-sm font-semibold text-white" to="/">TruthShield</RouterLink>
       </nav>
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.algorithmTitle') }}</h1>
+      <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('remaining.algorithmIntro') }}</p>
       <div v-if="payload" class="mt-6 grid gap-4">
         <section class="grid gap-3 md:grid-cols-3">
           <div class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-4">
@@ -38,12 +82,12 @@ onMounted(async () => {
         <div class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <h2 class="font-semibold text-white">{{ t('remaining.principles') }}</h2>
           <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-            <li v-for="item in payload.principles" :key="item">{{ item }}</li>
+            <li v-for="item in principles" :key="item">{{ item }}</li>
           </ul>
         </div>
 
         <section class="grid gap-3 md:grid-cols-2">
-          <article v-for="rule in payload.rules || []" :key="rule.key" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <article v-for="rule in rules" :key="rule.key" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
             <p class="text-xs font-semibold text-cyan-300">{{ rule.key }}</p>
             <h2 class="mt-2 text-lg font-semibold text-white">{{ rule.title }}</h2>
             <p class="mt-2 text-sm leading-6 text-zinc-400">{{ rule.description }}</p>
