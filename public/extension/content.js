@@ -857,30 +857,30 @@ function openVotePanelModal() {
   votePanelUrl = window.location.href
   votePanelBackdrop = document.createElement('div')
   votePanelBackdrop.style.position = 'fixed'
-  votePanelBackdrop.style.inset = '0'
+  votePanelBackdrop.style.top = '72px'
+  votePanelBackdrop.style.right = '16px'
+  votePanelBackdrop.style.bottom = '16px'
+  votePanelBackdrop.style.left = 'auto'
   votePanelBackdrop.style.zIndex = '2147483647'
-  votePanelBackdrop.style.background = 'rgba(0, 0, 0, 0.42)'
+  votePanelBackdrop.style.background = 'transparent'
   votePanelBackdrop.style.display = 'flex'
   votePanelBackdrop.style.alignItems = 'flex-start'
-  votePanelBackdrop.style.justifyContent = 'center'
-  votePanelBackdrop.style.padding = '64px 14px 18px'
+  votePanelBackdrop.style.justifyContent = 'flex-end'
+  votePanelBackdrop.style.padding = '0'
   votePanelBackdrop.style.boxSizing = 'border-box'
   votePanelBackdrop.style.colorScheme = 'normal'
-  votePanelBackdrop.addEventListener('click', (event) => {
-    if (event.target === votePanelBackdrop) {
-      closeVotePanelModal()
-    }
-  })
+  votePanelBackdrop.style.pointerEvents = 'none'
 
   const shell = document.createElement('div')
   shell.style.position = 'relative'
-  shell.style.width = 'min(460px, calc(100vw - 28px))'
-  shell.style.maxHeight = 'calc(100vh - 82px)'
+  shell.style.width = 'min(420px, calc(100vw - 32px))'
+  shell.style.maxHeight = 'calc(100vh - 88px)'
   shell.style.border = '1px solid rgba(255, 255, 255, 0.14)'
   shell.style.borderRadius = '10px'
   shell.style.background = '#09090b'
   shell.style.boxShadow = '0 28px 80px rgba(0, 0, 0, 0.48)'
   shell.style.overflow = 'hidden'
+  shell.style.pointerEvents = 'auto'
 
   const closeButton = document.createElement('button')
   closeButton.type = 'button'
@@ -903,7 +903,7 @@ function openVotePanelModal() {
   votePanelFrame.title = t('votePanelTitle')
   votePanelFrame.style.width = '100%'
   votePanelFrame.style.height = '620px'
-  votePanelFrame.style.maxHeight = 'calc(100vh - 82px)'
+  votePanelFrame.style.maxHeight = 'calc(100vh - 88px)'
   votePanelFrame.style.border = '0'
   votePanelFrame.style.background = 'transparent'
   votePanelFrame.style.display = 'block'
@@ -924,7 +924,7 @@ function openVotePanelModal() {
   shell.append(closeButton, votePanelFrame)
   votePanelBackdrop.appendChild(shell)
   document.documentElement.appendChild(votePanelBackdrop)
-  reportExtensionEvent('vote_panel_opened', true, { mode: 'modal_from_banner' })
+  reportExtensionEvent('vote_panel_opened', true, { mode: 'side_panel_from_banner' })
   startArticleReadTimer()
 
   return votePanelFrame
@@ -1133,7 +1133,7 @@ window.addEventListener('message', (event) => {
 
   if (event.data?.type === 'TRUTH_SHIELD_VOTE_PANEL_RESIZE' && votePanelFrame) {
     const height = Number(event.data.height)
-    votePanelFrame.style.height = `${Math.max(300, Math.min(height, window.innerHeight - 82, 760))}px`
+    votePanelFrame.style.height = `${Math.max(300, Math.min(height, window.innerHeight - 88, 760))}px`
   }
 })
 
