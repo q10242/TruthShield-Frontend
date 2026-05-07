@@ -61,6 +61,22 @@ async function currentPageContext() {
   }
 }
 
+async function openVotePanel() {
+  if (state.tab?.id) {
+    try {
+      const response = await chrome.tabs.sendMessage(state.tab.id, { type: 'TRUTH_SHIELD_SHOW_VOTE_PANEL', url: currentUrl() })
+      if (response?.ok) {
+        window.close()
+        return
+      }
+    } catch {
+      // Fall through to popup for unsupported pages.
+    }
+  }
+
+  openWindow(truthUrl('/iframe-vote-panel', { news_url: currentUrl(), expanded: '1' }), 460, 720)
+}
+
 async function loadSummary() {
   byId('version').textContent = chrome.runtime.getManifest().version
   try {
@@ -91,7 +107,7 @@ function bindActions() {
   })
   byId('openDemo').addEventListener('click', () => openTab(truthUrl('/local-news-demo')))
   byId('openStatus').addEventListener('click', () => openWindow(truthUrl('/iframe-tooltip', { news_url: currentUrl() }), 420, 260))
-  byId('openVote').addEventListener('click', () => openWindow(truthUrl('/iframe-vote-panel', { news_url: currentUrl(), expanded: '1' }), 460, 720))
+  byId('openVote').addEventListener('click', openVotePanel)
   byId('openReport').addEventListener('click', async () => {
     const context = await currentPageContext()
     openWindow(truthUrl('/report-domain', {

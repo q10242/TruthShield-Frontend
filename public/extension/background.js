@@ -98,10 +98,22 @@ async function openStatus(url) {
   openTruthShieldWindow(target.toString(), 420, 260)
 }
 
-async function openVote(url) {
+async function openVote(url, tab = null) {
+  if (tab?.id) {
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, { type: 'TRUTH_SHIELD_SHOW_VOTE_PANEL', url })
+      if (response?.ok) {
+        return
+      }
+    } catch {
+      // Fall through to popup for pages where the content script is unavailable.
+    }
+  }
+
   const settings = await getSettings()
   const target = new URL('/iframe-vote-panel', settings.tooltipOrigin)
   target.searchParams.set('news_url', url)
+  target.searchParams.set('expanded', '1')
   openTruthShieldWindow(target.toString(), 460, 720)
 }
 
@@ -127,7 +139,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 
   if (info.menuItemId === 'truthshield-link-vote' || info.menuItemId === 'truthshield-page-vote') {
-    openVote(url)
+    openVote(url, tab)
     return
   }
 

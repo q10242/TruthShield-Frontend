@@ -843,18 +843,18 @@ function loadArticleBannerStatusOnce(url) {
   articleBannerStatusRequests.set(cacheKey, request)
 }
 
-function ensureVotePanelFrame() {
-  return openVotePanelModal()
+function ensureVotePanelFrame(url = window.location.href) {
+  return openVotePanelModal(url)
 }
 
-function openVotePanelModal() {
-  if (votePanelBackdrop && document.body.contains(votePanelBackdrop) && votePanelUrl === window.location.href) {
+function openVotePanelModal(targetUrl = window.location.href) {
+  if (votePanelBackdrop && document.body.contains(votePanelBackdrop) && votePanelUrl === targetUrl) {
     return votePanelFrame
   }
 
   closeVotePanelModal()
 
-  votePanelUrl = window.location.href
+  votePanelUrl = targetUrl
   votePanelBackdrop = document.createElement('div')
   votePanelBackdrop.style.position = 'fixed'
   votePanelBackdrop.style.top = '72px'
@@ -910,15 +910,17 @@ function openVotePanelModal() {
   votePanelFrame.style.colorScheme = 'normal'
 
   const panelUrl = new URL('/iframe-vote-panel', TOOLTIP_ORIGIN)
-  panelUrl.searchParams.set('news_url', window.location.href)
+  panelUrl.searchParams.set('news_url', targetUrl)
   panelUrl.searchParams.set('expanded', '1')
-  panelUrl.searchParams.set('title_snapshot', document.title || '')
-  const canonical = document.querySelector('link[rel="canonical"]')?.href || ''
-  if (canonical) panelUrl.searchParams.set('canonical_url', canonical)
-  const description = document.querySelector('meta[name="description"]')?.content || document.querySelector('meta[property="og:description"]')?.content || ''
-  if (description) panelUrl.searchParams.set('description', description.slice(0, 500))
-  const imageUrl = document.querySelector('meta[property="og:image"]')?.content || ''
-  if (imageUrl) panelUrl.searchParams.set('image_url', imageUrl)
+  if (targetUrl === window.location.href) {
+    panelUrl.searchParams.set('title_snapshot', document.title || '')
+    const canonical = document.querySelector('link[rel="canonical"]')?.href || ''
+    if (canonical) panelUrl.searchParams.set('canonical_url', canonical)
+    const description = document.querySelector('meta[name="description"]')?.content || document.querySelector('meta[property="og:description"]')?.content || ''
+    if (description) panelUrl.searchParams.set('description', description.slice(0, 500))
+    const imageUrl = document.querySelector('meta[property="og:image"]')?.content || ''
+    if (imageUrl) panelUrl.searchParams.set('image_url', imageUrl)
+  }
   votePanelFrame.src = panelUrl.toString()
 
   shell.append(closeButton, votePanelFrame)
@@ -1139,7 +1141,7 @@ window.addEventListener('message', (event) => {
 
 chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'TRUTH_SHIELD_SHOW_VOTE_PANEL') {
-    ensureVotePanelFrame()
+    ensureVotePanelFrame(message.url || window.location.href)
     startArticleReadTimer()
     sendResponse({ ok: true })
     return true
