@@ -13,11 +13,13 @@ import {
   reactToEvidence,
   reportEvidence,
 } from '../lib/api'
+import { useI18n } from '../i18n'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
 
 const route = useRoute()
+const { locale, t } = useI18n()
 const collapsed = ref(route.query.expanded !== '1')
 const activeTab = ref('results')
 const loading = ref(true)
@@ -44,11 +46,11 @@ const readSeconds = ref(0)
 const readMinimum = ref(15)
 const readSynced = ref(false)
 const readTimer = ref(null)
-const tabSteps = [
-  { key: 'results', number: 1, label: '看結果' },
-  { key: 'vote', number: 2, label: '投票' },
-  { key: 'evidence', number: 3, label: '查證據' },
-]
+const tabSteps = computed(() => [
+  { key: 'results', number: 1, label: t('votePanel.tabs.results') },
+  { key: 'vote', number: 2, label: t('votePanel.tabs.vote') },
+  { key: 'evidence', number: 3, label: t('votePanel.tabs.evidence') },
+])
 
 const newsUrl = computed(() => route.query.news_url || '')
 const selectedTag = computed(() => tags.value.find((tag) => tag.id === selectedTagId.value))
@@ -77,29 +79,29 @@ const isClosingSoon = computed(() => {
   return remaining > 0 && remaining <= 6 * 60 * 60 * 1000
 })
 const statusNote = computed(() => {
-  if (status.value?.finalized_at) return `加權結果已於 ${finalizedText.value} 定案`
-  if (!isVotingOpen.value) return '投票與證據評分已截止，正在讀取定案結果'
-  if (isClosingSoon.value && deadlineText.value) return `即將截止：每人限一則，可修改到 ${deadlineText.value}`
-  if (deadlineText.value) return `每人限一則，可在截止前修改；截止時間 ${deadlineText.value}`
+  if (status.value?.finalized_at) return t('votePanel.finalizedNote', { time: finalizedText.value })
+  if (!isVotingOpen.value) return t('votePanel.closedFinalizing')
+  if (isClosingSoon.value && deadlineText.value) return t('votePanel.closingSoon', { time: deadlineText.value })
+  if (deadlineText.value) return t('votePanel.editableUntil', { time: deadlineText.value })
 
-  return '每人限一則，可在截止前修改'
+  return t('votePanel.editable')
 })
 const nextActionText = computed(() => {
-  if (!isVotingOpen.value) return '結果已定案'
-  if (!isLoggedIn.value) return '登入後可投票與評分證據'
-  if (!hasReadEnough.value) return `再閱讀 ${Math.max(0, readMinimum.value - readSeconds.value)} 秒即可投票`
-  if (myVote.value) return '可更新你的投票與證據'
+  if (!isVotingOpen.value) return t('votePanel.resultFinalized')
+  if (!isLoggedIn.value) return t('votePanel.loginToVote')
+  if (!hasReadEnough.value) return t('votePanel.readMore', { seconds: Math.max(0, readMinimum.value - readSeconds.value) })
+  if (myVote.value) return t('votePanel.updateVote')
 
-  return '可送出你的第一筆投票'
+  return t('votePanel.firstVote')
 })
 const statusBadgeText = computed(() => {
-  if (status.value?.finalized_at) return '已定案'
-  if (!isVotingOpen.value) return '已截止'
-  if (isClosingSoon.value) return '即將截止'
+  if (status.value?.finalized_at) return t('votePanel.finalized')
+  if (!isVotingOpen.value) return t('votePanel.closed')
+  if (isClosingSoon.value) return t('votePanel.closing')
 
-  return '開放中'
+  return t('votePanel.open')
 })
-const activeStepNumber = computed(() => tabSteps.find((step) => step.key === activeTab.value)?.number || 1)
+const activeStepNumber = computed(() => tabSteps.value.find((step) => step.key === activeTab.value)?.number || 1)
 
 const toneClass = computed(() => {
   const tone = status.value?.tone
@@ -137,7 +139,7 @@ function formatDateTime(value) {
   if (!value) return ''
 
   try {
-    return new Intl.DateTimeFormat('zh-TW', {
+    return new Intl.DateTimeFormat(locale.value === 'zh-TW' ? 'zh-TW' : 'en-US', {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
@@ -234,7 +236,7 @@ async function loadData() {
       selectedTagId.value ||= statusPayload.top_tag?.id || tagPayload[0]?.id || ''
     }
   } catch (err) {
-    error.value = err.message || 'Unable to load status'
+    error.value = err.message || t('votePanel.unavailable')
   } finally {
     loading.value = false
     statusLoading.value = false
@@ -275,26 +277,26 @@ async function submitVote() {
   }
 
   if (!isVotingOpen.value) {
-    voteError.value = '這則新聞的投票窗口已截止，結果已定案。'
+    voteError.value = t('votePanel.voteWindowClosedError')
     notifyHeight()
     return
   }
 
   if (!hasReadEnough.value) {
     await syncReadSession()
-    voteError.value = `請先閱讀本文至少 ${readMinimum.value} 秒，目前 ${readSeconds.value} 秒。`
+    voteError.value = t('votePanel.readRequiredError', { minimum: readMinimum.value, current: readSeconds.value })
     notifyHeight()
     return
   }
 
   if (selectedTag.value?.requires_evidence && !evidenceUrl.value.trim()) {
-    voteError.value = '此標籤需要截圖、雲端硬碟圖片或相關新聞連結。'
+    voteError.value = t('votePanel.evidenceRequiredError')
     notifyHeight()
     return
   }
 
   if (selectedTag.value?.requires_evidence && !evidenceNote.value.trim()) {
-    voteError.value = '請用一句話說明這個證據證明了什麼。'
+    voteError.value = t('votePanel.noteRequiredError')
     notifyHeight()
     return
   }
@@ -309,17 +311,17 @@ async function submitVote() {
       evidence_note: evidenceNote.value.trim() || undefined,
     })
 
-    voteMessage.value = '已送出投票，結果已用你的信用權重重新計算。'
+    voteMessage.value = t('votePanel.voteSuccess')
     activeTab.value = 'results'
     evidenceUrl.value = ''
     evidenceNote.value = ''
     await loadData()
   } catch (err) {
     voteError.value = err.status === 409
-      ? '這則新聞的投票窗口已截止，結果已定案。'
+      ? t('votePanel.voteWindowClosedError')
       : err.status === 428
-        ? `請先閱讀本文至少 ${err.payload?.minimum_read_seconds || readMinimum.value} 秒，目前 ${err.payload?.seconds_read ?? readSeconds.value} 秒。`
-        : err.errors?.evidence_url?.[0] || err.errors?.evidence_note?.[0] || err.message || '投票失敗'
+        ? t('votePanel.readRequiredError', { minimum: err.payload?.minimum_read_seconds || readMinimum.value, current: err.payload?.seconds_read ?? readSeconds.value })
+        : err.errors?.evidence_url?.[0] || err.errors?.evidence_note?.[0] || err.message || t('votePanel.voteFailed')
   } finally {
     submitting.value = false
     notifyHeight()
@@ -338,11 +340,11 @@ async function reportItem(item) {
   try {
     await reportEvidence(token.value, item.id, {
       reason: 'needs_review',
-      note: reportReasons.value.find((reason) => reason.value === 'needs_review')?.label || '使用者從新聞頁面回報此證據需要管理員檢視。',
+      note: reportReasons.value.find((reason) => reason.value === 'needs_review')?.label || t('votePanel.reportNote'),
     })
-    reportMessage.value = '已送出檢舉，管理員會在後台檢視。'
+    reportMessage.value = t('votePanel.reportSuccess')
   } catch (err) {
-    evidenceError.value = err.message || '檢舉失敗'
+    evidenceError.value = err.message || t('votePanel.reportFailed')
   } finally {
     notifyHeight()
   }
@@ -357,13 +359,13 @@ async function react(item, helpful) {
   }
 
   if (!isVotingOpen.value) {
-    evidenceError.value = '證據評分已截止，排序不再變動。'
+    evidenceError.value = t('votePanel.reactionClosed')
     notifyHeight()
     return
   }
 
   if (!canReactToEvidence.value) {
-    evidenceError.value = `信用權重需達 ${evidenceReactionMinTrustScore.value.toFixed(2)} 才能評分證據。`
+    evidenceError.value = t('votePanel.reactionMinTrust', { score: evidenceReactionMinTrustScore.value.toFixed(2) })
     notifyHeight()
     return
   }
@@ -375,10 +377,10 @@ async function react(item, helpful) {
     evidence.value = await fetchNewsEvidence(newsUrl.value)
   } catch (err) {
     evidenceError.value = err.status === 409
-      ? '證據評分已截止，排序不再變動。'
+      ? t('votePanel.reactionClosed')
       : err.status === 403
-        ? `信用權重需達 ${evidenceReactionMinTrustScore.value.toFixed(2)} 才能評分證據。`
-        : err.message || '證據評分失敗'
+        ? t('votePanel.reactionMinTrust', { score: evidenceReactionMinTrustScore.value.toFixed(2) })
+        : err.message || t('votePanel.reactionFailed')
   } finally {
     reactingId.value = null
     notifyHeight()
@@ -407,15 +409,15 @@ function evidencePreviewUrl(item) {
 }
 
 function evidenceTypeLabel(item) {
-  if (item.evidence_type === 'cloud_drive') return '雲端硬碟'
-  if (item.evidence_type === 'image') return '圖片證據'
-  if (item.evidence_type === 'link') return '相關連結'
+  if (item.evidence_type === 'cloud_drive') return t('evidence.cloudDrive')
+  if (item.evidence_type === 'image') return t('evidence.image')
+  if (item.evidence_type === 'link') return t('evidence.link')
 
-  return '外部證據'
+  return t('evidence.external')
 }
 
 function evidenceTrustLabel(item) {
-  return item.is_trusted_evidence ? '可信來源' : '待社群驗證'
+  return item.is_trusted_evidence ? t('evidence.trustedSource') : t('evidence.communityPending')
 }
 
 watch([collapsed, activeTab, selectedTagId, evidenceUrl, evidenceNote, voteError, voteMessage, evidenceError, reportMessage, readSeconds], notifyHeight)
@@ -451,7 +453,7 @@ onMounted(async () => {
       @click="collapsed = false"
     >
       <span class="h-2 w-2 rounded-full bg-cyan-300"></span>
-      TruthShield 評分
+      {{ t('votePanel.shieldRating') }}
     </button>
 
     <section v-else class="rounded-lg border border-white/10 bg-zinc-950 p-4 shadow-xl shadow-black/30">
@@ -464,7 +466,7 @@ onMounted(async () => {
           <p class="mt-1 text-[11px] text-zinc-500">{{ nextActionText }}</p>
         </div>
         <button class="rounded-md border border-white/10 px-2 py-1 text-xs text-zinc-400 hover:border-cyan-300/50 hover:text-cyan-100" @click="collapsed = true">
-          收合
+          {{ t('votePanel.collapse') }}
         </button>
       </div>
 
@@ -482,19 +484,19 @@ onMounted(async () => {
       </div>
 
       <div class="mt-3 w-full rounded-md border p-3 text-left" :class="toneClass">
-        <div v-if="statusLoading" class="text-sm text-zinc-300">正在查核此新聞...</div>
-        <div v-else-if="error" class="text-sm text-orange-100">暫時無法取得資料</div>
+        <div v-if="statusLoading" class="text-sm text-zinc-300">{{ t('votePanel.checkingNews') }}</div>
+        <div v-else-if="error" class="text-sm text-orange-100">{{ t('votePanel.unavailable') }}</div>
         <div v-else class="space-y-1">
-          <div class="text-sm font-semibold">{{ status?.display_text || '尚無足夠投票資料' }}</div>
-          <div class="text-xs opacity-80">目前總權重 {{ totalWeight.toFixed(2) }}</div>
+          <div class="text-sm font-semibold">{{ status?.display_text || t('votePanel.noData') }}</div>
+          <div class="text-xs opacity-80">{{ t('votePanel.totalWeight', { weight: totalWeight.toFixed(2) }) }}</div>
           <div class="text-xs opacity-80">{{ statusNote }}</div>
         </div>
       </div>
 
       <div v-if="isVotingOpen" class="mt-3 grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3 text-xs text-zinc-300">
         <div class="flex items-center justify-between gap-3">
-          <span>閱讀門檻</span>
-          <span :class="hasReadEnough ? 'text-emerald-300' : 'text-orange-300'">{{ Math.min(readSeconds, readMinimum) }} / {{ readMinimum }} 秒</span>
+          <span>{{ t('votePanel.readThreshold') }}</span>
+          <span :class="hasReadEnough ? 'text-emerald-300' : 'text-orange-300'">{{ Math.min(readSeconds, readMinimum) }} / {{ readMinimum }} {{ t('votePanel.seconds') }}</span>
         </div>
         <div class="h-1.5 overflow-hidden rounded-full bg-white/10">
           <div class="h-full rounded-full bg-cyan-300" :style="{ width: `${readProgress}%` }"></div>
@@ -503,13 +505,13 @@ onMounted(async () => {
 
       <section v-if="activeTab === 'results'" class="mt-4 space-y-3">
         <div v-if="distribution.length === 0" class="rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm text-zinc-400">
-          尚無投票。你可以先閱讀本文，再選擇是否投票或提供證據。
+          {{ t('votePanel.noVotes') }}
         </div>
 
         <div v-for="row in distribution" :key="row.tag.id" class="space-y-1">
           <div class="flex items-center justify-between gap-3 text-xs">
             <span class="font-semibold text-zinc-100">{{ row.tag.name }}</span>
-            <span class="text-zinc-400">{{ row.percentage }}% / 權重 {{ Number(row.weight).toFixed(2) }}</span>
+            <span class="text-zinc-400">{{ t('votePanel.weightedLine', { percentage: row.percentage, weight: Number(row.weight).toFixed(2) }) }}</span>
           </div>
           <div class="h-2 overflow-hidden rounded-full bg-white/10">
             <div class="h-full rounded-full bg-cyan-300" :style="{ width: `${row.percentage}%` }"></div>
@@ -521,40 +523,40 @@ onMounted(async () => {
           :disabled="!isVotingOpen"
           @click="activeTab = 'vote'"
         >
-          {{ isLoggedIn ? '前往投票' : '登入後投票' }}
+          {{ isLoggedIn ? t('votePanel.goVote') : t('common.signIn') }}
         </button>
         <button
           class="w-full rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-zinc-300 hover:border-cyan-300/50 hover:text-cyan-100"
           @click="activeTab = 'evidence'"
         >
-          查看社群證據
+          {{ t('votePanel.viewEvidence') }}
         </button>
       </section>
 
       <section v-else-if="activeTab === 'vote'" class="mt-4 space-y-3 border-t border-white/10 pt-4">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-sm font-semibold text-white">你的評分</p>
-            <p class="text-xs text-zinc-500">{{ isLoggedIn ? `${user.email} · 權重 ${Number(user.trust_score || 1).toFixed(2)}` : '尚未登入' }}</p>
-            <p v-if="myVote" class="mt-1 text-xs text-cyan-300">已載入你對這篇新聞的既有投票，可在截止前修改。</p>
+            <p class="text-sm font-semibold text-white">{{ t('votePanel.yourRating') }}</p>
+            <p class="text-xs text-zinc-500">{{ isLoggedIn ? `${user.email} · ${t('profile.weight')} ${Number(user.trust_score || 1).toFixed(2)}` : t('votePanel.notSignedIn') }}</p>
+            <p v-if="myVote" class="mt-1 text-xs text-cyan-300">{{ t('votePanel.existingVote') }}</p>
             <p class="mt-1 text-xs text-zinc-500">{{ statusNote }}</p>
             <p class="mt-1 text-xs" :class="hasReadEnough ? 'text-emerald-300' : 'text-orange-300'">
-              閱讀門檻 {{ Math.min(readSeconds, readMinimum) }} / {{ readMinimum }} 秒
+              {{ t('votePanel.readThreshold') }} {{ Math.min(readSeconds, readMinimum) }} / {{ readMinimum }} {{ t('votePanel.seconds') }}
             </p>
           </div>
           <button v-if="!isLoggedIn && isVotingOpen" class="rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950" @click="openLogin">
-            登入
+            {{ t('common.signIn') }}
           </button>
         </div>
 
         <div v-if="!isVotingOpen" class="rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm text-zinc-400">
-          這則新聞已截止，投票與證據留言不可再修改。
+          {{ t('votePanel.voteClosedReadonly') }}
         </div>
 
         <div v-else class="rounded-md border border-white/10 bg-white/[0.03] p-3">
           <div class="flex items-center justify-between text-xs">
-            <span class="font-semibold text-zinc-200">閱讀確認</span>
-            <span :class="hasReadEnough ? 'text-emerald-300' : 'text-orange-300'">{{ hasReadEnough ? '已達門檻' : '閱讀中' }}</span>
+            <span class="font-semibold text-zinc-200">{{ t('votePanel.readConfirm') }}</span>
+            <span :class="hasReadEnough ? 'text-emerald-300' : 'text-orange-300'">{{ hasReadEnough ? t('votePanel.readReady') : t('votePanel.reading') }}</span>
           </div>
           <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
             <div class="h-full rounded-full bg-cyan-300" :style="{ width: `${readProgress}%` }"></div>
@@ -575,23 +577,23 @@ onMounted(async () => {
         </div>
 
         <label class="block text-xs text-zinc-400">
-          截圖、雲端硬碟圖片或相關新聞連結
+          {{ t('votePanel.evidenceUrlLabel') }}
           <input
             v-model="evidenceUrl"
             class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
             :disabled="!isVotingOpen"
-            :placeholder="selectedTag?.requires_evidence ? '必填：Google Drive、Dropbox、OneDrive、Imgur 或澄清報導 URL' : '可選填'"
+            :placeholder="selectedTag?.requires_evidence ? t('votePanel.evidenceUrlRequired') : t('votePanel.optional')"
           />
         </label>
 
         <label class="block text-xs text-zinc-400">
-          簡短證據說明
+          {{ t('votePanel.evidenceNoteLabel') }}
           <textarea
             v-model="evidenceNote"
             rows="3"
             class="mt-2 w-full resize-none rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
             :disabled="!isVotingOpen"
-            :placeholder="selectedTag?.requires_evidence ? '必填：這個證據如何支持你的判斷？' : '可選填'"
+            :placeholder="selectedTag?.requires_evidence ? t('votePanel.evidenceNoteRequired') : t('votePanel.optional')"
           ></textarea>
         </label>
 
@@ -603,25 +605,25 @@ onMounted(async () => {
           :disabled="loading || submitting || !selectedTagId || !isVotingOpen"
           @click="submitVote"
         >
-          {{ !isVotingOpen ? '投票已截止' : submitting ? '送出中...' : isLoggedIn ? (hasReadEnough ? '送出或更新我的投票' : '閱讀達門檻後可投票') : '登入後投票' }}
+          {{ !isVotingOpen ? t('votePanel.voteClosed') : submitting ? t('votePanel.submitting') : isLoggedIn ? (hasReadEnough ? t('votePanel.submitOrUpdate') : t('votePanel.waitRead')) : t('common.signIn') }}
         </button>
       </section>
 
       <section v-else class="mt-4 space-y-3 border-t border-white/10 pt-4">
         <div class="flex items-center justify-between">
-          <p class="text-sm font-semibold text-white">社群證據</p>
-          <span class="text-xs text-zinc-500">{{ evidence.length }} 筆</span>
+          <p class="text-sm font-semibold text-white">{{ t('votePanel.communityEvidence') }}</p>
+          <span class="text-xs text-zinc-500">{{ t('votePanel.evidenceCount', { count: evidence.length }) }}</span>
         </div>
 
         <p v-if="isLoggedIn && !canReactToEvidence" class="rounded-md border border-orange-400/40 bg-orange-500/10 p-2 text-xs text-orange-100">
-          你的信用權重需達 {{ evidenceReactionMinTrustScore.toFixed(2) }} 才能評分證據；目前仍可閱讀證據與投票結果。
+          {{ t('votePanel.lowTrustCannotReact', { score: evidenceReactionMinTrustScore.toFixed(2) }) }}
         </p>
 
         <p v-if="evidenceError" class="rounded-md border border-red-400/40 bg-red-500/10 p-2 text-xs text-red-100">{{ evidenceError }}</p>
         <p v-if="reportMessage" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs text-emerald-100">{{ reportMessage }}</p>
 
         <div v-if="evidence.length === 0" class="rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm text-zinc-400">
-          尚無證據。負面投票會要求提供截圖、雲端硬碟圖片或澄清連結。
+          {{ t('votePanel.noEvidence') }}
         </div>
 
         <article v-for="item in evidence" :key="item.id" class="space-y-3 rounded-md border border-white/10 bg-zinc-900/80 p-3">
@@ -630,12 +632,12 @@ onMounted(async () => {
             <span class="rounded px-2 py-1 text-[11px] font-semibold" :class="item.is_trusted_evidence ? 'bg-emerald-500/15 text-emerald-200' : 'bg-zinc-800 text-zinc-400'">
               {{ evidenceTrustLabel(item) }}
             </span>
-            <span class="ml-auto text-[11px] text-zinc-500">淨有用權重 {{ Number(item.net_helpful_weight).toFixed(2) }}</span>
+            <span class="ml-auto text-[11px] text-zinc-500">{{ t('evidence.netHelpfulWeight') }} {{ Number(item.net_helpful_weight).toFixed(2) }}</span>
           </div>
 
           <img v-if="evidencePreviewUrl(item)" :src="evidencePreviewUrl(item)" alt="" class="max-h-36 w-full rounded-md border border-white/10 object-cover" />
 
-          <p class="text-sm leading-5 text-zinc-200">{{ item.evidence_note || '未提供說明' }}</p>
+          <p class="text-sm leading-5 text-zinc-200">{{ item.evidence_note || t('evidence.noNote') }}</p>
 
           <div class="rounded-md border border-white/10 bg-white/[0.03] p-2">
             <p class="text-[11px] text-zinc-500">{{ evidenceTypeLabel(item) }}</p>
@@ -646,13 +648,13 @@ onMounted(async () => {
 
           <div class="flex items-center gap-2">
             <button class="rounded-md border border-emerald-300/30 px-2 py-1 text-xs text-emerald-100 disabled:cursor-not-allowed disabled:opacity-50" :disabled="reactingId === item.id || !isVotingOpen || (isLoggedIn && !canReactToEvidence)" @click="react(item, true)">
-              有用 {{ item.helpful_count }}
+              {{ t('votePanel.helpful') }} {{ item.helpful_count }}
             </button>
             <button class="rounded-md border border-red-300/30 px-2 py-1 text-xs text-red-100 disabled:cursor-not-allowed disabled:opacity-50" :disabled="reactingId === item.id || !isVotingOpen || (isLoggedIn && !canReactToEvidence)" @click="react(item, false)">
-              沒幫助 {{ item.unhelpful_count }}
+              {{ t('votePanel.unhelpful') }} {{ item.unhelpful_count }}
             </button>
             <button class="ml-auto rounded-md border border-white/10 px-2 py-1 text-xs text-zinc-300" @click="reportItem(item)">
-              檢舉
+              {{ t('votePanel.report') }}
             </button>
           </div>
         </article>

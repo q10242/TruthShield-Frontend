@@ -2,15 +2,17 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { createDonation, fetchDonation, fetchDonationConfig, fetchDonationMonthly, fetchDonationSummary, fetchDonationSupporters } from '../lib/api'
+import { useI18n } from '../i18n'
 
 const route = useRoute()
+const { t } = useI18n()
 const amounts = ref([100, 300, 500, 1000, 2000, 5000])
-const impactItems = [
-  { label: '伺服器與 Redis 快取', percentage: 45 },
-  { label: '資料庫備份與監控', percentage: 25 },
-  { label: '插件相容性測試', percentage: 20 },
-  { label: '開源文件與社群營運', percentage: 10 },
-]
+const impactItems = computed(() => [
+  { label: t('donate.impact.server'), percentage: 45 },
+  { label: t('donate.impact.backup'), percentage: 25 },
+  { label: t('donate.impact.extension'), percentage: 20 },
+  { label: t('donate.impact.community'), percentage: 10 },
+])
 const form = reactive({
   amount: 300,
   donor_name: '',
@@ -60,7 +62,7 @@ async function submitDonation() {
     checkout.value = payload.checkout
     submitCheckout(payload.checkout)
   } catch (err) {
-    error.value = err.message || '建立捐款訂單失敗'
+    error.value = err.message || t('donate.createFailed')
   } finally {
     loading.value = false
   }
@@ -74,7 +76,7 @@ async function refreshDonationStatus() {
   try {
     donation.value = await fetchDonation(tradeNo.value)
   } catch (err) {
-    error.value = err.message || '查詢捐款狀態失敗'
+    error.value = err.message || t('donate.queryFailed')
   } finally {
     returnLoading.value = false
   }
@@ -107,40 +109,40 @@ onMounted(async () => {
       <nav class="mb-8 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
         <RouterLink class="text-sm font-semibold text-white" to="/">TruthShield</RouterLink>
         <div class="flex flex-wrap gap-2">
-          <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/transparency">透明儀表板</RouterLink>
-          <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/profile">我的信用</RouterLink>
+          <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/transparency">{{ t('common.transparency') }}</RouterLink>
+          <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/profile">{{ t('common.profile') }}</RouterLink>
         </div>
       </nav>
 
       <div class="grid gap-8 lg:grid-cols-[1fr_360px]">
         <section>
-          <p class="text-sm font-semibold text-cyan-300">支持 TruthShield</p>
-          <h1 class="mt-3 text-4xl font-semibold text-white">支持真相護盾繼續運作</h1>
+          <p class="text-sm font-semibold text-cyan-300">{{ t('donate.eyebrow') }}</p>
+          <h1 class="mt-3 text-4xl font-semibold text-white">{{ t('donate.title') }}</h1>
           <p class="mt-4 max-w-2xl leading-7 text-zinc-300">
-            捐款會用於伺服器、Redis 快取、資料庫備份、插件測試與開源維護。TruthShield 不接受媒體改分、不販售個人資料，營運資金必須透明且分散。
+            {{ t('donate.intro') }}
           </p>
 
           <div v-if="isReturn" class="mt-8 rounded-lg border border-white/10 bg-white/[0.03] p-5">
-            <h2 class="text-xl font-semibold text-white">捐款狀態</h2>
-            <p v-if="returnLoading" class="mt-4 text-sm text-zinc-400">查詢中...</p>
+            <h2 class="text-xl font-semibold text-white">{{ t('donate.status') }}</h2>
+            <p v-if="returnLoading" class="mt-4 text-sm text-zinc-400">{{ t('donate.checking') }}</p>
             <div v-else-if="donation?.donation" class="mt-4 rounded-md border border-emerald-300/30 bg-emerald-500/10 p-4">
               <p class="font-semibold text-emerald-100">
-                {{ donation.donation.status === 'paid' ? '付款已完成，謝謝支持。' : '訂單已建立，付款狀態待確認。' }}
+                {{ donation.donation.status === 'paid' ? t('donate.paid') : t('donate.pending') }}
               </p>
-              <p class="mt-2 text-sm text-emerald-100/75">訂單：{{ donation.donation.merchant_trade_no }}，金額 NT$ {{ donation.donation.amount }}</p>
+              <p class="mt-2 text-sm text-emerald-100/75">{{ t('donate.order') }}：{{ donation.donation.merchant_trade_no }}，{{ t('donate.amount') }} NT$ {{ donation.donation.amount }}</p>
             </div>
             <p v-if="error" class="mt-4 rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{{ error }}</p>
             <div class="mt-5 flex flex-wrap gap-2">
               <button class="rounded-md border border-white/10 px-4 py-2 text-sm font-semibold text-zinc-200 hover:border-cyan-300/60" :disabled="returnLoading" @click="refreshDonationStatus">
-                重新查詢
+                {{ t('donate.refresh') }}
               </button>
-              <RouterLink class="inline-flex rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" to="/donate">再次支持</RouterLink>
+              <RouterLink class="inline-flex rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" to="/donate">{{ t('donate.supportAgain') }}</RouterLink>
             </div>
           </div>
 
           <form v-else class="mt-8 space-y-5 rounded-lg border border-white/10 bg-white/[0.03] p-5" @submit.prevent="submitDonation">
             <div>
-              <label class="text-sm font-semibold text-white">捐款金額</label>
+              <label class="text-sm font-semibold text-white">{{ t('donate.donationAmount') }}</label>
               <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 <button
                   v-for="amount in amounts"
@@ -157,43 +159,43 @@ onMounted(async () => {
 
             <div class="grid gap-4 md:grid-cols-2">
               <label class="text-sm text-zinc-300">
-                顯示名稱
-                <input v-model="form.donor_name" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" maxlength="80" placeholder="可留空匿名" />
+                {{ t('donate.displayName') }}
+                <input v-model="form.donor_name" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" maxlength="80" :placeholder="t('donate.anonymousPlaceholder')" />
               </label>
               <label class="text-sm text-zinc-300">
-                電子信箱
-                <input v-model="form.donor_email" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" maxlength="160" placeholder="收據或通知用，可留空" type="email" />
+                {{ t('donate.email') }}
+                <input v-model="form.donor_email" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" maxlength="160" :placeholder="t('donate.emailPlaceholder')" type="email" />
               </label>
             </div>
 
             <label class="block text-sm text-zinc-300">
-              留言
-              <input v-model="form.message" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" maxlength="120" placeholder="給開源查證社群的一句話" />
+              {{ t('donate.message') }}
+              <input v-model="form.message" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" maxlength="120" :placeholder="t('donate.messagePlaceholder')" />
             </label>
 
             <p v-if="error" class="rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{{ error }}</p>
 
             <button class="w-full rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-60" :disabled="loading">
-              {{ loading ? '建立綠界訂單中...' : '前往綠界付款' }}
+              {{ loading ? t('donate.creating') : t('donate.checkout') }}
             </button>
           </form>
         </section>
 
         <aside class="rounded-lg border border-cyan-300/20 bg-zinc-900 p-5">
-          <h2 class="text-lg font-semibold text-white">捐款原則</h2>
+          <h2 class="text-lg font-semibold text-white">{{ t('donate.principles') }}</h2>
           <div v-if="summary" class="mt-4 grid grid-cols-2 gap-2 text-center text-sm">
             <div class="rounded-md bg-white/[0.04] p-3">
               <div class="font-semibold text-white">NT$ {{ summary.total_amount }}</div>
-              <div class="mt-1 text-xs text-zinc-500">累積支持</div>
+              <div class="mt-1 text-xs text-zinc-500">{{ t('donate.totalSupport') }}</div>
             </div>
             <div class="rounded-md bg-white/[0.04] p-3">
               <div class="font-semibold text-white">{{ summary.paid_count }}</div>
-              <div class="mt-1 text-xs text-zinc-500">完成筆數</div>
+              <div class="mt-1 text-xs text-zinc-500">{{ t('donate.paidCount') }}</div>
             </div>
           </div>
           <div v-if="summary" class="mt-4 rounded-md border border-white/10 bg-white/[0.03] p-4">
             <div class="flex items-center justify-between text-xs">
-              <span class="text-zinc-400">本月基礎營運目標</span>
+              <span class="text-zinc-400">{{ t('donate.monthlyGoal') }}</span>
               <span class="text-zinc-500">NT$ {{ summary.month_amount }} / {{ monthlyGoal }}</span>
             </div>
             <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
@@ -201,15 +203,15 @@ onMounted(async () => {
             </div>
           </div>
           <div class="mt-4 space-y-3 text-sm leading-6 text-zinc-400">
-            <p>所有核心演算法與審核紀錄維持公開。</p>
-            <p>付款由綠界處理，TruthShield 不保存信用卡號。</p>
-            <p>正式上線前會公開每月基礎設施支出摘要。</p>
+            <p>{{ t('donate.principleOpen') }}</p>
+            <p>{{ t('donate.principlePayment') }}</p>
+            <p>{{ t('donate.principleSummary') }}</p>
           </div>
           <div class="mt-5 rounded-md border border-white/10 bg-white/[0.03] p-4 text-xs leading-5 text-zinc-500">
-            本機開發預設使用綠界測試環境。正式 MerchantID、HashKey、HashIV 請只放在後端環境變數。
+            {{ t('donate.localNotice') }}
           </div>
           <div class="mt-5">
-            <h3 class="text-sm font-semibold text-white">預計用途</h3>
+            <h3 class="text-sm font-semibold text-white">{{ t('donate.usage') }}</h3>
             <div class="mt-3 space-y-3">
               <div v-for="item in impactItems" :key="item.label">
                 <div class="mb-1 flex items-center justify-between text-xs">
@@ -223,7 +225,7 @@ onMounted(async () => {
             </div>
           </div>
           <div v-if="monthly.length" class="mt-5">
-            <h3 class="text-sm font-semibold text-white">近 6 個月</h3>
+            <h3 class="text-sm font-semibold text-white">{{ t('donate.lastSixMonths') }}</h3>
             <div class="mt-3 space-y-2">
               <div v-for="row in monthly" :key="row.month" class="flex items-center justify-between rounded-md bg-white/[0.04] px-3 py-2 text-xs">
                 <span class="text-zinc-400">{{ row.month }}</span>
@@ -232,7 +234,7 @@ onMounted(async () => {
             </div>
           </div>
           <div v-if="supporters.length" class="mt-5">
-            <h3 class="text-sm font-semibold text-white">最近支持者</h3>
+            <h3 class="text-sm font-semibold text-white">{{ t('donate.recentSupporters') }}</h3>
             <div class="mt-3 space-y-2">
               <div v-for="supporter in supporters.slice(0, 6)" :key="`${supporter.name}-${supporter.paid_at}`" class="rounded-md bg-white/[0.04] p-3 text-sm">
                 <div class="flex items-center justify-between gap-3">
