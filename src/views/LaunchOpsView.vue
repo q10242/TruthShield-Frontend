@@ -14,6 +14,12 @@ const releaseCommands = [
   'php artisan truthshield:warm-cache',
   'php artisan truthshield:expire-pending-donations --hours=24',
 ]
+const exportLinks = [
+  { href: '/api/exports/news.csv', label: '新聞 CSV' },
+  { href: '/api/exports/evidence.csv', label: '證據 CSV' },
+  { href: '/api/exports/donations.csv', label: '捐款 CSV' },
+  { href: '/api/exports/user-data-requests.csv', label: '資料請求 CSV' },
+]
 
 onMounted(async () => {
   const [sourceRows, policyRows, checkRows] = await Promise.all([
@@ -41,6 +47,14 @@ onMounted(async () => {
         <h2 class="text-lg font-semibold text-white">Release 前命令</h2>
         <div class="mt-3 grid gap-2 md:grid-cols-2">
           <code v-for="command in releaseCommands" :key="command" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">{{ command }}</code>
+        </div>
+      </section>
+      <section class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+        <h2 class="text-lg font-semibold text-white">營運匯出</h2>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <a v-for="link in exportLinks" :key="link.href" class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" :href="link.href" target="_blank" rel="noreferrer">
+            {{ link.label }}
+          </a>
         </div>
       </section>
       <div class="mt-6 grid gap-6 lg:grid-cols-3">
