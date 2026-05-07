@@ -49,6 +49,7 @@ function openWindow(url, width = 460, height = 720) {
 }
 
 async function loadSummary() {
+  byId('version').textContent = chrome.runtime.getManifest().version
   try {
     const response = await fetch(`${state.settings.apiOrigin}/api/extension/summary`, { headers: { Accept: 'application/json' } })
     const payload = await response.json()
@@ -57,6 +58,14 @@ async function loadSummary() {
   } catch {
     byId('domains').textContent = '!'
     byId('votes').textContent = '!'
+  }
+
+  try {
+    const response = await fetch(`${state.settings.apiOrigin}/api/system/health`, { headers: { Accept: 'application/json' } })
+    const payload = await response.json()
+    byId('apiStatus').textContent = payload.ok ? t('healthy') : t('degraded')
+  } catch {
+    byId('apiStatus').textContent = '!'
   }
 }
 
@@ -73,6 +82,7 @@ function bindActions() {
   byId('openReport').addEventListener('click', () => openWindow(truthUrl('/report-domain', { url: currentUrl(), page_title: currentTitle() }), 540, 760))
   byId('openReadiness').addEventListener('click', () => openTab(truthUrl('/vision-readiness')))
   byId('openHealth').addEventListener('click', () => openTab(truthUrl('/health')))
+  byId('openInstall').addEventListener('click', () => openTab(truthUrl('/extension-install')))
 }
 
 chrome.storage.sync.get(defaults, async (settings) => {

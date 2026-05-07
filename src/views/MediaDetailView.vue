@@ -26,6 +26,10 @@ onMounted(async () => {
         <p class="mt-2 text-sm text-zinc-400">{{ payload.media.type || t('remaining.news') }} · {{ payload.media.region || t('remaining.unknown') }}</p>
 
         <div class="mt-6 grid gap-3 sm:grid-cols-3">
+          <div class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-4">
+            <p class="text-sm text-cyan-100">{{ t('remaining.officialResponseCount') }}</p>
+            <p class="mt-2 text-2xl font-semibold text-white">{{ payload.official_response_count || 0 }}</p>
+          </div>
           <div v-for="row in payload.tag_weights" :key="row.slug" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
             <p class="text-sm text-zinc-300">{{ row.name }}</p>
             <p class="mt-2 text-2xl font-semibold text-white">{{ Number(row.weight).toFixed(2) }}</p>

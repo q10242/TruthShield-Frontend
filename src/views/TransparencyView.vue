@@ -17,7 +17,7 @@ const sections = [
   {
     titleKey: 'transparency.governanceStatus',
     descriptionKey: 'transparency.governanceStatusDesc',
-    keys: ['pending_domain_reports', 'pending_news_change_reports', 'reviewed_news_change_reports', 'pending_evidence_reports', 'open_abuse_events', 'pending_appeals', 'pending_user_data_requests', 'moderation_events_24h', 'audit_events_24h', 'governance_pressure_score', 'governance_distribution'],
+    keys: ['pending_domain_reports', 'pending_news_change_reports', 'reviewed_news_change_reports', 'pending_evidence_reports', 'open_abuse_events', 'pending_appeals', 'pending_user_data_requests', 'pending_verified_claimants', 'approved_verified_claimants', 'pending_official_responses', 'published_official_responses', 'official_response_reactions', 'moderation_events_24h', 'audit_events_24h', 'governance_pressure_score', 'governance_distribution', 'official_response_distribution', 'claimant_distribution'],
   },
   {
     titleKey: 'transparency.communityAutomation',
@@ -27,7 +27,7 @@ const sections = [
   {
     titleKey: 'transparency.riskMonitoring',
     descriptionKey: 'transparency.riskMonitoringDesc',
-    keys: ['account_edges', 'high_risk_account_edges', 'extension_failures_24h', 'operational_events_24h', 'selector_failures_24h'],
+    keys: ['account_edges', 'high_risk_account_edges', 'extension_failures_24h', 'operational_events_24h', 'selector_failures_24h', 'bot_challenges_24h', 'bot_blocks_24h', 'bot_protection_distribution'],
   },
   {
     titleKey: 'transparency.policyAndWeight',

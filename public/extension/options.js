@@ -36,6 +36,17 @@ document.getElementById('save').addEventListener('click', () => {
   })
 })
 
+document.getElementById('resetDefaults').addEventListener('click', () => {
+  chrome.storage.sync.set(defaults, () => {
+    fields.tooltipOrigin.value = defaults.tooltipOrigin
+    fields.apiOrigin.value = defaults.apiOrigin
+    fields.enableTooltip.checked = defaults.enableTooltip
+    fields.enablePanel.checked = defaults.enablePanel
+    fields.enableReportButton.checked = defaults.enableReportButton
+    document.getElementById('status').textContent = t('resetDone')
+  })
+})
+
 document.getElementById('checkHealth').addEventListener('click', async () => {
   const apiOrigin = fields.apiOrigin.value || defaults.apiOrigin
   const health = document.getElementById('health')

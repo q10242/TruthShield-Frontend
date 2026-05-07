@@ -42,6 +42,15 @@ const groups = computed(() => [
     ],
   },
   {
+    title: t('qa.officialTitle'),
+    items: [
+      t('qa.officialProfile'),
+      t('qa.officialAdmin'),
+      t('qa.officialSubmit'),
+      t('qa.officialReaction'),
+    ],
+  },
+  {
     title: t('qa.opsTitle'),
     items: [
       t('qa.opsHealth'),

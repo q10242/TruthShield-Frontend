@@ -38,6 +38,8 @@ const secondaryLinks = computed(() => [
   { to: '/community-tasks', label: t('common.communityTasks') },
   { to: '/account-graph', label: t('common.accountGraph') },
   { to: '/vision-readiness', label: t('common.visionReadiness') },
+  { to: '/platform-rules', label: t('common.platformRules') },
+  { to: '/label-guide', label: t('common.labelGuide') },
   { to: '/donate', label: t('common.donate') },
   { to: '/algorithm', label: t('common.algorithm') },
   { to: '/api-docs', label: t('common.apiDocs') },
@@ -224,6 +226,23 @@ onMounted(async () => {
         </div>
       </section>
 
+      <section class="grid gap-4 border-t border-white/10 py-8 lg:grid-cols-2">
+        <article class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <h2 class="text-xl font-semibold text-white">{{ t('home.evidenceReminderTitle') }}</h2>
+          <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('home.evidenceReminderDesc') }}</p>
+          <RouterLink class="mt-4 inline-flex rounded-md border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100" to="/evidence-library">
+            {{ t('common.evidenceLibrary') }}
+          </RouterLink>
+        </article>
+        <article class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <h2 class="text-xl font-semibold text-white">{{ t('home.noCensorshipTitle') }}</h2>
+          <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('home.noCensorshipDesc') }}</p>
+          <RouterLink class="mt-4 inline-flex rounded-md border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100" to="/platform-rules">
+            {{ t('common.platformRules') }}
+          </RouterLink>
+        </article>
+      </section>
+
       <section class="border-t border-white/10 py-8">
         <div class="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -270,6 +289,8 @@ onMounted(async () => {
         <RouterLink class="hover:text-cyan-100" to="/terms">{{ t('common.terms') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/security">{{ t('common.security') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/governance">{{ t('common.governance') }}</RouterLink>
+        <RouterLink class="hover:text-cyan-100" to="/platform-rules">{{ t('common.platformRules') }}</RouterLink>
+        <RouterLink class="hover:text-cyan-100" to="/label-guide">{{ t('common.labelGuide') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/vision-readiness">{{ t('common.visionReadiness') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/donate">{{ t('common.donate') }}</RouterLink>
       </footer>

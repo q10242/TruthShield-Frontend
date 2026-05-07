@@ -87,6 +87,13 @@ const canReactToEvidence = computed(() => {
 
   return Number(user.value?.trust_score || 0) >= evidenceReactionMinTrustScore.value
 })
+const isWeightLimited = computed(() => {
+  if (!isLoggedIn.value) return false
+
+  return Number(user.value?.abuse_multiplier ?? 1) < 1
+    || ['watched', 'limited', 'suspended_weight', 'restricted'].includes(user.value?.risk_status)
+    || Number(user.value?.trust_score || 0) < 0.5
+})
 const approvedClaimants = computed(() => (profile.value?.verified_claimants || []).filter((claim) => claim.status === 'approved'))
 const isVotingOpen = computed(() => (status.value?.voting_closes_at ? Boolean(status.value?.is_open) : true))
 const hasReadEnough = computed(() => readMinimum.value <= 0 || readSeconds.value >= readMinimum.value || Boolean(myVote.value))
@@ -702,6 +709,9 @@ onMounted(async () => {
             <p class="text-sm font-semibold text-white">{{ t('votePanel.yourRating') }}</p>
             <p class="text-xs text-zinc-500">{{ isLoggedIn ? `${user.email} · ${t('profile.weight')} ${Number(user.trust_score || 1).toFixed(2)}` : t('votePanel.notSignedIn') }}</p>
             <p v-if="myVote" class="mt-1 text-xs text-cyan-300">{{ t('votePanel.existingVote') }}</p>
+            <p v-if="isWeightLimited" class="mt-1 rounded border border-orange-400/40 bg-orange-500/10 px-2 py-1 text-xs text-orange-100">
+              {{ t('votePanel.weightLimitedNotice') }}
+            </p>
             <p class="mt-1 text-xs text-zinc-500">{{ statusNote }}</p>
             <p class="mt-1 text-xs" :class="hasReadEnough ? 'text-emerald-300' : 'text-orange-300'">
               {{ t('votePanel.readThreshold') }} {{ Math.min(readSeconds, readMinimum) }} / {{ readMinimum }} {{ t('votePanel.seconds') }}
@@ -807,6 +817,7 @@ onMounted(async () => {
           <details v-if="approvedClaimants.length" class="mt-3 rounded-md border border-white/10 bg-zinc-950/70 p-3">
             <summary class="cursor-pointer text-xs font-semibold text-cyan-100">{{ t('votePanel.submitOfficialResponse') }}</summary>
             <div class="mt-3 space-y-3">
+              <p class="rounded-md border border-cyan-300/20 bg-cyan-300/[0.05] p-2 text-xs leading-5 text-cyan-100">{{ t('votePanel.officialResponseSeparateRule') }}</p>
               <select v-model="selectedClaimantId" class="w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-xs text-white">
                 <option value="">{{ t('votePanel.selectClaimant') }}</option>
                 <option v-for="claim in approvedClaimants" :key="claim.id" :value="claim.id">{{ claim.claim_type }} · {{ claim.domain || claim.organization_name || claim.id }}</option>

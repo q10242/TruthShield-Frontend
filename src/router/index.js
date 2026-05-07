@@ -33,6 +33,8 @@ import VisionReadinessView from '../views/VisionReadinessView.vue'
 import LocalQaChecklistView from '../views/LocalQaChecklistView.vue'
 import CommunityTasksView from '../views/CommunityTasksView.vue'
 import CommunityTaskDetailView from '../views/CommunityTaskDetailView.vue'
+import PlatformRulesView from '../views/PlatformRulesView.vue'
+import LabelGuideView from '../views/LabelGuideView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -69,6 +71,8 @@ const router = createRouter({
     { path: '/governance', name: 'governance', component: GovernanceView },
     { path: '/vision-readiness', name: 'vision-readiness', component: VisionReadinessView },
     { path: '/data-request', name: 'data-request', component: DataRequestView },
+    { path: '/platform-rules', name: 'platform-rules', component: PlatformRulesView },
+    { path: '/label-guide', name: 'label-guide', component: LabelGuideView },
     { path: '/report-domain', name: 'report-domain', component: ReportDomainView },
     { path: '/iframe-tooltip', name: 'iframe-tooltip', component: IframeTooltipView },
     { path: '/iframe-vote-panel', name: 'iframe-vote-panel', component: IframeVotePanelView },

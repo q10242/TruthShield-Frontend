@@ -3,12 +3,14 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchBotProtectionConfig, fetchSystemHealth } from '../lib/api'
 import { useI18n } from '../i18n'
+import extensionManifest from '../../public/extension/manifest.json'
 
 const { t } = useI18n()
 const health = ref(null)
 const botConfig = ref(null)
 const loading = ref(true)
 const localCheckSkipped = ref(false)
+const zipGeneratedAt = new Date(import.meta.env.VITE_BUILD_TIME || document.lastModified || Date.now()).toLocaleString()
 
 function isLocalHostname(hostname) {
   return ['localhost', '127.0.0.1', '::1'].includes(hostname) || hostname.endsWith('.localhost')
@@ -38,6 +40,8 @@ const installSteps = computed(() => [
 ])
 
 const capabilityCards = computed(() => [
+  { label: t('extensionInstall.extensionVersion'), value: extensionManifest.version },
+  { label: t('extensionInstall.zipGeneratedAt'), value: zipGeneratedAt },
   { label: t('extensionInstall.tooltipStatus'), value: t('extensionInstall.enabled') },
   { label: t('extensionInstall.bannerStatus'), value: t('extensionInstall.enabled') },
   { label: t('extensionInstall.contextMenuStatus'), value: t('extensionInstall.enabled') },

@@ -90,14 +90,24 @@ onMounted(load)
         <select v-model="focus" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
           <option value="">{{ t('evidence.allEvidence') }}</option>
           <option value="community">{{ t('evidence.communityNeeds') }}</option>
+          <option value="official">{{ t('evidence.officialClarifications') }}</option>
         </select>
         <button type="submit" class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950">{{ t('evidence.filter') }}</button>
       </form>
 
       <p v-if="meta" class="mt-3 text-xs text-zinc-500">{{ t('evidence.resultMeta', { total: meta.total, limit: meta.limit }) }}</p>
+      <div class="mt-4 grid gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-zinc-400 md:grid-cols-3">
+        <p>{{ t('evidence.sourceGuideCloud') }}</p>
+        <p>{{ t('evidence.sourceGuideImage') }}</p>
+        <p>{{ t('evidence.sourceGuideLink') }}</p>
+      </div>
 
       <div class="mt-6 grid gap-3">
         <div v-if="loading" class="rounded-lg border border-white/10 p-4 text-zinc-400">{{ t('common.loading') }}</div>
+        <div v-else-if="focus === 'official'" class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5 text-sm leading-6 text-cyan-100">
+          {{ t('evidence.officialClarificationNote') }}
+          <RouterLink class="ml-2 font-semibold underline" to="/news-search">{{ t('common.newsSearch') }}</RouterLink>
+        </div>
         <div v-else-if="items.length === 0" class="rounded-lg border border-white/10 bg-white/[0.03] p-5 text-sm text-zinc-400">
           {{ t('evidence.empty') }}
         </div>
