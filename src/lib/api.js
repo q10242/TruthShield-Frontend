@@ -144,6 +144,23 @@ export async function recordReadSession(token, payload) {
   })
 }
 
+export async function recordNewsSnapshot(payload) {
+  return request('/api/news/snapshot', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function reportNewsChange(payload) {
+  const token = localStorage.getItem('truthshield_api_token')
+
+  return request('/api/news/change-reports', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function reactToEvidence(token, voteId, helpful) {
   return request(`/api/evidence/${voteId}/reaction`, {
     method: 'POST',

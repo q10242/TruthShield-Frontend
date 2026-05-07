@@ -30,6 +30,33 @@ onMounted(async () => {
           <p class="mt-1 text-sm text-zinc-400">{{ t('remaining.totalWeight') }} {{ Number(payload.status.total_weight).toFixed(2) }}</p>
         </div>
 
+        <div class="mt-5 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-semibold text-white">{{ t('remaining.snapshotHistory') }}</h2>
+            <span class="rounded bg-white/10 px-2 py-1 text-xs text-zinc-300">{{ payload.status.snapshot?.availability_status || 'unknown' }}</span>
+          </div>
+          <p class="mt-2 text-sm text-zinc-400">
+            {{ t('remaining.snapshotSummary', {
+              count: payload.status.snapshot?.snapshots_count || 0,
+              changes: payload.status.snapshot?.changed_snapshots_count || 0,
+              reports: payload.status.snapshot?.pending_change_reports_count || 0,
+            }) }}
+          </p>
+          <a v-if="payload.status.snapshot?.archive_url" :href="payload.status.snapshot.archive_url" target="_blank" rel="noreferrer" class="mt-2 inline-block text-sm font-semibold text-cyan-200">
+            {{ t('votePanel.openArchive') }}
+          </a>
+          <div class="mt-4 space-y-2">
+            <article v-for="snapshot in payload.news.snapshots || []" :key="snapshot.id" class="rounded-md border border-white/10 bg-zinc-900 p-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="rounded bg-cyan-300/10 px-2 py-1 text-xs font-semibold text-cyan-100">{{ snapshot.snapshot_type }}</span>
+                <span class="text-xs text-zinc-500">{{ snapshot.captured_at }}</span>
+              </div>
+              <p class="mt-2 text-sm text-zinc-200">{{ snapshot.title || t('remaining.unnamedNews') }}</p>
+              <p v-if="snapshot.change_summary?.length" class="mt-1 text-xs text-orange-200">{{ t('remaining.detectedChanges') }} {{ snapshot.change_summary.length }}</p>
+            </article>
+          </div>
+        </div>
+
         <h2 class="mt-8 text-xl font-semibold text-white">{{ t('remaining.evidence') }}</h2>
         <article v-for="item in payload.evidence" :key="item.id" class="mt-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <span class="rounded bg-white/10 px-2 py-1 text-xs">{{ item.tag.name }}</span>

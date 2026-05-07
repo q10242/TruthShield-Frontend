@@ -10,7 +10,9 @@ import {
   fetchTags,
   fetchEvidenceReportReasons,
   recordReadSession,
+  recordNewsSnapshot,
   reactToEvidence,
+  reportNewsChange,
   reportEvidence,
 } from '../lib/api'
 import { useI18n } from '../i18n'
@@ -29,6 +31,7 @@ const voteError = ref('')
 const voteMessage = ref('')
 const evidenceError = ref('')
 const reportMessage = ref('')
+const changeReportMessage = ref('')
 const readMessage = ref('')
 const status = ref(null)
 const tags = ref([])
@@ -53,6 +56,14 @@ const tabSteps = computed(() => [
 ])
 
 const newsUrl = computed(() => route.query.news_url || '')
+const pageSnapshot = computed(() => ({
+  url: newsUrl.value,
+  title_snapshot: route.query.title_snapshot || undefined,
+  canonical_url: route.query.canonical_url || undefined,
+  description: route.query.description || undefined,
+  image_url: route.query.image_url || undefined,
+  availability_status: 'available',
+}))
 const selectedTag = computed(() => tags.value.find((tag) => tag.id === selectedTagId.value))
 const isLoggedIn = computed(() => Boolean(token.value && user.value))
 const totalWeight = computed(() => Number(status.value?.total_weight || 0))
@@ -100,6 +111,25 @@ const statusBadgeText = computed(() => {
   if (isClosingSoon.value) return t('votePanel.closing')
 
   return t('votePanel.open')
+})
+const snapshot = computed(() => status.value?.snapshot || null)
+const snapshotAlert = computed(() => {
+  const value = snapshot.value
+  if (!value) return null
+
+  if (value.availability_status === 'deleted_or_unavailable') {
+    return { tone: 'danger', text: t('votePanel.newsUnavailable') }
+  }
+
+  if (value.changed_snapshots_count > 0 || value.latest_snapshot?.snapshot_type === 'changed') {
+    return { tone: 'warning', text: t('votePanel.newsChanged', { count: value.changed_snapshots_count || 1 }) }
+  }
+
+  if (value.pending_change_reports_count > 0) {
+    return { tone: 'warning', text: t('votePanel.pendingChangeReports', { count: value.pending_change_reports_count }) }
+  }
+
+  return null
 })
 const activeStepNumber = computed(() => tabSteps.value.find((step) => step.key === activeTab.value)?.number || 1)
 
@@ -175,7 +205,10 @@ async function syncReadSession() {
   try {
     const payload = await recordReadSession(token.value, {
       url: newsUrl.value,
-      title_snapshot: document.title || undefined,
+      title_snapshot: pageSnapshot.value.title_snapshot || document.title || undefined,
+      canonical_url: pageSnapshot.value.canonical_url,
+      description: pageSnapshot.value.description,
+      image_url: pageSnapshot.value.image_url,
       seconds_read: readSeconds.value,
       visible: !document.hidden,
     })
@@ -185,6 +218,19 @@ async function syncReadSession() {
     readSynced.value = false
   } finally {
     notifyHeight()
+  }
+}
+
+async function syncSnapshot() {
+  if (!newsUrl.value) return
+
+  try {
+    const payload = await recordNewsSnapshot(pageSnapshot.value)
+    if (payload.status) {
+      status.value = payload.status
+    }
+  } catch {
+    // Snapshot capture is best-effort and must not block reading or voting.
   }
 }
 
@@ -350,6 +396,25 @@ async function reportItem(item) {
   }
 }
 
+async function submitChangeReport(reportType) {
+  evidenceError.value = ''
+  changeReportMessage.value = ''
+
+  try {
+    await reportNewsChange({
+      url: newsUrl.value,
+      report_type: reportType,
+      page_title: pageSnapshot.value.title_snapshot || document.title || undefined,
+    })
+    changeReportMessage.value = t('votePanel.changeReportSuccess')
+    await loadData()
+  } catch (err) {
+    evidenceError.value = err.message || t('votePanel.changeReportFailed')
+  } finally {
+    notifyHeight()
+  }
+}
+
 async function react(item, helpful) {
   evidenceError.value = ''
 
@@ -420,10 +485,12 @@ function evidenceTrustLabel(item) {
   return item.is_trusted_evidence ? t('evidence.trustedSource') : t('evidence.communityPending')
 }
 
-watch([collapsed, activeTab, selectedTagId, evidenceUrl, evidenceNote, voteError, voteMessage, evidenceError, reportMessage, readSeconds], notifyHeight)
+watch([collapsed, activeTab, selectedTagId, evidenceUrl, evidenceNote, voteError, voteMessage, evidenceError, reportMessage, changeReportMessage, readSeconds], notifyHeight)
 
 onMounted(async () => {
-  await Promise.all([loadAuth(), loadData()])
+  await loadAuth()
+  await syncSnapshot()
+  await loadData()
   window.addEventListener('focus', loadAuth)
   window.addEventListener('storage', loadAuth)
   window.addEventListener('message', async (event) => {
@@ -493,6 +560,20 @@ onMounted(async () => {
         </div>
       </div>
 
+      <div
+        v-if="snapshotAlert"
+        class="mt-3 rounded-md border p-3 text-xs"
+        :class="snapshotAlert.tone === 'danger' ? 'border-red-400/40 bg-red-500/10 text-red-100' : 'border-orange-400/40 bg-orange-500/10 text-orange-100'"
+      >
+        <p class="font-semibold">{{ snapshotAlert.text }}</p>
+        <p v-if="snapshot?.latest_snapshot?.captured_at" class="mt-1 opacity-80">
+          {{ t('votePanel.lastSnapshotAt', { time: formatDateTime(snapshot.latest_snapshot.captured_at) }) }}
+        </p>
+        <a v-if="snapshot?.archive_url" class="mt-2 inline-block font-semibold text-cyan-100" :href="snapshot.archive_url" target="_blank" rel="noreferrer">
+          {{ t('votePanel.openArchive') }}
+        </a>
+      </div>
+
       <div v-if="isVotingOpen" class="mt-3 grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3 text-xs text-zinc-300">
         <div class="flex items-center justify-between gap-3">
           <span>{{ t('votePanel.readThreshold') }}</span>
@@ -531,6 +612,15 @@ onMounted(async () => {
         >
           {{ t('votePanel.viewEvidence') }}
         </button>
+        <div class="grid grid-cols-2 gap-2">
+          <button class="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:border-orange-300/50 hover:text-orange-100" @click="submitChangeReport('title_changed')">
+            {{ t('votePanel.reportChanged') }}
+          </button>
+          <button class="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:border-red-300/50 hover:text-red-100" @click="submitChangeReport('deleted')">
+            {{ t('votePanel.reportDeleted') }}
+          </button>
+        </div>
+        <p v-if="changeReportMessage" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs text-emerald-100">{{ changeReportMessage }}</p>
       </section>
 
       <section v-else-if="activeTab === 'vote'" class="mt-4 space-y-3 border-t border-white/10 pt-4">

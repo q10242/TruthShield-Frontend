@@ -753,6 +753,13 @@ function openVotePanelModal() {
   const panelUrl = new URL('/iframe-vote-panel', TOOLTIP_ORIGIN)
   panelUrl.searchParams.set('news_url', window.location.href)
   panelUrl.searchParams.set('expanded', '1')
+  panelUrl.searchParams.set('title_snapshot', document.title || '')
+  const canonical = document.querySelector('link[rel="canonical"]')?.href || ''
+  if (canonical) panelUrl.searchParams.set('canonical_url', canonical)
+  const description = document.querySelector('meta[name="description"]')?.content || document.querySelector('meta[property="og:description"]')?.content || ''
+  if (description) panelUrl.searchParams.set('description', description.slice(0, 500))
+  const imageUrl = document.querySelector('meta[property="og:image"]')?.content || ''
+  if (imageUrl) panelUrl.searchParams.set('image_url', imageUrl)
   votePanelFrame.src = panelUrl.toString()
 
   shell.append(closeButton, votePanelFrame)
