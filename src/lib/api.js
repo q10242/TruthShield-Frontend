@@ -230,6 +230,12 @@ export async function fetchAlgorithm() {
   })
 }
 
+export async function fetchVisionReadiness() {
+  return request('/api/vision-readiness', {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
 export async function fetchApiDocs() {
   return request('/api/docs', {
     headers: { 'Content-Type': undefined },

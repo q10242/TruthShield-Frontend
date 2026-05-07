@@ -28,6 +28,7 @@ import SecurityView from '../views/SecurityView.vue'
 import TermsView from '../views/TermsView.vue'
 import GovernanceView from '../views/GovernanceView.vue'
 import DataRequestView from '../views/DataRequestView.vue'
+import VisionReadinessView from '../views/VisionReadinessView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -58,6 +59,7 @@ const router = createRouter({
     { path: '/security', name: 'security', component: SecurityView },
     { path: '/terms', name: 'terms', component: TermsView },
     { path: '/governance', name: 'governance', component: GovernanceView },
+    { path: '/vision-readiness', name: 'vision-readiness', component: VisionReadinessView },
     { path: '/data-request', name: 'data-request', component: DataRequestView },
     { path: '/report-domain', name: 'report-domain', component: ReportDomainView },
     { path: '/iframe-tooltip', name: 'iframe-tooltip', component: IframeTooltipView },

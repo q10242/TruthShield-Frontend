@@ -34,6 +34,7 @@ const secondaryLinks = computed(() => [
   { to: '/extension-coverage', label: t('common.extensionCoverage') },
   { to: '/account-graph', label: t('common.accountGraph') },
   { to: '/launch-ops', label: t('common.launchOps') },
+  { to: '/vision-readiness', label: t('common.visionReadiness') },
   { to: '/donate', label: t('common.donate') },
   { to: '/algorithm', label: t('common.algorithm') },
   { to: '/api-docs', label: t('common.apiDocs') },
@@ -234,6 +235,7 @@ const pledges = computed(() => [
         <RouterLink class="hover:text-cyan-100" to="/terms">{{ t('common.terms') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/security">{{ t('common.security') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/governance">{{ t('common.governance') }}</RouterLink>
+        <RouterLink class="hover:text-cyan-100" to="/vision-readiness">{{ t('common.visionReadiness') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/donate">{{ t('common.donate') }}</RouterLink>
       </footer>
     </section>
