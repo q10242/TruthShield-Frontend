@@ -25,6 +25,7 @@ const returnLoading = ref(false)
 const summary = ref(null)
 const supporters = ref([])
 const monthly = ref([])
+const monthlyGoal = 15000
 const isReturn = computed(() => route.path === '/donate/return')
 const tradeNo = computed(() => String(route.query.trade_no || ''))
 
@@ -184,6 +185,15 @@ onMounted(async () => {
             <div class="rounded-md bg-white/[0.04] p-3">
               <div class="font-semibold text-white">{{ summary.paid_count }}</div>
               <div class="mt-1 text-xs text-zinc-500">完成筆數</div>
+            </div>
+          </div>
+          <div v-if="summary" class="mt-4 rounded-md border border-white/10 bg-white/[0.03] p-4">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-zinc-400">本月基礎營運目標</span>
+              <span class="text-zinc-500">NT$ {{ summary.month_amount }} / {{ monthlyGoal }}</span>
+            </div>
+            <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+              <div class="h-full rounded-full bg-emerald-300" :style="{ width: `${Math.min(100, Math.round((summary.month_amount / monthlyGoal) * 100))}%` }"></div>
             </div>
           </div>
           <div class="mt-4 space-y-3 text-sm leading-6 text-zinc-400">
