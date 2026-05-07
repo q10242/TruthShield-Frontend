@@ -36,6 +36,7 @@ const telemetryQueue = []
 let telemetryFlushTimer = null
 let articleBanner = null
 let articleBannerUrl = ''
+let articleBannerDismissed = false
 const articleBannerStatusCache = new Map()
 const articleBannerStatusRequests = new Map()
 const articleBannerReportedUrls = new Set()
@@ -351,7 +352,7 @@ function renderTooltip(payload, loading = false, failed = false) {
     ? '已定案'
     : payload?.is_open === false
       ? '投票已截止'
-      : '右鍵使用 TruthShield 查看或回報'
+      : 'TruthShield 標籤提示'
 
   box.innerHTML = `
     <div style="padding: 12px 14px;">
@@ -495,6 +496,10 @@ async function fetchStatus(url) {
 }
 
 function ensureArticleBanner() {
+  if (articleBannerDismissed) {
+    return null
+  }
+
   if (articleBanner && document.body.contains(articleBanner) && articleBannerUrl === window.location.href) {
     return articleBanner
   }
@@ -519,14 +524,17 @@ function ensureArticleBanner() {
   articleBanner.style.font = '13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   articleBanner.style.colorScheme = 'normal'
   articleBanner.style.backdropFilter = 'blur(12px)'
-  articleBanner.style.cursor = 'default'
+  articleBanner.style.cursor = 'pointer'
   articleBanner.addEventListener('click', (event) => {
     const target = event.target
     if (target?.closest?.('[data-truthshield-close-banner]')) {
-      removeArticleBanner()
+      event.preventDefault()
+      event.stopPropagation()
+      dismissArticleBanner()
       return
     }
 
+    ensureVotePanelFrame()
   })
 
   document.documentElement.appendChild(articleBanner)
@@ -549,6 +557,11 @@ function removeArticleBanner() {
 
   articleBanner = null
   articleBannerUrl = ''
+}
+
+function dismissArticleBanner() {
+  articleBannerDismissed = true
+  removeArticleBanner()
 }
 
 function renderArticleBanner(payload, loading = false, failed = false) {
@@ -575,7 +588,7 @@ function renderArticleBanner(payload, loading = false, failed = false) {
     <div style="display:flex;align-items:center;justify-content:center;gap:12px;max-width:1180px;margin:0 auto;">
       <strong style="color:${tone.accent};white-space:nowrap;font-size:12px;letter-spacing:0;">TruthShield</strong>
       <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.4;">${escapeHtml(displayText)}</span>
-      <span style="color:#a1a1aa;white-space:nowrap;font-size:12px;">${escapeHtml(statusText)} · 右鍵開啟 TruthShield</span>
+      <span style="color:#a1a1aa;white-space:nowrap;font-size:12px;">${escapeHtml(statusText)}</span>
       <button data-truthshield-close-banner type="button" aria-label="關閉 TruthShield 橫幅" style="border:1px solid rgba(255,255,255,.16);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 9px;font:700 12px system-ui;cursor:pointer;">×</button>
     </div>
   `
@@ -720,8 +733,9 @@ function maybeInjectVotePanel() {
     return
   }
 
-  ensureArticleBanner()
-  startArticleReadTimer()
+  if (ensureArticleBanner()) {
+    startArticleReadTimer()
+  }
 }
 
 function startArticleReadTimer() {
