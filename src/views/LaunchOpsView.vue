@@ -6,6 +6,13 @@ import { fetchRateLimitPolicies, fetchSelectorChecks, fetchTrustedEvidenceSource
 const sources = ref([])
 const policies = ref([])
 const checks = ref(null)
+const releaseCommands = [
+  'php artisan truthshield:check-production-env',
+  'php artisan migrate --force',
+  'php artisan truthshield:ensure-algorithm-version',
+  'php artisan truthshield:seed-launch-policies',
+  'php artisan truthshield:warm-cache',
+]
 
 onMounted(async () => {
   const [sourceRows, policyRows, checkRows] = await Promise.all([
@@ -29,6 +36,12 @@ onMounted(async () => {
       </nav>
 
       <h1 class="text-3xl font-semibold text-white">上線營運控制台</h1>
+      <section class="mt-6 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-4">
+        <h2 class="text-lg font-semibold text-white">Release 前命令</h2>
+        <div class="mt-3 grid gap-2 md:grid-cols-2">
+          <code v-for="command in releaseCommands" :key="command" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">{{ command }}</code>
+        </div>
+      </section>
       <div class="mt-6 grid gap-6 lg:grid-cols-3">
         <section class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <h2 class="text-lg font-semibold text-white">可信證據來源</h2>
