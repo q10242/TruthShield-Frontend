@@ -80,7 +80,13 @@ onMounted(async () => {
         <button v-if="token" class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300" @click="signOut">登出</button>
       </nav>
 
-      <div v-if="!token" class="rounded-lg border border-white/10 p-5 text-zinc-400">尚未登入。</div>
+      <div v-if="!token" class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+        <h1 class="text-2xl font-semibold text-white">尚未登入</h1>
+        <p class="mt-2 text-sm leading-6 text-zinc-400">登入後可以查看信用分、徽章、投票紀錄、通知與資料匯出。</p>
+        <RouterLink class="mt-4 inline-flex rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" to="/login?redirect=/profile">
+          前往登入
+        </RouterLink>
+      </div>
       <div v-else-if="loading" class="rounded-lg border border-white/10 p-5 text-zinc-400">讀取中...</div>
 
       <template v-else-if="profile">

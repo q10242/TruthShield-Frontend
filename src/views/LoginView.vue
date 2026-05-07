@@ -15,6 +15,16 @@ const error = ref('')
 const done = ref(false)
 
 const redirectPath = computed(() => route.query.redirect || '/')
+const demoAccounts = [
+  { label: '一般測試者', name: 'Truth Checker', email: 'checker@example.com' },
+  { label: 'Seed 測試者', name: 'TruthShield Tester', email: 'tester@truthshield.local' },
+]
+
+function useDemoAccount(account) {
+  name.value = account.name
+  email.value = account.email
+  fbId.value = ''
+}
 
 async function persistLogin(payload) {
   localStorage.setItem(TOKEN_KEY, payload.token)
@@ -124,6 +134,21 @@ async function realProviderLogin(provider) {
           <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('google')">Google</button>
           <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('github')">GitHub</button>
           <button class="rounded-md border border-white/10 px-4 py-2 text-xs font-semibold text-zinc-300 hover:border-cyan-300/50" :disabled="loading" @click="providerLogin('google')">本機 OAuth stub</button>
+        </div>
+
+        <div class="mb-5 rounded-md border border-white/10 bg-white/[0.03] p-3">
+          <p class="text-xs font-semibold text-zinc-400">本機測試帳號</p>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <button
+              v-for="account in demoAccounts"
+              :key="account.email"
+              class="rounded-md border border-white/10 px-3 py-1.5 text-xs text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100"
+              type="button"
+              @click="useDemoAccount(account)"
+            >
+              {{ account.label }}
+            </button>
+          </div>
         </div>
 
         <form class="space-y-4 border-t border-white/10 pt-5" @submit.prevent="submit">

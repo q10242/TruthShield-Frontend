@@ -1,5 +1,11 @@
 <script setup>
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+
+const TOKEN_KEY = 'truthshield_api_token'
+const USER_KEY = 'truthshield_user'
+const token = ref(localStorage.getItem(TOKEN_KEY) || '')
+const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
 
 const primaryLinks = [
   { to: '/local-news-demo', label: '本機新聞測試', description: '用固定頁面測試橫幅、面板與投票流程。' },
@@ -8,6 +14,15 @@ const primaryLinks = [
   { to: '/transparency', label: '透明儀表板', description: '檢查系統狀態、審核與權重分布。' },
   { to: '/donate', label: '支持專案', description: '用綠界贊助伺服器、備份與開源營運成本。' },
 ]
+
+const authLabel = computed(() => token.value ? (user.value?.name || '我的帳號') : '登入')
+
+function signOut() {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+  token.value = ''
+  user.value = null
+}
 
 const secondaryLinks = [
   { to: '/news-search', label: '新聞搜尋' },
@@ -34,7 +49,7 @@ const navGroups = [
     <section class="mx-auto max-w-6xl px-6 py-8">
       <nav class="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
         <RouterLink class="text-sm font-semibold tracking-wide text-white" to="/">TruthShield</RouterLink>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <RouterLink
             v-for="link in secondaryLinks.slice(0, 5)"
             :key="link.to"
@@ -43,6 +58,15 @@ const navGroups = [
           >
             {{ link.label }}
           </RouterLink>
+          <RouterLink
+            class="rounded-md bg-cyan-300 px-3 py-2 text-sm font-semibold text-zinc-950"
+            :to="token ? '/profile' : '/login'"
+          >
+            {{ authLabel }}
+          </RouterLink>
+          <button v-if="token" class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-400 hover:border-cyan-300/60 hover:text-cyan-100" @click="signOut">
+            登出
+          </button>
         </div>
       </nav>
 
