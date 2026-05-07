@@ -222,14 +222,7 @@ function ensureTooltipBox() {
   tooltipBox.style.font = '13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   tooltipBox.style.display = 'none'
   tooltipBox.style.overflow = 'hidden'
-  tooltipBox.addEventListener('mouseover', () => window.clearTimeout(hideTimer))
-  tooltipBox.addEventListener('mouseout', scheduleHideTooltip)
-  tooltipBox.addEventListener('click', () => {
-    if (!activeAnchor?.href) return
-    const panelUrl = new URL('/iframe-vote-panel', TOOLTIP_ORIGIN)
-    panelUrl.searchParams.set('news_url', activeAnchor.href)
-    window.open(panelUrl.toString(), 'truthshield-vote-panel', 'width=460,height=720')
-  })
+  tooltipBox.style.pointerEvents = 'none'
   document.body.appendChild(tooltipBox)
 
   return tooltipBox
@@ -269,7 +262,7 @@ function renderTooltip(payload, loading = false, failed = false) {
     ? '已定案'
     : payload?.is_open === false
       ? '投票已截止'
-      : '點擊開啟投票/證據面板'
+      : '右鍵使用 TruthShield 查看或回報'
 
   box.innerHTML = `
     <div style="padding: 12px 14px;">
@@ -623,7 +616,7 @@ function scheduleHideTooltip() {
       tooltipBox.style.display = 'none'
     }
     activeAnchor = null
-  }, 180)
+  }, 80)
 }
 
 document.addEventListener(
