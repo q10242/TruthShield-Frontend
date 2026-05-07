@@ -39,6 +39,18 @@ const capabilityCards = computed(() => [
   { label: t('extensionInstall.signedRequests'), value: botConfig.value?.bot_protection_enabled ? t('extensionInstall.protected') : t('extensionInstall.localMode') },
 ])
 
+const selfHostedNotes = computed(() => [
+  t('extensionInstall.selfHostedNote1'),
+  t('extensionInstall.selfHostedNote2'),
+  t('extensionInstall.selfHostedNote3'),
+])
+
+const updateSteps = computed(() => [
+  t('extensionInstall.updateStep1'),
+  t('extensionInstall.updateStep2'),
+  t('extensionInstall.updateStep3'),
+])
+
 onMounted(async () => {
   loading.value = true
   const [healthPayload, botPayload] = await Promise.all([
@@ -80,12 +92,18 @@ onMounted(async () => {
           <p class="mt-4 max-w-2xl text-base leading-7 text-zinc-300">
             {{ t('extensionInstall.intro') }}
           </p>
+          <div class="mt-5 rounded-lg border border-amber-300/30 bg-amber-300/[0.08] p-4">
+            <p class="text-sm font-semibold text-amber-100">{{ t('extensionInstall.selfHostedTitle') }}</p>
+            <ul class="mt-3 space-y-2 text-sm leading-6 text-amber-50/80">
+              <li v-for="note in selfHostedNotes" :key="note">{{ note }}</li>
+            </ul>
+          </div>
           <div class="mt-6 flex flex-wrap gap-3">
-            <a class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" href="chrome://extensions">
-              {{ t('extensionInstall.openChromeExtensions') }}
-            </a>
-            <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="/truthshield-extension.zip">
+            <a class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" href="/truthshield-extension.zip" download>
               {{ t('extensionInstall.downloadZip') }}
+            </a>
+            <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="chrome://extensions">
+              {{ t('extensionInstall.openChromeExtensions') }}
             </a>
             <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" to="/local-news-demo">
               {{ t('extensionInstall.testDemo') }}
@@ -127,6 +145,31 @@ onMounted(async () => {
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">npm run package:extension</code>
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">dist/truthshield-extension.zip</code>
         </div>
+      </section>
+
+      <section class="mt-8 grid gap-4 lg:grid-cols-2">
+        <article class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <h2 class="text-lg font-semibold text-white">{{ t('extensionInstall.chromeGuideTitle') }}</h2>
+          <ol class="mt-4 space-y-3 text-sm leading-6 text-zinc-400">
+            <li>{{ t('extensionInstall.chromeGuide1') }}</li>
+            <li>{{ t('extensionInstall.chromeGuide2') }}</li>
+            <li>{{ t('extensionInstall.chromeGuide3') }}</li>
+            <li>{{ t('extensionInstall.chromeGuide4') }}</li>
+          </ol>
+          <a class="mt-4 inline-flex rounded-md border border-cyan-300/30 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10" href="chrome://extensions">
+            {{ t('extensionInstall.openChromeExtensions') }}
+          </a>
+        </article>
+
+        <article class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <h2 class="text-lg font-semibold text-white">{{ t('extensionInstall.updateTitle') }}</h2>
+          <ul class="mt-4 space-y-3 text-sm leading-6 text-zinc-400">
+            <li v-for="step in updateSteps" :key="step">{{ step }}</li>
+          </ul>
+          <p class="mt-4 rounded-md border border-white/10 bg-zinc-950/70 p-3 text-xs leading-5 text-zinc-500">
+            {{ t('extensionInstall.securityNote') }}
+          </p>
+        </article>
       </section>
     </section>
   </main>
