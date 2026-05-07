@@ -92,6 +92,54 @@ export async function fetchProfile(token) {
   })
 }
 
+export async function updateProfile(token, payload) {
+  return request('/api/me/profile', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function createClaimant(token, payload) {
+  return request('/api/me/claimants', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function fetchOfficialResponses(url) {
+  const payload = await request(`/api/news/official-responses?url=${encodeURIComponent(url)}`, {
+    headers: { 'Content-Type': undefined },
+  })
+
+  return payload.data || []
+}
+
+export async function createOfficialResponse(token, payload) {
+  return request('/api/official-responses', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function reactToOfficialResponse(token, responseId, helpful) {
+  return request(`/api/official-responses/${encodeURIComponent(responseId)}/reaction`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ helpful }),
+  })
+}
+
 export async function fetchMyDataExport(token) {
   return request('/api/me/export', {
     headers: {

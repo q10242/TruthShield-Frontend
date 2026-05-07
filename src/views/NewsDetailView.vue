@@ -68,6 +68,20 @@ onMounted(async () => {
           </div>
         </div>
 
+        <h2 class="mt-8 text-xl font-semibold text-white">{{ t('votePanel.officialResponses') }}</h2>
+        <div v-if="!payload.official_responses?.length" class="mt-3 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-zinc-500">
+          {{ t('votePanel.noOfficialResponses') }}
+        </div>
+        <article v-for="item in payload.official_responses || []" :key="item.id" class="mt-3 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="rounded bg-cyan-300/15 px-2 py-1 text-xs font-semibold text-cyan-100">{{ item.claimant?.claim_type || item.response_type }}</span>
+            <span class="text-sm font-semibold text-white">{{ item.author?.display_name }}</span>
+            <span v-if="item.author?.identity_label" class="rounded bg-white/10 px-2 py-1 text-xs text-zinc-300">{{ item.author.identity_label }}</span>
+          </div>
+          <p class="mt-3 text-sm leading-6 text-zinc-200">{{ item.response_text }}</p>
+          <a v-if="item.evidence_url" :href="item.evidence_url" target="_blank" rel="noreferrer" class="mt-2 block truncate text-sm text-cyan-200">{{ item.evidence_url }}</a>
+        </article>
+
         <h2 class="mt-8 text-xl font-semibold text-white">{{ t('remaining.evidence') }}</h2>
         <article v-for="item in payload.evidence" :key="item.id" class="mt-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <span class="rounded bg-white/10 px-2 py-1 text-xs">{{ item.tag.name }}</span>

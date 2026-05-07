@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { fetchMyDataExport, fetchProfile, logout, markAllNotificationsRead } from '../lib/api'
+import { createClaimant, fetchMyDataExport, fetchProfile, logout, markAllNotificationsRead, updateProfile } from '../lib/api'
 import { useI18n } from '../i18n'
 
 const TOKEN_KEY = 'truthshield_api_token'
@@ -11,6 +11,10 @@ const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const profile = ref(null)
 const loading = ref(false)
 const exportMessage = ref('')
+const profileMessage = ref('')
+const claimantMessage = ref('')
+const profileForm = ref({ display_name: '', is_real_name_public: false, profile_bio: '' })
+const claimantForm = ref({ claim_type: 'subject', domain: '', proof_url: '', statement: '' })
 const { t } = useI18n()
 
 const nextAchievements = computed(() => (profile.value?.achievements || [])
@@ -40,9 +44,35 @@ async function loadProfile() {
   loading.value = true
   try {
     profile.value = await fetchProfile(token.value)
+    profileForm.value = {
+      display_name: profile.value.user.display_name || profile.value.user.name || '',
+      is_real_name_public: Boolean(profile.value.user.is_real_name_public),
+      profile_bio: profile.value.user.profile_bio || '',
+    }
   } finally {
     loading.value = false
   }
+}
+
+async function saveProfile() {
+  profileMessage.value = ''
+  const payload = await updateProfile(token.value, profileForm.value)
+  profile.value.user = payload.user
+  localStorage.setItem(USER_KEY, JSON.stringify(payload.user))
+  profileMessage.value = t('profile.profileSaved')
+}
+
+async function submitClaimant() {
+  claimantMessage.value = ''
+  await createClaimant(token.value, {
+    claim_type: claimantForm.value.claim_type,
+    domain: claimantForm.value.domain || undefined,
+    proof_url: claimantForm.value.proof_url || undefined,
+    statement: claimantForm.value.statement,
+  })
+  claimantForm.value = { claim_type: 'subject', domain: '', proof_url: '', statement: '' }
+  claimantMessage.value = t('profile.claimantSubmitted')
+  await loadProfile()
 }
 
 async function markNotificationsRead() {
@@ -91,7 +121,8 @@ onMounted(async () => {
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p class="text-sm font-semibold text-cyan-300">{{ profile.title?.name || t('profile.observer') }}</p>
-              <h1 class="mt-1 text-3xl font-semibold text-white">{{ profile.user.name }}</h1>
+              <h1 class="mt-1 text-3xl font-semibold text-white">{{ profile.user.is_real_name_public ? profile.user.name : (profile.user.display_name || profile.user.name) }}</h1>
+              <p v-if="profile.user.public_identity_label" class="mt-2 inline-flex rounded bg-cyan-300/10 px-2 py-1 text-xs font-semibold text-cyan-100">{{ profile.user.public_identity_label }}</p>
               <p class="mt-2 max-w-xl text-sm leading-6 text-zinc-400">{{ profile.title?.description }}</p>
               <p class="mt-2 text-sm text-zinc-500">{{ profile.user.email }} · {{ t('profile.trust') }} {{ Number(profile.user.trust_score).toFixed(2) }}</p>
             </div>
@@ -117,6 +148,62 @@ onMounted(async () => {
           </div>
         </div>
         <p v-if="exportMessage" class="mt-3 rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs text-emerald-100">{{ exportMessage }}</p>
+        <section class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <h2 class="text-xl font-semibold text-white">{{ t('profile.publicIdentity') }}</h2>
+          <p class="mt-1 text-sm text-zinc-500">{{ t('profile.publicIdentityDesc') }}</p>
+          <div class="mt-4 grid gap-3 md:grid-cols-2">
+            <label class="block text-xs text-zinc-400">
+              {{ t('profile.displayName') }}
+              <input v-model="profileForm.display_name" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" />
+            </label>
+            <label class="flex items-center gap-2 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-zinc-300">
+              <input v-model="profileForm.is_real_name_public" type="checkbox" />
+              {{ t('profile.showRealName') }}
+            </label>
+            <label class="block text-xs text-zinc-400 md:col-span-2">
+              {{ t('profile.profileBio') }}
+              <textarea v-model="profileForm.profile_bio" rows="3" class="mt-2 w-full resize-none rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"></textarea>
+            </label>
+          </div>
+          <button class="mt-4 rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" @click="saveProfile">{{ t('profile.saveProfile') }}</button>
+          <p v-if="profileMessage" class="mt-3 rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs text-emerald-100">{{ profileMessage }}</p>
+        </section>
+
+        <section class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <h2 class="text-xl font-semibold text-white">{{ t('profile.claimantVerification') }}</h2>
+          <p class="mt-1 text-sm text-zinc-500">{{ t('profile.claimantVerificationDesc') }}</p>
+          <div class="mt-4 grid gap-3 md:grid-cols-2">
+            <label class="block text-xs text-zinc-400">
+              {{ t('profile.claimType') }}
+              <select v-model="claimantForm.claim_type" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+                <option value="subject">{{ t('profile.claimSubject') }}</option>
+                <option value="author">{{ t('profile.claimAuthor') }}</option>
+                <option value="media">{{ t('profile.claimMedia') }}</option>
+                <option value="organization">{{ t('profile.claimOrganization') }}</option>
+              </select>
+            </label>
+            <label class="block text-xs text-zinc-400">
+              {{ t('profile.claimDomain') }}
+              <input v-model="claimantForm.domain" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" placeholder="example.com" />
+            </label>
+            <label class="block text-xs text-zinc-400 md:col-span-2">
+              {{ t('profile.proofUrl') }}
+              <input v-model="claimantForm.proof_url" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" placeholder="https://..." />
+            </label>
+            <label class="block text-xs text-zinc-400 md:col-span-2">
+              {{ t('profile.claimStatement') }}
+              <textarea v-model="claimantForm.statement" rows="3" class="mt-2 w-full resize-none rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"></textarea>
+            </label>
+          </div>
+          <button class="mt-4 rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" @click="submitClaimant">{{ t('profile.submitClaimant') }}</button>
+          <p v-if="claimantMessage" class="mt-3 rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs text-emerald-100">{{ claimantMessage }}</p>
+          <div v-if="profile.verified_claimants?.length" class="mt-4 grid gap-2">
+            <div v-for="claim in profile.verified_claimants" :key="claim.id" class="rounded-md border border-white/10 bg-zinc-950/70 p-3 text-sm">
+              <span class="rounded bg-white/10 px-2 py-1 text-xs text-zinc-300">{{ claim.status }}</span>
+              <span class="ml-2 text-zinc-200">{{ claim.claim_type }} · {{ claim.domain || claim.organization_name || '-' }}</span>
+            </div>
+          </div>
+        </section>
         <section class="mt-6 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5">
           <h2 class="text-xl font-semibold text-white">{{ t('profile.nextContribution') }}</h2>
           <div class="mt-4 grid gap-3 md:grid-cols-3">

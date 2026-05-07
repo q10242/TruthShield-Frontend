@@ -9,11 +9,15 @@ import {
   fetchNewsStatus,
   fetchTags,
   fetchEvidenceReportReasons,
+  fetchOfficialResponses,
+  fetchProfile,
   recordReadSession,
   recordNewsSnapshot,
   reactToEvidence,
+  reactToOfficialResponse,
   reportNewsChange,
   reportEvidence,
+  createOfficialResponse,
 } from '../lib/api'
 import { useI18n } from '../i18n'
 
@@ -36,6 +40,14 @@ const readMessage = ref('')
 const status = ref(null)
 const tags = ref([])
 const evidence = ref([])
+const officialResponses = ref([])
+const officialResponseText = ref('')
+const officialResponseEvidenceUrl = ref('')
+const officialResponseType = ref('subject_clarification')
+const selectedClaimantId = ref('')
+const officialResponseMessage = ref('')
+const officialResponseError = ref('')
+const profile = ref(null)
 const reportReasons = ref([])
 const selectedTagId = ref('')
 const evidenceUrl = ref('')
@@ -75,6 +87,7 @@ const canReactToEvidence = computed(() => {
 
   return Number(user.value?.trust_score || 0) >= evidenceReactionMinTrustScore.value
 })
+const approvedClaimants = computed(() => (profile.value?.verified_claimants || []).filter((claim) => claim.status === 'approved'))
 const isVotingOpen = computed(() => (status.value?.voting_closes_at ? Boolean(status.value?.is_open) : true))
 const hasReadEnough = computed(() => readMinimum.value <= 0 || readSeconds.value >= readMinimum.value || Boolean(myVote.value))
 const readProgress = computed(() => {
@@ -189,6 +202,7 @@ async function loadAuth() {
 
   try {
     user.value = await fetchCurrentUser(token.value)
+    profile.value = await fetchProfile(token.value).catch(() => null)
     readMinimum.value = Number(user.value?.min_read_seconds_before_vote ?? 15)
     localStorage.setItem(USER_KEY, JSON.stringify(user.value))
   } catch {
@@ -260,18 +274,20 @@ async function loadData() {
       fetchTags(),
       fetchNewsEvidence(newsUrl.value),
       fetchEvidenceReportReasons(),
+      fetchOfficialResponses(newsUrl.value),
     ]
 
     if (token.value) {
       requests.push(fetchMyVote(token.value, newsUrl.value).catch(() => ({ vote: null })))
     }
 
-    const [statusPayload, tagPayload, evidencePayload, reportReasonsPayload, myVotePayload] = await Promise.all(requests)
+    const [statusPayload, tagPayload, evidencePayload, reportReasonsPayload, officialResponsesPayload, myVotePayload] = await Promise.all(requests)
 
     status.value = statusPayload
     tags.value = tagPayload
     evidence.value = evidencePayload
     reportReasons.value = reportReasonsPayload
+    officialResponses.value = officialResponsesPayload
     myVote.value = myVotePayload?.vote || null
 
     if (myVote.value) {
@@ -286,6 +302,63 @@ async function loadData() {
   } finally {
     loading.value = false
     statusLoading.value = false
+    notifyHeight()
+  }
+}
+
+async function submitOfficialResponse() {
+  officialResponseError.value = ''
+  officialResponseMessage.value = ''
+
+  if (!isLoggedIn.value) {
+    openLogin()
+    return
+  }
+
+  if (!selectedClaimantId.value || !officialResponseText.value.trim()) {
+    officialResponseError.value = t('votePanel.officialResponseRequired')
+    notifyHeight()
+    return
+  }
+
+  try {
+    await createOfficialResponse(token.value, {
+      url: newsUrl.value,
+      verified_claimant_id: selectedClaimantId.value,
+      response_type: officialResponseType.value,
+      response_text: officialResponseText.value.trim(),
+      evidence_url: officialResponseEvidenceUrl.value.trim() || undefined,
+    })
+    officialResponseText.value = ''
+    officialResponseEvidenceUrl.value = ''
+    officialResponseMessage.value = t('votePanel.officialResponseSubmitted')
+  } catch (err) {
+    officialResponseError.value = err.message || t('votePanel.officialResponseFailed')
+  } finally {
+    notifyHeight()
+  }
+}
+
+async function reactOfficial(item, helpful) {
+  officialResponseError.value = ''
+
+  if (!isLoggedIn.value) {
+    openLogin()
+    return
+  }
+
+  if (!canReactToEvidence.value) {
+    officialResponseError.value = t('votePanel.reactionMinTrust', { score: evidenceReactionMinTrustScore.value.toFixed(2) })
+    notifyHeight()
+    return
+  }
+
+  try {
+    await reactToOfficialResponse(token.value, item.id, helpful)
+    officialResponses.value = await fetchOfficialResponses(newsUrl.value)
+  } catch (err) {
+    officialResponseError.value = err.message || t('votePanel.reactionFailed')
+  } finally {
     notifyHeight()
   }
 }
@@ -485,7 +558,7 @@ function evidenceTrustLabel(item) {
   return item.is_trusted_evidence ? t('evidence.trustedSource') : t('evidence.communityPending')
 }
 
-watch([collapsed, activeTab, selectedTagId, evidenceUrl, evidenceNote, voteError, voteMessage, evidenceError, reportMessage, changeReportMessage, readSeconds], notifyHeight)
+watch([collapsed, activeTab, selectedTagId, evidenceUrl, evidenceNote, voteError, voteMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, readSeconds], notifyHeight)
 
 onMounted(async () => {
   await loadAuth()
@@ -705,6 +778,55 @@ onMounted(async () => {
       </section>
 
       <section v-else class="mt-4 space-y-3 border-t border-white/10 pt-4">
+        <div class="rounded-md border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-sm font-semibold text-cyan-100">{{ t('votePanel.officialResponses') }}</p>
+            <span class="text-xs text-cyan-200/70">{{ officialResponses.length }}</span>
+          </div>
+          <div v-if="officialResponses.length" class="mt-3 space-y-3">
+            <article v-for="item in officialResponses" :key="item.id" class="rounded-md border border-cyan-300/20 bg-zinc-950/80 p-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded bg-cyan-300/15 px-2 py-1 text-[11px] font-semibold text-cyan-100">{{ item.claimant?.claim_type || item.response_type }}</span>
+                <span class="text-[11px] text-zinc-500">{{ item.author?.display_name }}</span>
+                <span v-if="item.author?.identity_label" class="rounded bg-white/10 px-2 py-1 text-[11px] text-zinc-300">{{ item.author.identity_label }}</span>
+              </div>
+              <p class="mt-3 text-sm leading-5 text-zinc-100">{{ item.response_text }}</p>
+              <a v-if="item.evidence_url" :href="item.evidence_url" target="_blank" rel="noreferrer" class="mt-2 block truncate text-xs font-semibold text-cyan-200">{{ item.evidence_url }}</a>
+              <div class="mt-3 flex gap-2">
+                <button class="rounded-md border border-emerald-300/30 px-2 py-1 text-xs text-emerald-100 disabled:opacity-50" :disabled="isLoggedIn && !canReactToEvidence" @click="reactOfficial(item, true)">
+                  {{ t('votePanel.helpful') }} {{ Number(item.helpful_weight || 0).toFixed(1) }}
+                </button>
+                <button class="rounded-md border border-red-300/30 px-2 py-1 text-xs text-red-100 disabled:opacity-50" :disabled="isLoggedIn && !canReactToEvidence" @click="reactOfficial(item, false)">
+                  {{ t('votePanel.unhelpful') }} {{ Number(item.unhelpful_weight || 0).toFixed(1) }}
+                </button>
+              </div>
+            </article>
+          </div>
+          <p v-else class="mt-2 text-xs leading-5 text-zinc-400">{{ t('votePanel.noOfficialResponses') }}</p>
+
+          <details v-if="approvedClaimants.length" class="mt-3 rounded-md border border-white/10 bg-zinc-950/70 p-3">
+            <summary class="cursor-pointer text-xs font-semibold text-cyan-100">{{ t('votePanel.submitOfficialResponse') }}</summary>
+            <div class="mt-3 space-y-3">
+              <select v-model="selectedClaimantId" class="w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-xs text-white">
+                <option value="">{{ t('votePanel.selectClaimant') }}</option>
+                <option v-for="claim in approvedClaimants" :key="claim.id" :value="claim.id">{{ claim.claim_type }} · {{ claim.domain || claim.organization_name || claim.id }}</option>
+              </select>
+              <select v-model="officialResponseType" class="w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-xs text-white">
+                <option value="subject_clarification">{{ t('votePanel.subjectClarification') }}</option>
+                <option value="author_clarification">{{ t('votePanel.authorClarification') }}</option>
+                <option value="media_statement">{{ t('votePanel.mediaStatement') }}</option>
+                <option value="organization_statement">{{ t('votePanel.organizationStatement') }}</option>
+                <option value="right_of_reply">{{ t('votePanel.rightOfReply') }}</option>
+              </select>
+              <textarea v-model="officialResponseText" rows="3" class="w-full resize-none rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-xs text-white" :placeholder="t('votePanel.officialResponseText')"></textarea>
+              <input v-model="officialResponseEvidenceUrl" class="w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-xs text-white" :placeholder="t('votePanel.officialResponseEvidence')" />
+              <button class="w-full rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950" @click="submitOfficialResponse">{{ t('votePanel.submitOfficialResponse') }}</button>
+            </div>
+          </details>
+          <p v-if="officialResponseError" class="mt-2 rounded-md border border-red-400/40 bg-red-500/10 p-2 text-xs text-red-100">{{ officialResponseError }}</p>
+          <p v-if="officialResponseMessage" class="mt-2 rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs text-emerald-100">{{ officialResponseMessage }}</p>
+        </div>
+
         <div class="flex items-center justify-between">
           <p class="text-sm font-semibold text-white">{{ t('votePanel.communityEvidence') }}</p>
           <span class="text-xs text-zinc-500">{{ t('votePanel.evidenceCount', { count: evidence.length }) }}</span>
