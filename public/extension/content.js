@@ -711,6 +711,11 @@ function ensureArticleBanner() {
       return
     }
 
+    if (target?.closest?.('[data-truthshield-brand-link]')) {
+      event.stopPropagation()
+      return
+    }
+
     ensureVotePanelFrame()
   })
 
@@ -769,7 +774,10 @@ function renderArticleBanner(payload, loading = false, failed = false) {
   if (articleBanner.dataset.truthshieldMode === 'youtube_chip') {
     articleBanner.innerHTML = `
       <div style="display:flex;align-items:center;gap:7px;min-width:0;">
-        <strong style="color:${tone.accent};white-space:nowrap;font-size:12px;letter-spacing:0;">TruthShield</strong>
+        <a data-truthshield-brand-link href="${escapeHtml(TOOLTIP_ORIGIN)}/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;color:${tone.accent};text-decoration:none;white-space:nowrap;">
+          <img src="${escapeHtml(TOOLTIP_ORIGIN)}/brand/truthshield-mark.svg" alt="" style="width:18px;height:18px;display:block;" />
+          <strong style="font-size:12px;letter-spacing:0;">TruthShield</strong>
+        </a>
         <span style="max-width:178px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.2;">${escapeHtml(displayText)}</span>
         <span style="border:1px solid ${tone.border};border-radius:999px;color:${tone.accent};background:rgba(255,255,255,.04);padding:3px 7px;font:700 11px system-ui;white-space:nowrap;">${t('open')}</span>
         <button data-truthshield-close-banner type="button" aria-label="${t('closeBanner')}" style="border:0;background:transparent;color:#a1a1aa;padding:2px 3px;font:800 13px system-ui;cursor:pointer;">×</button>
@@ -781,7 +789,10 @@ function renderArticleBanner(payload, loading = false, failed = false) {
 
   articleBanner.innerHTML = `
     <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;max-width:1180px;margin:0 auto;">
-      <strong style="color:${tone.accent};white-space:nowrap;font-size:12px;letter-spacing:0;">TruthShield</strong>
+      <a data-truthshield-brand-link href="${escapeHtml(TOOLTIP_ORIGIN)}/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:7px;color:${tone.accent};text-decoration:none;white-space:nowrap;">
+        <img src="${escapeHtml(TOOLTIP_ORIGIN)}/brand/truthshield-mark.svg" alt="" style="width:22px;height:22px;display:block;" />
+        <strong style="font-size:12px;letter-spacing:0;">TruthShield</strong>
+      </a>
       <div style="min-width:0;">
         <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.35;">${escapeHtml(displayText)}</div>
         <div style="margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;">${escapeHtml(statusText)}</div>
