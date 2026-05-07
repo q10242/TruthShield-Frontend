@@ -5,6 +5,12 @@ import { createDonation, fetchDonation, fetchDonationSummary, fetchDonationSuppo
 
 const route = useRoute()
 const amounts = [100, 300, 500, 1000, 2000, 5000]
+const impactItems = [
+  { label: '伺服器與 Redis 快取', percentage: 45 },
+  { label: '資料庫備份與監控', percentage: 25 },
+  { label: '插件相容性測試', percentage: 20 },
+  { label: '開源文件與社群營運', percentage: 10 },
+]
 const form = reactive({
   amount: 300,
   donor_name: '',
@@ -171,6 +177,20 @@ onMounted(async () => {
           </div>
           <div class="mt-5 rounded-md border border-white/10 bg-white/[0.03] p-4 text-xs leading-5 text-zinc-500">
             本機開發預設使用綠界測試環境。正式 MerchantID、HashKey、HashIV 請只放在 backend 環境變數。
+          </div>
+          <div class="mt-5">
+            <h3 class="text-sm font-semibold text-white">預計用途</h3>
+            <div class="mt-3 space-y-3">
+              <div v-for="item in impactItems" :key="item.label">
+                <div class="mb-1 flex items-center justify-between text-xs">
+                  <span class="text-zinc-400">{{ item.label }}</span>
+                  <span class="text-zinc-500">{{ item.percentage }}%</span>
+                </div>
+                <div class="h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <div class="h-full rounded-full bg-cyan-300" :style="{ width: `${item.percentage}%` }"></div>
+                </div>
+              </div>
+            </div>
           </div>
           <div v-if="supporters.length" class="mt-5">
             <h3 class="text-sm font-semibold text-white">最近支持者</h3>
