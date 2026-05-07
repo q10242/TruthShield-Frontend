@@ -9,6 +9,16 @@ const labels = {
   database: '資料庫',
   cache: '快取',
 }
+const countLabels = {
+  pending_donations: '待確認捐款',
+  paid_donations_24h: '24 小時完成捐款',
+  pending_evidence_snapshots: '待處理證據快照',
+  expired_unfinalized_news: '逾期未定案新聞',
+}
+
+function labelCount(key) {
+  return countLabels[key] || key
+}
 
 onMounted(async () => {
   health.value = await fetchSystemHealth()
@@ -45,7 +55,7 @@ onMounted(async () => {
           <h2 class="text-lg font-semibold text-white">Counts</h2>
           <div class="mt-3 grid gap-3 sm:grid-cols-2">
             <div v-for="(value, key) in health.counts" :key="key">
-              <p class="text-xs uppercase text-zinc-500">{{ key }}</p>
+              <p class="text-xs text-zinc-500">{{ labelCount(key) }}</p>
               <p class="mt-1 text-sm text-zinc-200">{{ value }}</p>
             </div>
           </div>
