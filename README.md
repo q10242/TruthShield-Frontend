@@ -1,5 +1,26 @@
-# Vue 3 + Vite
+# TruthShield Web
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Vue 3 + Vite frontend for the TruthShield website, iframe panels, and Chrome extension assets.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## Local Development
+
+```bash
+npm install
+npm run dev
+```
+
+Default local URL: `http://127.0.0.1:15173`
+
+## Key Routes
+
+- `/` Truth Hub home
+- `/local-news-demo` local article test page
+- `/iframe-tooltip` extension tooltip iframe
+- `/iframe-vote-panel` article vote panel iframe
+- `/profile` user profile, badges, and trust history
+- `/donate` ECPay donation page
+- `/transparency` public transparency dashboard
+
+## Extension
+
+Load unpacked extension from `public/extension` during local testing.
