@@ -351,6 +351,20 @@ export async function reportNewsDomain(payload) {
   })
 }
 
+export async function reportUrlClassification(payload) {
+  return request('/api/url-classification-reports', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function suggestTrustedSource(payload) {
+  return request('/api/trusted-source-suggestions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function fetchNewsDomainReportStatus(domainOrUrl) {
   const query = domainOrUrl.startsWith?.('http') ? `url=${encodeURIComponent(domainOrUrl)}` : `domain=${encodeURIComponent(domainOrUrl)}`
   return request(`/api/news-domain-reports/status?${query}`, {

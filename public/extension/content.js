@@ -156,8 +156,34 @@ function isLikelyArticlePage() {
     }
   }
 
+  if (matchedConfig?.list_url_pattern) {
+    try {
+      if (new RegExp(matchedConfig.list_url_pattern).test(window.location.pathname)) {
+        return false
+      }
+    } catch {
+      // Invalid admin-provided patterns are ignored client-side.
+    }
+  }
+
+  if (matchedConfig?.article_url_pattern) {
+    try {
+      if (new RegExp(matchedConfig.article_url_pattern).test(window.location.pathname)) {
+        return true
+      }
+    } catch {
+      // Invalid admin-provided patterns are ignored client-side.
+    }
+  }
+
   const pathParts = window.location.pathname.split('/').filter(Boolean)
-  return pathParts.length >= 2 || window.location.pathname.includes('news')
+  const path = window.location.pathname.toLowerCase()
+  const listLikePath = /^\/?$/.test(path) || /\/(category|section|topics?|search|tag|author|latest|realtime|archive)(\/|$)/.test(path)
+  if (listLikePath) {
+    return false
+  }
+
+  return pathParts.length >= 2 || path.includes('news')
 }
 
 function isLocalTruthShieldDemoPage() {
