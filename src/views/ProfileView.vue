@@ -31,6 +31,16 @@ const contributionSuggestions = computed(() => [
   { to: '/report-domain', title: t('profile.suggestMaintain'), description: t('profile.suggestMaintainDesc') },
 ])
 
+function claimantStatusLabel(status) {
+  return t(`profile.claimStatus.${status}`) === `profile.claimStatus.${status}` ? status : t(`profile.claimStatus.${status}`)
+}
+
+function statusClass(status) {
+  if (['approved', 'published'].includes(status)) return 'bg-emerald-500/15 text-emerald-100'
+  if (['rejected', 'hidden'].includes(status)) return 'bg-red-500/15 text-red-100'
+  return 'bg-amber-500/15 text-amber-100'
+}
+
 async function signOut() {
   if (token.value) await logout(token.value).catch(() => null)
   localStorage.removeItem(TOKEN_KEY)
@@ -199,9 +209,25 @@ onMounted(async () => {
           <p v-if="claimantMessage" class="mt-3 rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs text-emerald-100">{{ claimantMessage }}</p>
           <div v-if="profile.verified_claimants?.length" class="mt-4 grid gap-2">
             <div v-for="claim in profile.verified_claimants" :key="claim.id" class="rounded-md border border-white/10 bg-zinc-950/70 p-3 text-sm">
-              <span class="rounded bg-white/10 px-2 py-1 text-xs text-zinc-300">{{ claim.status }}</span>
+              <span class="rounded px-2 py-1 text-xs font-semibold" :class="statusClass(claim.status)">{{ claimantStatusLabel(claim.status) }}</span>
               <span class="ml-2 text-zinc-200">{{ claim.claim_type }} · {{ claim.domain || claim.organization_name || '-' }}</span>
+              <p v-if="claim.review_note" class="mt-2 text-xs leading-5 text-zinc-500">{{ claim.review_note }}</p>
+              <RouterLink v-if="claim.status === 'rejected'" class="mt-2 inline-flex text-xs font-semibold text-cyan-200 underline" to="/appeals">{{ t('profile.appealRejectedClaim') }}</RouterLink>
             </div>
+          </div>
+        </section>
+        <section v-if="profile.official_responses?.length" class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <h2 class="text-xl font-semibold text-white">{{ t('votePanel.officialResponses') }}</h2>
+          <div class="mt-4 grid gap-2">
+            <article v-for="response in profile.official_responses" :key="response.id" class="rounded-md border border-white/10 bg-zinc-950/70 p-3 text-sm">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded px-2 py-1 text-xs font-semibold" :class="statusClass(response.status)">{{ claimantStatusLabel(response.status) }}</span>
+                <span class="text-zinc-200">{{ response.response_type }}</span>
+                <RouterLink v-if="response.news_url" class="text-xs text-cyan-200 underline" :to="`/news/${response.news_url.id}`">{{ response.news_url.title_snapshot || response.news_url.normalized_url }}</RouterLink>
+              </div>
+              <p class="mt-2 line-clamp-3 text-xs leading-5 text-zinc-400">{{ response.response_text }}</p>
+              <RouterLink v-if="['hidden', 'rejected'].includes(response.status)" class="mt-2 inline-flex text-xs font-semibold text-cyan-200 underline" to="/appeals">{{ t('profile.appealRejectedResponse') }}</RouterLink>
+            </article>
           </div>
         </section>
         <section class="mt-6 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5">

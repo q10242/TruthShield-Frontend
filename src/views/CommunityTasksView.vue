@@ -23,6 +23,7 @@ const typeOptions = [
   { value: 'trusted_source_candidate', labelKey: 'communityTasks.typeTrustedSource' },
   { value: 'evidence_quality_review', labelKey: 'communityTasks.typeEvidence' },
   { value: 'controversial_news', labelKey: 'communityTasks.typeControversy' },
+  { value: 'needs_official_response', labelKey: 'communityTasks.typeOfficialResponse' },
 ]
 
 const statusOptions = [
@@ -36,6 +37,7 @@ const statCards = computed(() => [
   { key: 'escalated_tasks', label: t('communityTasks.escalatedTasks'), value: stats.value?.escalated_tasks ?? 0 },
   { key: 'authenticated_signals', label: t('communityTasks.authSignals'), value: stats.value?.authenticated_signals ?? 0 },
   { key: 'community_demoted_evidence', label: t('communityTasks.demotedEvidence'), value: stats.value?.community_demoted_evidence ?? 0 },
+  { key: 'official_response_tasks', label: t('communityTasks.officialResponseTasks'), value: stats.value?.official_response_tasks ?? 0 },
 ])
 
 async function load() {
