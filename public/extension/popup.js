@@ -7,6 +7,7 @@ const state = {
   settings: defaults,
   tab: null,
 }
+const t = window.truthShieldT || ((key) => key)
 
 function byId(id) {
   return document.getElementById(id)
@@ -73,12 +74,12 @@ chrome.storage.sync.get(defaults, async (settings) => {
   state.tab = await activeTab()
 
   const url = currentUrl()
-  byId('currentUrl').textContent = url || '無法取得目前分頁'
+  byId('currentUrl').textContent = url || t('unavailableTab')
   const disabled = !url || url.startsWith('chrome://') || url.startsWith('chrome-extension://')
   byId('openStatus').disabled = disabled
   byId('openVote').disabled = disabled
   byId('openReport').disabled = disabled
-  setStatus(disabled ? '目前分頁不支援 TruthShield 動作' : '可直接開啟面板，也可使用右鍵選單')
+  setStatus(disabled ? t('unsupportedTab') : t('readyStatus'))
 
   bindActions()
   await loadSummary()

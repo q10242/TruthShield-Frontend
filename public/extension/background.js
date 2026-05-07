@@ -6,27 +6,27 @@ const defaults = {
 const menuItems = [
   {
     id: 'truthshield-link-status',
-    title: 'TruthShield：查看連結標籤',
+    title: chrome.i18n.getMessage('linkStatus'),
     contexts: ['link'],
   },
   {
     id: 'truthshield-link-vote',
-    title: 'TruthShield：我已閱讀此連結，提交評分',
+    title: chrome.i18n.getMessage('linkVote'),
     contexts: ['link'],
   },
   {
     id: 'truthshield-page-status',
-    title: 'TruthShield：查看此頁評分',
+    title: chrome.i18n.getMessage('pageStatus'),
     contexts: ['page'],
   },
   {
     id: 'truthshield-page-vote',
-    title: 'TruthShield：我已閱讀此頁，提交評分',
+    title: chrome.i18n.getMessage('pageVote'),
     contexts: ['page'],
   },
   {
     id: 'truthshield-report-domain',
-    title: 'TruthShield：回報未收錄新聞站',
+    title: chrome.i18n.getMessage('reportDomain'),
     contexts: ['page', 'link'],
   },
 ]

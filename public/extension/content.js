@@ -50,6 +50,53 @@ let hideTimer = null
 let hoverTimer = null
 let articleReadSeconds = 0
 let articleReadTimer = null
+const contentLocale = navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en'
+const contentMessages = {
+  'zh-TW': {
+    checkingLink: '正在查核此連結...',
+    tagUnavailable: '暫時無法取得標籤',
+    noData: '尚無足夠投票資料',
+    finalized: '已定案',
+    voteClosed: '投票已截止',
+    tooltipHint: 'TruthShield 標籤提示',
+    checking: '檢查中',
+    live: '即時',
+    newsStatus: 'TruthShield 新聞狀態',
+    checkingNews: '正在查核此新聞...',
+    ratingUnavailable: '暫時無法取得 TruthShield 評分',
+    resultFinalized: '結果已定案',
+    readEvidence: '閱讀後可補充證據',
+    open: '開啟',
+    closeBanner: '關閉 TruthShield 橫幅',
+    closePanel: '關閉 TruthShield 投票面板',
+    votePanelTitle: 'TruthShield 新聞投票面板',
+    reportMissing: '回報未收錄新聞站',
+  },
+  en: {
+    checkingLink: 'Checking this link...',
+    tagUnavailable: 'Label temporarily unavailable',
+    noData: 'Not enough voting data yet',
+    finalized: 'Finalized',
+    voteClosed: 'Voting closed',
+    tooltipHint: 'TruthShield label hint',
+    checking: 'Checking',
+    live: 'Live',
+    newsStatus: 'TruthShield news status',
+    checkingNews: 'Checking this article...',
+    ratingUnavailable: 'TruthShield rating temporarily unavailable',
+    resultFinalized: 'Result finalized',
+    readEvidence: 'Add evidence after reading',
+    open: 'Open',
+    closeBanner: 'Close TruthShield banner',
+    closePanel: 'Close TruthShield vote panel',
+    votePanelTitle: 'TruthShield news vote panel',
+    reportMissing: 'Report missing news site',
+  },
+}
+
+function t(key) {
+  return contentMessages[contentLocale]?.[key] || contentMessages['zh-TW'][key] || key
+}
 
 function extensionVersion() {
   try {
@@ -343,22 +390,22 @@ function renderTooltip(payload, loading = false, failed = false) {
   box.style.background = tone.background
 
   const displayText = loading
-    ? '正在查核此連結...'
+    ? t('checkingLink')
     : failed
-      ? '暫時無法取得標籤'
-      : payload?.display_text || '尚無足夠投票資料'
+      ? t('tagUnavailable')
+      : payload?.display_text || t('noData')
 
   const meta = payload?.finalized_at
-    ? '已定案'
+    ? t('finalized')
     : payload?.is_open === false
-      ? '投票已截止'
-      : 'TruthShield 標籤提示'
+      ? t('voteClosed')
+      : t('tooltipHint')
 
   box.innerHTML = `
     <div style="padding: 12px 14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
         <strong style="color:${tone.accent};font-size:12px;">TruthShield</strong>
-        <span style="color:#a1a1aa;font-size:11px;">${loading ? '檢查中' : '即時'}</span>
+        <span style="color:#a1a1aa;font-size:11px;">${loading ? t('checking') : t('live')}</span>
       </div>
       <div style="font-weight:700;line-height:1.45;">${escapeHtml(displayText)}</div>
       <div style="margin-top:6px;color:#d4d4d8;font-size:12px;line-height:1.45;">${escapeHtml(meta)}</div>
@@ -509,7 +556,7 @@ function ensureArticleBanner() {
   articleBanner = document.createElement('div')
   articleBannerUrl = window.location.href
   articleBanner.setAttribute('role', 'region')
-  articleBanner.setAttribute('aria-label', 'TruthShield 新聞狀態')
+  articleBanner.setAttribute('aria-label', t('newsStatus'))
   articleBanner.style.position = 'fixed'
   articleBanner.style.top = '0'
   articleBanner.style.left = '0'
@@ -573,16 +620,16 @@ function renderArticleBanner(payload, loading = false, failed = false) {
   articleBanner.style.borderBottomColor = tone.border
 
   const displayText = loading
-    ? '正在查核此新聞...'
+    ? t('checkingNews')
     : failed
-      ? '暫時無法取得 TruthShield 評分'
-      : payload?.display_text || '尚無足夠投票資料'
+      ? t('ratingUnavailable')
+      : payload?.display_text || t('noData')
 
   const statusText = payload?.finalized_at
-    ? '結果已定案'
+    ? t('resultFinalized')
     : payload?.is_open === false
-      ? '投票已截止'
-      : '閱讀後可補充證據'
+      ? t('voteClosed')
+      : t('readEvidence')
 
   articleBanner.innerHTML = `
     <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;max-width:1180px;margin:0 auto;">
@@ -591,8 +638,8 @@ function renderArticleBanner(payload, loading = false, failed = false) {
         <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.35;">${escapeHtml(displayText)}</div>
         <div style="margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;">${escapeHtml(statusText)}</div>
       </div>
-      <span style="border:1px solid ${tone.border};border-radius:6px;color:${tone.accent};background:rgba(255,255,255,.04);padding:5px 8px;font:700 12px system-ui;white-space:nowrap;">開啟</span>
-      <button data-truthshield-close-banner type="button" aria-label="關閉 TruthShield 橫幅" style="border:1px solid rgba(255,255,255,.16);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 9px;font:700 12px system-ui;cursor:pointer;">×</button>
+      <span style="border:1px solid ${tone.border};border-radius:6px;color:${tone.accent};background:rgba(255,255,255,.04);padding:5px 8px;font:700 12px system-ui;white-space:nowrap;">${t('open')}</span>
+      <button data-truthshield-close-banner type="button" aria-label="${t('closeBanner')}" style="border:1px solid rgba(255,255,255,.16);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 9px;font:700 12px system-ui;cursor:pointer;">×</button>
     </div>
   `
 }
@@ -679,7 +726,7 @@ function openVotePanelModal() {
   const closeButton = document.createElement('button')
   closeButton.type = 'button'
   closeButton.textContent = '×'
-  closeButton.setAttribute('aria-label', '關閉 TruthShield 投票面板')
+  closeButton.setAttribute('aria-label', t('closePanel'))
   closeButton.style.position = 'absolute'
   closeButton.style.top = '8px'
   closeButton.style.right = '8px'
@@ -694,7 +741,7 @@ function openVotePanelModal() {
   closeButton.addEventListener('click', closeVotePanelModal)
 
   votePanelFrame = document.createElement('iframe')
-  votePanelFrame.title = 'TruthShield 新聞投票面板'
+  votePanelFrame.title = t('votePanelTitle')
   votePanelFrame.style.width = '100%'
   votePanelFrame.style.height = '620px'
   votePanelFrame.style.maxHeight = 'calc(100vh - 82px)'
@@ -808,7 +855,7 @@ function ensureReportButton() {
 
   reportButton = document.createElement('button')
   reportButton.type = 'button'
-  reportButton.textContent = '回報未收錄新聞站'
+  reportButton.textContent = t('reportMissing')
   reportButton.style.position = 'fixed'
   reportButton.style.right = '16px'
   reportButton.style.bottom = '16px'

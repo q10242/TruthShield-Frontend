@@ -207,7 +207,7 @@ async function loadData() {
   statusLoading.value = true
 
   try {
-    if (!newsUrl.value) throw new Error('缺少 news_url')
+    if (!newsUrl.value) throw new Error('Missing news_url')
 
     const requests = [
       fetchNewsStatus(newsUrl.value),

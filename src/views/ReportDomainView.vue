@@ -2,8 +2,10 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchNewsDomainReportStatus, reportNewsDomain, reportUrlClassification, suggestTrustedSource } from '../lib/api'
+import { useI18n } from '../i18n'
 
 const route = useRoute()
+const { t } = useI18n()
 const url = ref(route.query.url || '')
 const pageTitle = ref(route.query.page_title || '')
 const note = ref('')
@@ -31,7 +33,7 @@ async function submit() {
   message.value = ''
 
   if (!domain.value) {
-    error.value = '請輸入有效的新聞網址。'
+    error.value = t('remaining.validNewsUrl')
     return
   }
 
@@ -43,9 +45,9 @@ async function submit() {
       page_title: pageTitle.value || undefined,
       note: note.value || undefined,
     })
-    message.value = '已收到回報。審核後會加入插件監控清單。'
+    message.value = t('remaining.reportReceived')
   } catch (err) {
-    error.value = err.errors?.url?.[0] || err.message || '回報失敗'
+    error.value = err.errors?.url?.[0] || err.message || t('remaining.reportFailed')
   } finally {
     submitting.value = false
   }
@@ -56,7 +58,7 @@ async function submitClassification() {
   classificationMessage.value = ''
 
   if (!domain.value) {
-    error.value = '請輸入有效的網址。'
+    error.value = t('remaining.validUrl')
     return
   }
 
@@ -69,9 +71,9 @@ async function submitClassification() {
       page_title: pageTitle.value || undefined,
       note: note.value || undefined,
     })
-    classificationMessage.value = '已收到 URL 分類回報。多位使用者回報後會形成後台規則建議。'
+    classificationMessage.value = t('remaining.classificationReceived')
   } catch (err) {
-    error.value = err.errors?.url?.[0] || err.message || '分類回報失敗'
+    error.value = err.errors?.url?.[0] || err.message || t('remaining.classificationFailed')
   } finally {
     classificationSubmitting.value = false
   }
@@ -82,7 +84,7 @@ async function submitTrustedSource() {
   sourceMessage.value = ''
 
   if (!domain.value) {
-    error.value = '請輸入有效的來源網址。'
+    error.value = t('remaining.validSourceUrl')
     return
   }
 
@@ -94,9 +96,9 @@ async function submitTrustedSource() {
       source_type: sourceType.value,
       note: note.value || undefined,
     })
-    sourceMessage.value = '已收到可信來源建議。累積足夠訊號後管理員可一鍵加入可信來源。'
+    sourceMessage.value = t('remaining.sourceReceived')
   } catch (err) {
-    error.value = err.errors?.host?.[0] || err.message || '可信來源建議失敗'
+    error.value = err.errors?.host?.[0] || err.message || t('remaining.sourceFailed')
   } finally {
     sourceSubmitting.value = false
   }
@@ -127,15 +129,15 @@ onMounted(async () => {
     <section class="mx-auto max-w-xl">
       <div class="mb-6">
         <p class="text-sm font-semibold text-cyan-300">TruthShield</p>
-        <h1 class="mt-2 text-2xl font-semibold text-white">社群維護回報</h1>
+        <h1 class="mt-2 text-2xl font-semibold text-white">{{ t('remaining.reportTitle') }}</h1>
         <p class="mt-2 text-sm leading-6 text-zinc-400">
-          大量資料由使用者回報，系統聚合後交給後台審核。你可以回報未收錄新聞站、URL 是否為文章頁，或建議可信證據來源。
+          {{ t('remaining.reportIntro') }}
         </p>
       </div>
 
       <form class="space-y-4 rounded-lg border border-white/10 bg-white/[0.03] p-4" @submit.prevent="submit">
         <label class="block text-sm text-zinc-300">
-          新聞網址
+          {{ t('remaining.newsUrl') }}
           <input
             v-model="url"
             class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
@@ -144,60 +146,60 @@ onMounted(async () => {
         </label>
 
         <label class="block text-sm text-zinc-300">
-          頁面標題
+          {{ t('remaining.pageTitle') }}
           <input
             v-model="pageTitle"
             class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
-            placeholder="可選填"
+            :placeholder="t('remaining.optional')"
           />
         </label>
 
         <label class="block text-sm text-zinc-300">
-          補充說明
+          {{ t('remaining.note') }}
           <textarea
             v-model="note"
             rows="3"
             class="mt-2 w-full resize-none rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
-            placeholder="例如：這是地方新聞網站、財經媒體、或特定專題頁"
+            :placeholder="t('remaining.notePlaceholder')"
           ></textarea>
         </label>
 
         <label class="block text-sm text-zinc-300">
-          URL 分類
+          {{ t('remaining.urlClassification') }}
           <select
             v-model="classification"
             class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
           >
-            <option value="article">這是單篇新聞</option>
-            <option value="list">這是分類 / 列表頁</option>
-            <option value="home">這是首頁</option>
-            <option value="search">這是搜尋頁</option>
-            <option value="not_news">這不是新聞頁</option>
-            <option value="unknown">不確定</option>
+            <option value="article">{{ t('remaining.articlePage') }}</option>
+            <option value="list">{{ t('remaining.listPage') }}</option>
+            <option value="home">{{ t('remaining.homePage') }}</option>
+            <option value="search">{{ t('remaining.searchPage') }}</option>
+            <option value="not_news">{{ t('remaining.notNewsPage') }}</option>
+            <option value="unknown">{{ t('remaining.unsure') }}</option>
           </select>
         </label>
 
         <label class="block text-sm text-zinc-300">
-          可信來源類型
+          {{ t('remaining.trustedSourceType') }}
           <select
             v-model="sourceType"
             class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
           >
-            <option value="cloud_drive">雲端硬碟</option>
-            <option value="image_host">圖床</option>
-            <option value="archive">存證服務</option>
-            <option value="fact_check">查核組織</option>
-            <option value="government">政府資料</option>
-            <option value="media">媒體資料</option>
+            <option value="cloud_drive">{{ t('evidence.cloudDrive') }}</option>
+            <option value="image_host">{{ t('remaining.imageHost') }}</option>
+            <option value="archive">{{ t('remaining.archive') }}</option>
+            <option value="fact_check">{{ t('remaining.factCheck') }}</option>
+            <option value="government">{{ t('remaining.governmentData') }}</option>
+            <option value="media">{{ t('remaining.mediaData') }}</option>
           </select>
         </label>
 
         <div v-if="domain" class="rounded-md border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm text-cyan-100">
-          將回報 domain：{{ domain }}
+          {{ t('remaining.willReportDomain', { domain }) }}
         </div>
 
         <div v-if="existingReport" class="rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm text-zinc-300">
-          目前狀態：{{ existingReport.status }}，累計 {{ existingReport.report_count }} 次回報。
+          {{ t('remaining.currentReportStatus', { status: existingReport.status, count: existingReport.report_count }) }}
         </div>
 
         <p v-if="error" class="rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{{ error }}</p>
@@ -205,8 +207,8 @@ onMounted(async () => {
         <p v-if="classificationMessage" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm text-emerald-100">{{ classificationMessage }}</p>
         <p v-if="sourceMessage" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm text-emerald-100">{{ sourceMessage }}</p>
         <div v-if="message || classificationMessage || sourceMessage" class="rounded-md border border-white/10 bg-zinc-900 p-3 text-sm text-zinc-300">
-          <p class="font-semibold text-white">接下來會發生什麼？</p>
-          <p class="mt-1 leading-6 text-zinc-400">系統會累積同 domain / 同規則的回報。達到足夠訊號後，管理員可在後台審核並轉成插件規則或可信來源。</p>
+          <p class="font-semibold text-white">{{ t('remaining.whatNext') }}</p>
+          <p class="mt-1 leading-6 text-zinc-400">{{ t('remaining.reportNext') }}</p>
         </div>
 
         <div class="grid gap-2 sm:grid-cols-3">
@@ -214,7 +216,7 @@ onMounted(async () => {
             class="rounded-md bg-cyan-300 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="submitting"
           >
-            {{ submitting ? '送出中...' : '回報新聞站' }}
+            {{ submitting ? t('remaining.submitting') : t('remaining.reportNewsSite') }}
           </button>
           <button
             type="button"
@@ -222,7 +224,7 @@ onMounted(async () => {
             :disabled="classificationSubmitting"
             @click="submitClassification"
           >
-            {{ classificationSubmitting ? '送出中...' : '回報 URL 分類' }}
+            {{ classificationSubmitting ? t('remaining.submitting') : t('remaining.reportUrlClassification') }}
           </button>
           <button
             type="button"
@@ -230,7 +232,7 @@ onMounted(async () => {
             :disabled="sourceSubmitting"
             @click="submitTrustedSource"
           >
-            {{ sourceSubmitting ? '送出中...' : '建議可信來源' }}
+            {{ sourceSubmitting ? t('remaining.submitting') : t('remaining.suggestTrustedSource') }}
           </button>
         </div>
       </form>

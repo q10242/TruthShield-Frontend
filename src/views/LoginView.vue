@@ -9,7 +9,7 @@ const USER_KEY = 'truthshield_user'
 
 const route = useRoute()
 const { t } = useI18n()
-const name = ref('真相查證者')
+const name = ref(t('auth.defaultName'))
 const email = ref('checker@example.com')
 const fbId = ref('')
 const loading = ref(false)

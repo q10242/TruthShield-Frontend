@@ -60,10 +60,10 @@ onMounted(load)
         <input v-model="q" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :placeholder="t('evidence.searchPlaceholder')" />
         <select v-model="tag" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
           <option value="">{{ t('evidence.allTags') }}</option>
-          <option value="clickbait-title">標題殺人</option>
-          <option value="missing-context">隱瞞事實</option>
-          <option value="out-of-context">斷章取義</option>
-          <option value="accurate-reporting">事實準確</option>
+          <option value="clickbait-title">{{ t('evidence.tags.clickbaitTitle') }}</option>
+          <option value="missing-context">{{ t('evidence.tags.missingContext') }}</option>
+          <option value="out-of-context">{{ t('evidence.tags.outOfContext') }}</option>
+          <option value="accurate-reporting">{{ t('evidence.tags.accurateReporting') }}</option>
         </select>
         <select v-model="trusted" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
           <option value="">{{ t('evidence.allSources') }}</option>

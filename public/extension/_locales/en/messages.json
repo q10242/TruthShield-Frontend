@@ -1,4 +1,9 @@
 {
   "extensionName": { "message": "TruthShield News Credibility" },
-  "extensionDescription": { "message": "Show community credibility labels before opening news links." }
+  "extensionDescription": { "message": "Show community credibility labels before opening news links." },
+  "linkStatus": { "message": "TruthShield: View link label" },
+  "linkVote": { "message": "TruthShield: I read this link, submit rating" },
+  "pageStatus": { "message": "TruthShield: View this page rating" },
+  "pageVote": { "message": "TruthShield: I read this page, submit rating" },
+  "reportDomain": { "message": "TruthShield: Report missing news site" }
 }

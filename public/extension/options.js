@@ -13,6 +13,7 @@ const fields = {
   enablePanel: document.getElementById('enablePanel'),
   enableReportButton: document.getElementById('enableReportButton'),
 }
+const t = window.truthShieldT || ((key) => key)
 
 chrome.storage.sync.get(defaults, (values) => {
   fields.tooltipOrigin.value = values.tooltipOrigin
@@ -20,7 +21,7 @@ chrome.storage.sync.get(defaults, (values) => {
   fields.enableTooltip.checked = values.enableTooltip
   fields.enablePanel.checked = values.enablePanel
   fields.enableReportButton.checked = values.enableReportButton
-  document.getElementById('version').textContent = `插件版本 ${chrome.runtime.getManifest().version}`
+  document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
 })
 
 document.getElementById('save').addEventListener('click', () => {
@@ -31,20 +32,20 @@ document.getElementById('save').addEventListener('click', () => {
     enablePanel: fields.enablePanel.checked,
     enableReportButton: fields.enableReportButton.checked,
   }, () => {
-    document.getElementById('status').textContent = '已儲存'
+    document.getElementById('status').textContent = t('saved')
   })
 })
 
 document.getElementById('checkHealth').addEventListener('click', async () => {
   const apiOrigin = fields.apiOrigin.value || defaults.apiOrigin
   const health = document.getElementById('health')
-  health.textContent = '檢查中...'
+  health.textContent = t('checking')
 
   try {
     const response = await fetch(`${apiOrigin}/api/system/health`, { headers: { Accept: 'application/json' } })
     const payload = await response.json()
-    health.textContent = payload.ok ? `健康 · ${payload.timestamp}` : '降級'
+    health.textContent = payload.ok ? `${t('healthy')} · ${payload.timestamp}` : t('degraded')
   } catch {
-    health.textContent = '無法連線 API'
+    health.textContent = t('apiUnreachable')
   }
 })

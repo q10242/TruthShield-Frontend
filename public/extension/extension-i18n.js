@@ -22,6 +22,15 @@ const dictionaries = {
     enableReportButton: '顯示未收錄新聞站回報按鈕',
     save: '儲存',
     checkHealth: '檢查 API 健康狀態',
+    extensionVersion: '插件版本',
+    saved: '已儲存',
+    checking: '檢查中...',
+    healthy: '健康',
+    degraded: '降級',
+    apiUnreachable: '無法連線 API',
+    unavailableTab: '無法取得目前分頁',
+    unsupportedTab: '目前分頁不支援 TruthShield 動作',
+    readyStatus: '可直接開啟面板，也可使用右鍵選單',
   },
   en: {
     popupIntro: 'News pages show a top banner. Click it to open voting and evidence. Links can also be checked or reported from the context menu.',
@@ -46,17 +55,33 @@ const dictionaries = {
     enableReportButton: 'Show missing news-site report button',
     save: 'Save',
     checkHealth: 'Check API health',
+    extensionVersion: 'Extension version',
+    saved: 'Saved',
+    checking: 'Checking...',
+    healthy: 'Healthy',
+    degraded: 'Degraded',
+    apiUnreachable: 'Cannot connect to API',
+    unavailableTab: 'Cannot access current tab',
+    unsupportedTab: 'TruthShield actions are not supported on this tab',
+    readyStatus: 'Open the panel directly or use the context menu',
   },
 }
 
 const locale = navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en'
 const dictionary = dictionaries[locale] || dictionaries['zh-TW']
+window.truthShieldT = (key, params = {}) => {
+  let value = dictionary[key] || key
+  Object.entries(params).forEach(([name, replacement]) => {
+    value = value.replaceAll(`{${name}}`, String(replacement))
+  })
+  return value
+}
 
 document.documentElement.lang = locale === 'zh-TW' ? 'zh-Hant' : 'en'
 
 document.querySelectorAll('[data-i18n]').forEach((element) => {
   const key = element.getAttribute('data-i18n')
-  if (dictionary[key]) element.textContent = dictionary[key]
+  if (dictionary[key]) element.textContent = window.truthShieldT(key)
 })
 
 document.querySelectorAll('[data-i18n-title]').forEach((element) => {

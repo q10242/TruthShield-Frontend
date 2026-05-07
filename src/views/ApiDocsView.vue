@@ -2,8 +2,10 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchApiDocs } from '../lib/api'
+import { useI18n } from '../i18n'
 
 const docs = ref(null)
+const { t } = useI18n()
 
 onMounted(async () => {
   docs.value = await fetchApiDocs()
@@ -16,7 +18,7 @@ onMounted(async () => {
       <nav class="mb-8 border-b border-white/10 pb-5">
         <RouterLink class="text-sm font-semibold text-white" to="/">TruthShield</RouterLink>
       </nav>
-      <h1 class="text-3xl font-semibold text-white">API 文件</h1>
+      <h1 class="text-3xl font-semibold text-white">{{ t('remaining.apiDocsTitle') }}</h1>
       <div v-if="docs" class="mt-6 space-y-2">
         <article v-for="endpoint in docs.endpoints" :key="endpoint.path" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <p class="font-mono text-sm text-cyan-200">{{ endpoint.method }} {{ endpoint.path }}</p>
