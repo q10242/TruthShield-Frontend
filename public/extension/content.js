@@ -358,7 +358,7 @@ function renderTooltip(payload, loading = false, failed = false) {
     <div style="padding: 12px 14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
         <strong style="color:${tone.accent};font-size:12px;">TruthShield</strong>
-        <span style="color:#a1a1aa;font-size:11px;">${loading ? 'checking' : 'live'}</span>
+        <span style="color:#a1a1aa;font-size:11px;">${loading ? '檢查中' : '即時'}</span>
       </div>
       <div style="font-weight:700;line-height:1.45;">${escapeHtml(displayText)}</div>
       <div style="margin-top:6px;color:#d4d4d8;font-size:12px;line-height:1.45;">${escapeHtml(meta)}</div>
@@ -509,7 +509,7 @@ function ensureArticleBanner() {
   articleBanner = document.createElement('div')
   articleBannerUrl = window.location.href
   articleBanner.setAttribute('role', 'region')
-  articleBanner.setAttribute('aria-label', 'TruthShield news status')
+  articleBanner.setAttribute('aria-label', 'TruthShield 新聞狀態')
   articleBanner.style.position = 'fixed'
   articleBanner.style.top = '0'
   articleBanner.style.left = '0'
@@ -694,7 +694,7 @@ function openVotePanelModal() {
   closeButton.addEventListener('click', closeVotePanelModal)
 
   votePanelFrame = document.createElement('iframe')
-  votePanelFrame.title = 'TruthShield news vote panel'
+  votePanelFrame.title = 'TruthShield 新聞投票面板'
   votePanelFrame.style.width = '100%'
   votePanelFrame.style.height = '620px'
   votePanelFrame.style.maxHeight = 'calc(100vh - 82px)'

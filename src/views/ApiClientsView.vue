@@ -6,7 +6,7 @@ import { createApiClient, fetchApiClients, revokeApiClient } from '../lib/api'
 const TOKEN_KEY = 'truthshield_api_token'
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const clients = ref([])
-const name = ref('Research integration')
+const name = ref('研究資料整合')
 const plainKey = ref('')
 const error = ref('')
 
@@ -43,11 +43,11 @@ onMounted(loadClients)
         <RouterLink class="text-sm text-zinc-400" to="/api-docs">API 文件</RouterLink>
       </nav>
 
-      <h1 class="text-3xl font-semibold text-white">API Keys</h1>
-      <p class="mt-2 text-sm text-zinc-400">為研究者或資料整合建立可撤銷的短權限 API client。</p>
+      <h1 class="text-3xl font-semibold text-white">API 金鑰</h1>
+      <p class="mt-2 text-sm text-zinc-400">為研究者或資料整合建立可撤銷的短權限 API 用戶端。</p>
 
       <div v-if="!token" class="mt-6 rounded-lg border border-amber-300/30 bg-amber-400/10 p-4 text-sm text-amber-100">
-        請先登入後建立 API Key。
+        請先登入後建立 API 金鑰。
       </div>
 
       <template v-else>
@@ -57,7 +57,7 @@ onMounted(loadClients)
         </form>
 
         <p v-if="plainKey" class="mt-3 break-all rounded-md border border-emerald-300/30 bg-emerald-500/10 p-3 text-xs text-emerald-100">
-          新 key 僅顯示一次：{{ plainKey }}
+          新金鑰僅顯示一次：{{ plainKey }}
         </p>
         <p v-if="error" class="mt-3 rounded-md border border-red-300/30 bg-red-500/10 p-3 text-xs text-red-100">{{ error }}</p>
 
@@ -66,13 +66,13 @@ onMounted(loadClients)
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p class="font-semibold text-white">{{ client.name }}</p>
-                <p class="mt-1 text-xs text-zinc-500">created {{ client.created_at }} · last used {{ client.last_used_at || 'never' }}</p>
+                <p class="mt-1 text-xs text-zinc-500">建立 {{ client.created_at }} · 最後使用 {{ client.last_used_at || '從未使用' }}</p>
               </div>
               <button v-if="client.status === 'active'" class="rounded-md border border-red-300/30 px-3 py-2 text-xs font-semibold text-red-100" @click="revokeClient(client.id)">撤銷</button>
               <span v-else class="rounded bg-white/10 px-2 py-1 text-xs text-zinc-400">{{ client.status }}</span>
             </div>
           </div>
-          <div v-if="!clients.length" class="rounded-lg border border-white/10 p-4 text-sm text-zinc-500">尚無 API client。</div>
+          <div v-if="!clients.length" class="rounded-lg border border-white/10 p-4 text-sm text-zinc-500">尚無 API 用戶端。</div>
         </div>
       </template>
     </section>

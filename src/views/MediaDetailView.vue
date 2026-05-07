@@ -21,7 +21,7 @@ onMounted(async () => {
 
       <template v-if="payload">
         <h1 class="text-3xl font-semibold text-white">{{ payload.media.name }}</h1>
-        <p class="mt-2 text-sm text-zinc-400">{{ payload.media.type || 'news' }} · {{ payload.media.region || 'unknown' }}</p>
+        <p class="mt-2 text-sm text-zinc-400">{{ payload.media.type || '新聞' }} · {{ payload.media.region || '未知' }}</p>
 
         <div class="mt-6 grid gap-3 sm:grid-cols-3">
           <div v-for="row in payload.tag_weights" :key="row.slug" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
@@ -35,7 +35,7 @@ onMounted(async () => {
           <article v-for="item in payload.recent_news" :key="item.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
             <p class="font-medium text-white">{{ item.title_snapshot || '未命名新聞' }}</p>
             <a :href="item.normalized_url" target="_blank" rel="noreferrer" class="mt-1 block truncate text-sm text-cyan-200">{{ item.normalized_url }}</a>
-            <p class="mt-2 text-xs text-zinc-500">Votes {{ item.votes_count }} · {{ item.finalized_at ? '已定案' : '觀察中' }}</p>
+            <p class="mt-2 text-xs text-zinc-500">投票 {{ item.votes_count }} · {{ item.finalized_at ? '已定案' : '觀察中' }}</p>
           </article>
         </div>
       </template>

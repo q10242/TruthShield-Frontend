@@ -48,9 +48,9 @@ onMounted(async () => {
             <div v-for="edge in summary.top_edges" :key="edge.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <span class="rounded bg-cyan-300/10 px-2 py-1 text-xs font-semibold text-cyan-100">{{ edge.edge_type }}</span>
-                <span class="text-sm font-semibold text-white">score {{ Number(edge.score || 0).toFixed(2) }}</span>
+                <span class="text-sm font-semibold text-white">分數 {{ Number(edge.score || 0).toFixed(2) }}</span>
               </div>
-              <p class="mt-2 text-xs text-zinc-500">user {{ edge.source_user_id }} -> user {{ edge.target_user_id }}</p>
+              <p class="mt-2 text-xs text-zinc-500">使用者 {{ edge.source_user_id }} -> 使用者 {{ edge.target_user_id }}</p>
             </div>
             <div v-if="!summary.top_edges?.length" class="rounded-lg border border-white/10 p-4 text-sm text-zinc-500">尚無關聯資料。</div>
           </div>

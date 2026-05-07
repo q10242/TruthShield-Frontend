@@ -7,7 +7,7 @@ const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
 
 const route = useRoute()
-const name = ref('Truth Checker')
+const name = ref('真相查證者')
 const email = ref('checker@example.com')
 const fbId = ref('')
 const loading = ref(false)
@@ -16,8 +16,8 @@ const done = ref(false)
 
 const redirectPath = computed(() => route.query.redirect || '/')
 const demoAccounts = [
-  { label: '一般測試者', name: 'Truth Checker', email: 'checker@example.com' },
-  { label: 'Seed 測試者', name: 'TruthShield Tester', email: 'tester@truthshield.local' },
+  { label: '一般測試者', name: '真相查證者', email: 'checker@example.com' },
+  { label: '預載測試者', name: '真相護盾測試者', email: 'tester@truthshield.local' },
 ]
 
 function useDemoAccount(account) {
@@ -125,7 +125,7 @@ async function realProviderLogin(provider) {
           <p class="text-sm font-semibold text-cyan-300">身份入口</p>
           <h2 class="mt-2 text-2xl font-semibold text-white">選擇登入方式</h2>
           <p class="mt-2 text-sm leading-6 text-zinc-400">
-            本機環境可使用測試登入。正式 OAuth 會在 production 設定完成後啟用。
+            本機環境可使用測試登入。正式 OAuth 會在正式環境設定完成後啟用。
           </p>
         </div>
 
@@ -133,7 +133,7 @@ async function realProviderLogin(provider) {
           <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('facebook')">Facebook</button>
           <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('google')">Google</button>
           <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('github')">GitHub</button>
-          <button class="rounded-md border border-white/10 px-4 py-2 text-xs font-semibold text-zinc-300 hover:border-cyan-300/50" :disabled="loading" @click="providerLogin('google')">本機 OAuth stub</button>
+          <button class="rounded-md border border-white/10 px-4 py-2 text-xs font-semibold text-zinc-300 hover:border-cyan-300/50" :disabled="loading" @click="providerLogin('google')">本機 OAuth 模擬登入</button>
         </div>
 
         <div class="mb-5 rounded-md border border-white/10 bg-white/[0.03] p-3">
@@ -157,11 +157,11 @@ async function realProviderLogin(provider) {
             <input v-model="name" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" />
           </label>
           <label class="block text-sm">
-            <span class="text-zinc-300">測試 Email</span>
+            <span class="text-zinc-300">測試電子信箱</span>
             <input v-model="email" type="email" required class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" />
           </label>
           <label class="block text-sm">
-            <span class="text-zinc-300">FB ID placeholder</span>
+            <span class="text-zinc-300">FB ID 預留欄位</span>
             <input v-model="fbId" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" />
           </label>
 

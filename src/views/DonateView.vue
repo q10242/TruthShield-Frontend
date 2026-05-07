@@ -114,7 +114,7 @@ onMounted(async () => {
 
       <div class="grid gap-8 lg:grid-cols-[1fr_360px]">
         <section>
-          <p class="text-sm font-semibold text-cyan-300">Support TruthShield</p>
+          <p class="text-sm font-semibold text-cyan-300">支持 TruthShield</p>
           <h1 class="mt-3 text-4xl font-semibold text-white">支持真相護盾繼續運作</h1>
           <p class="mt-4 max-w-2xl leading-7 text-zinc-300">
             捐款會用於伺服器、Redis 快取、資料庫備份、插件測試與開源維護。TruthShield 不接受媒體改分、不販售個人資料，營運資金必須透明且分散。
@@ -161,7 +161,7 @@ onMounted(async () => {
                 <input v-model="form.donor_name" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" maxlength="80" placeholder="可留空匿名" />
               </label>
               <label class="text-sm text-zinc-300">
-                Email
+                電子信箱
                 <input v-model="form.donor_email" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" maxlength="160" placeholder="收據或通知用，可留空" type="email" />
               </label>
             </div>
@@ -206,7 +206,7 @@ onMounted(async () => {
             <p>正式上線前會公開每月基礎設施支出摘要。</p>
           </div>
           <div class="mt-5 rounded-md border border-white/10 bg-white/[0.03] p-4 text-xs leading-5 text-zinc-500">
-            本機開發預設使用綠界測試環境。正式 MerchantID、HashKey、HashIV 請只放在 backend 環境變數。
+            本機開發預設使用綠界測試環境。正式 MerchantID、HashKey、HashIV 請只放在後端環境變數。
           </div>
           <div class="mt-5">
             <h3 class="text-sm font-semibold text-white">預計用途</h3>

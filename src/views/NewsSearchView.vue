@@ -32,7 +32,7 @@ onMounted(search)
       <h1 class="text-3xl font-semibold text-white">新聞搜尋</h1>
       <form class="mt-5 grid gap-2 md:grid-cols-[1fr_180px_150px_auto]" @submit.prevent="search">
         <input v-model="q" class="min-w-0 flex-1 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300" placeholder="搜尋 URL 或標題" />
-        <input v-model="domain" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300" placeholder="domain" />
+        <input v-model="domain" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300" placeholder="網域" />
         <select v-model="finalized" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300">
           <option value="">全部狀態</option>
           <option value="0">觀察中</option>
@@ -45,7 +45,7 @@ onMounted(search)
         <article v-for="row in rows" :key="row.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <p class="font-medium text-white">{{ row.title_snapshot || '未命名新聞' }}</p>
           <a :href="row.normalized_url" target="_blank" rel="noreferrer" class="mt-1 block truncate text-sm text-cyan-200">{{ row.normalized_url }}</a>
-          <p class="mt-2 text-xs text-zinc-500">Votes {{ row.votes_count }} · {{ row.finalized_at ? '已定案' : '觀察中' }}</p>
+          <p class="mt-2 text-xs text-zinc-500">投票 {{ row.votes_count }} · {{ row.finalized_at ? '已定案' : '觀察中' }}</p>
           <RouterLink class="mt-2 inline-block text-xs font-semibold text-cyan-200" :to="`/news/${row.id}`">查看詳情</RouterLink>
         </article>
       </div>

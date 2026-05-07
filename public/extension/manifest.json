@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "TruthShield Link Tooltip",
+  "name": "TruthShield 新聞信譽提示",
   "version": "0.1.0",
-  "description": "Show credibility tags for news links before opening them.",
+  "description": "在開啟新聞連結前顯示社群信譽標籤。",
   "action": {
     "default_title": "TruthShield",
     "default_popup": "popup.html"

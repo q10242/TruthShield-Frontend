@@ -5,6 +5,11 @@ import { fetchMediaLeaderboard } from '../lib/api'
 
 const rankings = ref([])
 const loading = ref(true)
+const riskLabels = {
+  high: '高',
+  medium: '中',
+  low: '低',
+}
 
 onMounted(async () => {
   try {
@@ -70,7 +75,7 @@ onMounted(async () => {
               <td class="px-5 py-4 text-red-300">{{ Number(item.negative_weight).toFixed(2) }}</td>
               <td class="px-5 py-4">
                 <span class="rounded px-2 py-1 text-xs font-semibold" :class="item.risk === 'high' ? 'bg-red-500/20 text-red-200' : item.risk === 'medium' ? 'bg-orange-500/20 text-orange-200' : 'bg-emerald-500/20 text-emerald-200'">
-                  {{ item.risk }}
+                  {{ riskLabels[item.risk] || item.risk }}
                 </span>
                 <RouterLink class="ml-3 text-xs font-semibold text-cyan-200" :to="`/media/${item.slug}`">詳情</RouterLink>
               </td>

@@ -24,7 +24,7 @@ onMounted(async () => {
             <tr v-for="user in users" :key="user.id" class="border-t border-white/10">
               <td class="px-4 py-3 font-medium text-white">{{ user.name }}</td>
               <td class="px-4 py-3 text-cyan-200">{{ Number(user.trust_score).toFixed(2) }}</td>
-              <td class="px-4 py-3 text-sm text-zinc-400">{{ user.votes_count }} votes</td>
+              <td class="px-4 py-3 text-sm text-zinc-400">{{ user.votes_count }} 票</td>
               <td class="px-4 py-3">
                 <span v-for="badge in user.badges" :key="badge.id" class="mr-1 rounded bg-white/10 px-2 py-1 text-xs">{{ badge.name }}</span>
               </td>

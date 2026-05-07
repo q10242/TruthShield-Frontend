@@ -132,7 +132,7 @@ onMounted(async () => {
         <section class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
           <div class="flex items-center justify-between gap-3">
             <h2 class="text-xl font-semibold text-white">徽章牆</h2>
-            <span class="text-xs text-zinc-500">完成條件後自動放入 Profile</span>
+            <span class="text-xs text-zinc-500">完成條件後自動放入個人頁</span>
           </div>
 
           <div class="mt-4 grid gap-3 sm:grid-cols-2">
@@ -181,7 +181,7 @@ onMounted(async () => {
               <div v-for="item in profile.notifications" :key="item.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-4" :class="item.read_at ? 'opacity-60' : ''">
                 <div class="flex items-center justify-between gap-3">
                   <p class="text-sm font-semibold text-white">{{ item.title }}</p>
-                  <span v-if="!item.read_at" class="rounded-full bg-cyan-300 px-2 py-0.5 text-[11px] font-semibold text-zinc-950">new</span>
+                  <span v-if="!item.read_at" class="rounded-full bg-cyan-300 px-2 py-0.5 text-[11px] font-semibold text-zinc-950">新</span>
                 </div>
                 <p class="mt-1 text-xs leading-5 text-zinc-400">{{ item.body }}</p>
                 <a v-if="item.action_url" :href="item.action_url" target="_blank" rel="noreferrer" class="mt-2 block truncate text-xs font-semibold text-cyan-200">{{ item.action_url }}</a>

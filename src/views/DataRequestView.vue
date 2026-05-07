@@ -25,7 +25,7 @@ async function submit() {
       <RouterLink class="text-sm font-semibold text-white" to="/">TruthShield</RouterLink>
       <h1 class="mt-8 text-3xl font-semibold text-white">資料權利請求</h1>
       <form class="mt-6 space-y-4 rounded-lg border border-white/10 bg-white/[0.03] p-5" @submit.prevent="submit">
-        <input v-model="form.email" required type="email" class="w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white" placeholder="Email" />
+        <input v-model="form.email" required type="email" class="w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white" placeholder="電子信箱" />
         <select v-model="form.request_type" class="w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white">
           <option value="export">資料匯出</option>
           <option value="deletion">資料刪除</option>

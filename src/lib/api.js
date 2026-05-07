@@ -24,7 +24,7 @@ async function request(path, options = {}) {
   const data = await response.json().catch(() => null)
 
   if (!response.ok) {
-    const error = new Error(data?.message || `API responded with ${response.status}`)
+    const error = new Error(data?.message || `API 回應狀態 ${response.status}`)
     error.status = response.status
     error.errors = data?.errors || {}
     error.payload = data || {}

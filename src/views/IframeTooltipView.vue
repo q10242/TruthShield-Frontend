@@ -47,13 +47,13 @@ async function loadData() {
 
   try {
     if (!newsUrl.value) {
-      throw new Error('Missing news_url')
+      throw new Error('缺少 news_url')
     }
 
     const statusPayload = await fetchNewsStatus(newsUrl.value)
     status.value = statusPayload
   } catch (err) {
-    error.value = err.message || 'Unable to load status'
+    error.value = err.message || '無法載入狀態'
   } finally {
     loading.value = false
     statusLoading.value = false
@@ -72,7 +72,7 @@ onMounted(async () => {
     <section class="rounded-lg border border-white/10 bg-zinc-950 p-4 shadow-xl shadow-black/30">
       <div class="mb-3 flex items-center justify-between gap-4">
         <span class="text-xs font-semibold text-cyan-300">TruthShield</span>
-        <span class="text-xs text-zinc-500">{{ statusLoading ? 'checking' : 'live' }}</span>
+        <span class="text-xs text-zinc-500">{{ statusLoading ? '檢查中' : '即時' }}</span>
       </div>
 
       <div class="w-full rounded-md border p-3 text-left" :class="toneClass">
