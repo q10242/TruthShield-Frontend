@@ -369,6 +369,10 @@ function isPotentialUntrackedNewsPage() {
   return Boolean(articleMeta || hasArticleShape || /news|article|story|politics|world|business/.test(path))
 }
 
+function shouldSuppressHoverTooltip() {
+  return Boolean(articleBanner && document.documentElement.contains(articleBanner) && articleBannerUrl === window.location.href)
+}
+
 function ensureTooltipBox() {
   if (tooltipBox) {
     return tooltipBox
@@ -451,6 +455,11 @@ function escapeHtml(value) {
 }
 
 async function showTooltip(anchor) {
+  if (shouldSuppressHoverTooltip()) {
+    scheduleHideTooltip()
+    return
+  }
+
   window.clearTimeout(hideTimer)
   activeAnchor = anchor
 
@@ -923,9 +932,14 @@ function maybeInjectDomainReportButton() {
 }
 
 function scheduleTooltip(anchor) {
+  if (shouldSuppressHoverTooltip()) {
+    scheduleHideTooltip()
+    return
+  }
+
   window.clearTimeout(hoverTimer)
   hoverTimer = window.setTimeout(() => {
-    if (activeAnchor === anchor || document.body.contains(anchor)) {
+    if (!shouldSuppressHoverTooltip() && (activeAnchor === anchor || document.body.contains(anchor))) {
       showTooltip(anchor)
     }
   }, HOVER_DELAY_MS)
@@ -945,7 +959,7 @@ document.addEventListener(
   'mouseover',
   (event) => {
     const anchor = event.target.closest?.('a[href]')
-    if (!enableTooltip || !anchor || !isNewsLink(anchor)) {
+    if (!enableTooltip || shouldSuppressHoverTooltip() || !anchor || !isNewsLink(anchor)) {
       return
     }
 
