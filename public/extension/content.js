@@ -2,7 +2,7 @@ let TOOLTIP_ORIGIN = 'http://127.0.0.1:15173'
 let API_ORIGIN = 'http://127.0.0.1:18080'
 const HOVER_DELAY_MS = 300
 let enableTooltip = true
-let enablePanel = false
+let enablePanel = true
 let enableReportButton = true
 const FALLBACK_NEWS_DOMAINS = [
   '127.0.0.1',
@@ -23,7 +23,10 @@ const FALLBACK_NEWS_DOMAINS = [
 let newsDomains = [...FALLBACK_NEWS_DOMAINS]
 let domainConfigs = []
 let tooltipBox = null
+let articleBanner = null
+let articleBannerUrl = ''
 let votePanelFrame = null
+let votePanelBackdrop = null
 let votePanelUrl = ''
 let reportButton = null
 let activeAnchor = null
@@ -109,7 +112,7 @@ async function loadSettings() {
     tooltipOrigin: TOOLTIP_ORIGIN,
     apiOrigin: API_ORIGIN,
     enableTooltip: true,
-    enablePanel: false,
+    enablePanel: true,
     enableReportButton: true,
   })
 
@@ -296,61 +299,196 @@ async function fetchStatus(url) {
   return response.json()
 }
 
+function ensureArticleBanner() {
+  if (articleBanner && document.body.contains(articleBanner) && articleBannerUrl === window.location.href) {
+    return articleBanner
+  }
+
+  removeArticleBanner()
+
+  articleBanner = document.createElement('div')
+  articleBannerUrl = window.location.href
+  articleBanner.setAttribute('role', 'region')
+  articleBanner.setAttribute('aria-label', 'TruthShield news status')
+  articleBanner.style.position = 'fixed'
+  articleBanner.style.top = '0'
+  articleBanner.style.left = '0'
+  articleBanner.style.right = '0'
+  articleBanner.style.zIndex = '2147483646'
+  articleBanner.style.boxSizing = 'border-box'
+  articleBanner.style.padding = '10px 16px'
+  articleBanner.style.borderBottom = '1px solid rgba(255, 255, 255, 0.16)'
+  articleBanner.style.background = 'rgba(9, 9, 11, 0.96)'
+  articleBanner.style.color = '#f4f4f5'
+  articleBanner.style.boxShadow = '0 18px 48px rgba(0, 0, 0, 0.34)'
+  articleBanner.style.font = '13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+  articleBanner.style.colorScheme = 'normal'
+  articleBanner.style.backdropFilter = 'blur(12px)'
+  articleBanner.style.cursor = 'default'
+  articleBanner.addEventListener('click', (event) => {
+    const target = event.target
+    if (target?.closest?.('[data-truthshield-close-banner]')) {
+      removeArticleBanner()
+      return
+    }
+
+    if (target?.closest?.('[data-truthshield-open-panel]')) {
+      openVotePanelModal()
+    }
+  })
+
+  document.documentElement.appendChild(articleBanner)
+  renderArticleBanner(null, true)
+  reportExtensionEvent('article_banner_injected', true, { mode: 'fixed_top' })
+
+  fetchStatus(window.location.href)
+    .then((payload) => {
+      if (articleBannerUrl === window.location.href) renderArticleBanner(payload)
+    })
+    .catch(() => {
+      if (articleBannerUrl === window.location.href) renderArticleBanner(null, false, true)
+    })
+
+  return articleBanner
+}
+
+function removeArticleBanner() {
+  if (articleBanner?.parentNode) {
+    articleBanner.remove()
+  }
+
+  articleBanner = null
+  articleBannerUrl = ''
+}
+
+function renderArticleBanner(payload, loading = false, failed = false) {
+  if (!articleBanner) {
+    return
+  }
+
+  const tone = tooltipToneStyle(payload?.tone)
+  articleBanner.style.borderBottomColor = tone.border
+
+  const displayText = loading
+    ? '正在查核此新聞...'
+    : failed
+      ? '暫時無法取得 TruthShield 評分'
+      : payload?.display_text || '尚無足夠投票資料'
+
+  const statusText = payload?.finalized_at
+    ? '結果已定案'
+    : payload?.is_open === false
+      ? '投票已截止'
+      : '閱讀後可補充證據'
+
+  articleBanner.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;max-width:1180px;margin:0 auto;">
+      <strong style="color:${tone.accent};white-space:nowrap;font-size:12px;letter-spacing:0;">TruthShield</strong>
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.4;">${escapeHtml(displayText)}</span>
+      <span style="color:#a1a1aa;white-space:nowrap;font-size:12px;">${escapeHtml(statusText)}</span>
+      <button data-truthshield-open-panel type="button" style="border:1px solid rgba(103,232,249,.45);border-radius:6px;background:#67e8f9;color:#09090b;padding:7px 10px;font:700 12px system-ui;cursor:pointer;white-space:nowrap;">查看結果 / 補證據</button>
+      <button data-truthshield-close-banner type="button" aria-label="關閉 TruthShield 橫幅" style="border:1px solid rgba(255,255,255,.16);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 9px;font:700 12px system-ui;cursor:pointer;">×</button>
+    </div>
+  `
+}
+
 function ensureVotePanelFrame() {
-  if (votePanelFrame && document.body.contains(votePanelFrame) && votePanelUrl === window.location.href) {
+  return openVotePanelModal()
+}
+
+function openVotePanelModal() {
+  if (votePanelBackdrop && document.body.contains(votePanelBackdrop) && votePanelUrl === window.location.href) {
     return votePanelFrame
   }
 
-  if (votePanelFrame && document.body.contains(votePanelFrame)) {
-    votePanelFrame.remove()
-  }
+  closeVotePanelModal()
+
+  votePanelUrl = window.location.href
+  votePanelBackdrop = document.createElement('div')
+  votePanelBackdrop.style.position = 'fixed'
+  votePanelBackdrop.style.inset = '0'
+  votePanelBackdrop.style.zIndex = '2147483647'
+  votePanelBackdrop.style.background = 'rgba(0, 0, 0, 0.42)'
+  votePanelBackdrop.style.display = 'flex'
+  votePanelBackdrop.style.alignItems = 'flex-start'
+  votePanelBackdrop.style.justifyContent = 'center'
+  votePanelBackdrop.style.padding = '64px 14px 18px'
+  votePanelBackdrop.style.boxSizing = 'border-box'
+  votePanelBackdrop.style.colorScheme = 'normal'
+  votePanelBackdrop.addEventListener('click', (event) => {
+    if (event.target === votePanelBackdrop) {
+      closeVotePanelModal()
+    }
+  })
+
+  const shell = document.createElement('div')
+  shell.style.position = 'relative'
+  shell.style.width = 'min(460px, calc(100vw - 28px))'
+  shell.style.maxHeight = 'calc(100vh - 82px)'
+  shell.style.border = '1px solid rgba(255, 255, 255, 0.14)'
+  shell.style.borderRadius = '10px'
+  shell.style.background = '#09090b'
+  shell.style.boxShadow = '0 28px 80px rgba(0, 0, 0, 0.48)'
+  shell.style.overflow = 'hidden'
+
+  const closeButton = document.createElement('button')
+  closeButton.type = 'button'
+  closeButton.textContent = '×'
+  closeButton.setAttribute('aria-label', '關閉 TruthShield 投票面板')
+  closeButton.style.position = 'absolute'
+  closeButton.style.top = '8px'
+  closeButton.style.right = '8px'
+  closeButton.style.zIndex = '1'
+  closeButton.style.border = '1px solid rgba(255,255,255,.14)'
+  closeButton.style.borderRadius = '6px'
+  closeButton.style.background = 'rgba(9,9,11,.92)'
+  closeButton.style.color = '#f4f4f5'
+  closeButton.style.width = '28px'
+  closeButton.style.height = '28px'
+  closeButton.style.cursor = 'pointer'
+  closeButton.addEventListener('click', closeVotePanelModal)
 
   votePanelFrame = document.createElement('iframe')
-  votePanelUrl = window.location.href
   votePanelFrame.title = 'TruthShield news vote panel'
-  votePanelFrame.style.zIndex = '2147483646'
-  votePanelFrame.style.height = '74px'
+  votePanelFrame.style.width = '100%'
+  votePanelFrame.style.height = '620px'
+  votePanelFrame.style.maxHeight = 'calc(100vh - 82px)'
   votePanelFrame.style.border = '0'
-  votePanelFrame.style.borderRadius = '8px'
   votePanelFrame.style.background = 'transparent'
   votePanelFrame.style.display = 'block'
   votePanelFrame.style.colorScheme = 'normal'
 
   const panelUrl = new URL('/iframe-vote-panel', TOOLTIP_ORIGIN)
   panelUrl.searchParams.set('news_url', window.location.href)
+  panelUrl.searchParams.set('expanded', '1')
   votePanelFrame.src = panelUrl.toString()
 
-  const mount = findArticleMount()
-
-  if (mount) {
-    votePanelFrame.style.position = 'relative'
-    votePanelFrame.style.width = '100%'
-    votePanelFrame.style.maxWidth = '760px'
-    votePanelFrame.style.margin = '24px auto'
-    votePanelFrame.style.boxShadow = 'none'
-    mount.insertAdjacentElement('afterend', votePanelFrame)
-    reportExtensionEvent('vote_panel_injected', true, { mode: 'article_mount' })
-    reportSelectorCheck('article_mount_runtime', true, mount.tagName.toLowerCase(), { mode: 'article_mount' })
-  } else {
-    votePanelFrame.style.position = 'fixed'
-    votePanelFrame.style.right = '16px'
-    votePanelFrame.style.bottom = '16px'
-    votePanelFrame.style.width = '380px'
-    document.body.appendChild(votePanelFrame)
-    reportExtensionEvent('vote_panel_injected', true, { mode: 'fixed_fallback' })
-    reportSelectorCheck('article_mount_runtime', false, null, { mode: 'fixed_fallback' })
-  }
+  shell.append(closeButton, votePanelFrame)
+  votePanelBackdrop.appendChild(shell)
+  document.documentElement.appendChild(votePanelBackdrop)
+  reportExtensionEvent('vote_panel_opened', true, { mode: 'modal_from_banner' })
+  startArticleReadTimer()
 
   return votePanelFrame
 }
 
+function closeVotePanelModal() {
+  if (votePanelBackdrop?.parentNode) {
+    votePanelBackdrop.remove()
+  }
+
+  votePanelBackdrop = null
+  votePanelFrame = null
+  votePanelUrl = ''
+}
+
 function maybeInjectVotePanel() {
   if (!isCurrentNewsPage() || !isLikelyArticlePage()) {
-    if (isCurrentNewsPage()) reportExtensionEvent('vote_panel_skipped', false, { reason: 'not_article_shape' })
+    if (isCurrentNewsPage()) reportExtensionEvent('article_banner_skipped', false, { reason: 'not_article_shape' })
     return
   }
 
-  ensureVotePanelFrame()
+  ensureArticleBanner()
   startArticleReadTimer()
 }
 
@@ -392,6 +530,8 @@ function observeArticleChanges() {
   const observer = new MutationObserver(() => {
     if (currentHref !== window.location.href) {
       currentHref = window.location.href
+      closeVotePanelModal()
+      removeArticleBanner()
       votePanelUrl = ''
       articleReadSeconds = 0
     }
@@ -439,40 +579,6 @@ function maybeInjectDomainReportButton() {
   }
 
   ensureReportButton()
-}
-
-function findArticleMount() {
-  const matchedConfig = domainConfigs.find((config) => {
-    if (!config.article_selector) return false
-    return window.location.hostname === config.domain || window.location.hostname.endsWith(`.${config.domain}`)
-  })
-
-  const selectors = [
-    matchedConfig?.article_selector,
-    'article[itemtype*="NewsArticle"]',
-    '[itemtype*="NewsArticle"]',
-    '[data-testid*="article"]',
-    '[class*="article-body"]',
-    '[class*="story-body"]',
-    'article',
-    'main article',
-    '[role="main"] article',
-    '.article',
-    '.article-content',
-    '.news-content',
-    '.story',
-    'main',
-    '[role="main"]',
-  ]
-
-  for (const selector of selectors.filter(Boolean)) {
-    const element = document.querySelector(selector)
-    if (element && element.getBoundingClientRect().height > 240) {
-      return element
-    }
-  }
-
-  return null
 }
 
 function scheduleTooltip(anchor) {
@@ -532,7 +638,7 @@ window.addEventListener('message', (event) => {
 
   if (event.data?.type === 'TRUTH_SHIELD_VOTE_PANEL_RESIZE' && votePanelFrame) {
     const height = Number(event.data.height)
-    votePanelFrame.style.height = `${Math.max(70, Math.min(height, 620))}px`
+    votePanelFrame.style.height = `${Math.max(300, Math.min(height, window.innerHeight - 82, 760))}px`
   }
 })
 

@@ -18,7 +18,7 @@ const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
 
 const route = useRoute()
-const collapsed = ref(true)
+const collapsed = ref(route.query.expanded !== '1')
 const activeTab = ref('results')
 const loading = ref(true)
 const statusLoading = ref(true)

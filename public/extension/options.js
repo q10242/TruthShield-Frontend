@@ -2,7 +2,7 @@ const defaults = {
   tooltipOrigin: 'http://127.0.0.1:15173',
   apiOrigin: 'http://127.0.0.1:18080',
   enableTooltip: true,
-  enablePanel: false,
+  enablePanel: true,
   enableReportButton: true,
 }
 

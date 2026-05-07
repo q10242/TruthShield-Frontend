@@ -84,7 +84,7 @@ function bindActions() {
 
     try {
       const response = await chrome.tabs.sendMessage(state.tab.id, { type: 'TRUTH_SHIELD_SHOW_VOTE_PANEL' })
-      setStatus(response?.ok ? '已在目前頁面顯示投票面板' : '目前頁面無法注入面板', !response?.ok)
+      setStatus(response?.ok ? '已在目前頁面顯示 TruthShield 橫幅 / 面板' : '目前頁面無法注入面板', !response?.ok)
     } catch {
       setStatus('目前頁面無法注入面板，請改用彈出投票視窗', true)
     }
