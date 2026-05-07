@@ -12,6 +12,7 @@ const labels = {
 const countLabels = {
   pending_donations: '待確認捐款',
   paid_donations_24h: '24 小時完成捐款',
+  pending_user_data_requests: '待審資料請求',
   pending_evidence_snapshots: '待處理證據快照',
   expired_unfinalized_news: '逾期未定案新聞',
 }
