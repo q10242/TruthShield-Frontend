@@ -13,7 +13,7 @@ const loading = ref(false)
 const exportMessage = ref('')
 const profileMessage = ref('')
 const claimantMessage = ref('')
-const profileForm = ref({ display_name: '', is_real_name_public: false, profile_bio: '' })
+const profileForm = ref({ display_name: '', is_real_name_public: false, profile_bio: '', email_preferences: {} })
 const claimantForm = ref({ claim_type: 'subject', domain: '', proof_url: '', statement: '' })
 const { t } = useI18n()
 
@@ -29,6 +29,14 @@ const contributionSuggestions = computed(() => [
   { to: '/local-news-demo', title: t('profile.suggestRead'), description: t('profile.suggestReadDesc') },
   { to: '/community-tasks', title: t('profile.suggestCommunityTasks'), description: t('profile.suggestCommunityTasksDesc') },
   { to: '/report-domain', title: t('profile.suggestMaintain'), description: t('profile.suggestMaintainDesc') },
+])
+const emailPreferenceItems = computed(() => [
+  { key: 'account', label: t('profile.emailPrefAccount') },
+  { key: 'moderation', label: t('profile.emailPrefModeration') },
+  { key: 'official_response', label: t('profile.emailPrefOfficial') },
+  { key: 'donation', label: t('profile.emailPrefDonation') },
+  { key: 'bug_report', label: t('profile.emailPrefBug') },
+  { key: 'product', label: t('profile.emailPrefProduct') },
 ])
 
 function claimantStatusLabel(status) {
@@ -58,6 +66,7 @@ async function loadProfile() {
       display_name: profile.value.user.display_name || profile.value.user.name || '',
       is_real_name_public: Boolean(profile.value.user.is_real_name_public),
       profile_bio: profile.value.user.profile_bio || '',
+      email_preferences: { ...(profile.value.email_preferences || {}) },
     }
   } finally {
     loading.value = false
@@ -177,6 +186,22 @@ onMounted(async () => {
           </div>
           <button class="mt-4 rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" @click="saveProfile">{{ t('profile.saveProfile') }}</button>
           <p v-if="profileMessage" class="mt-3 rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs text-emerald-100">{{ profileMessage }}</p>
+        </section>
+
+        <section class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <h2 class="text-xl font-semibold text-white">{{ t('profile.emailPreferences') }}</h2>
+          <p class="mt-1 text-sm text-zinc-500">{{ t('profile.emailPreferencesDesc') }}</p>
+          <div class="mt-4 grid gap-2 md:grid-cols-2">
+            <label
+              v-for="item in emailPreferenceItems"
+              :key="item.key"
+              class="flex items-center justify-between gap-4 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-zinc-300"
+            >
+              <span>{{ item.label }}</span>
+              <input v-model="profileForm.email_preferences[item.key]" type="checkbox" />
+            </label>
+          </div>
+          <button class="mt-4 rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" @click="saveProfile">{{ t('profile.saveProfile') }}</button>
         </section>
 
         <section class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
