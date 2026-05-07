@@ -1,0 +1,46 @@
+substitutions:
+  _REGION: asia-east1
+  _AR_HOSTNAME: asia-east1-docker.pkg.dev
+  _AR_REPOSITORY: truthshield
+  _SERVICE_NAME: truthshield-web
+  _WEB_ORIGIN: https://truthshield.example
+  _API_BASE_URL: https://api.truthshield.example
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}
+      - --build-arg
+      - VITE_API_BASE_URL=${_API_BASE_URL}
+      - --build-arg
+      - VITE_WEB_ORIGIN=${_WEB_ORIGIN}
+      - --build-arg
+      - TRUTHSHIELD_EXTENSION_WEB_ORIGIN=${_WEB_ORIGIN}
+      - --build-arg
+      - TRUTHSHIELD_EXTENSION_API_ORIGIN=${_API_BASE_URL}
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --image=${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --quiet
+
+images:
+  - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}
+
+options:
+  logging: CLOUD_LOGGING_ONLY
