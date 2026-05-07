@@ -462,3 +462,11 @@ export async function fetchDonationSupporters() {
 
   return payload.data || []
 }
+
+export async function fetchDonationMonthly() {
+  const payload = await request('/api/donations/monthly', {
+    headers: { 'Content-Type': undefined },
+  })
+
+  return payload.data || []
+}

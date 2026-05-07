@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { createDonation, fetchDonation, fetchDonationSummary, fetchDonationSupporters } from '../lib/api'
+import { createDonation, fetchDonation, fetchDonationMonthly, fetchDonationSummary, fetchDonationSupporters } from '../lib/api'
 
 const route = useRoute()
 const amounts = [100, 300, 500, 1000, 2000, 5000]
@@ -24,6 +24,7 @@ const donation = ref(null)
 const returnLoading = ref(false)
 const summary = ref(null)
 const supporters = ref([])
+const monthly = ref([])
 const isReturn = computed(() => route.path === '/donate/return')
 const tradeNo = computed(() => String(route.query.trade_no || ''))
 
@@ -84,6 +85,9 @@ onMounted(async () => {
   }).catch(() => null)
   fetchDonationSupporters().then((payload) => {
     supporters.value = payload
+  }).catch(() => null)
+  fetchDonationMonthly().then((payload) => {
+    monthly.value = payload
   }).catch(() => null)
 
   if (!isReturn.value || !tradeNo.value) return
@@ -201,6 +205,15 @@ onMounted(async () => {
                 <div class="h-1.5 overflow-hidden rounded-full bg-white/10">
                   <div class="h-full rounded-full bg-cyan-300" :style="{ width: `${item.percentage}%` }"></div>
                 </div>
+              </div>
+            </div>
+          </div>
+          <div v-if="monthly.length" class="mt-5">
+            <h3 class="text-sm font-semibold text-white">近 6 個月</h3>
+            <div class="mt-3 space-y-2">
+              <div v-for="row in monthly" :key="row.month" class="flex items-center justify-between rounded-md bg-white/[0.04] px-3 py-2 text-xs">
+                <span class="text-zinc-400">{{ row.month }}</span>
+                <span class="font-semibold text-white">NT$ {{ row.amount }}</span>
               </div>
             </div>
           </div>
