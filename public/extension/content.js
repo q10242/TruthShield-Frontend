@@ -25,6 +25,9 @@ let domainConfigs = []
 let tooltipBox = null
 let articleBanner = null
 let articleBannerUrl = ''
+const articleBannerStatusCache = new Map()
+const articleBannerStatusRequests = new Map()
+const articleBannerReportedUrls = new Set()
 let votePanelFrame = null
 let votePanelBackdrop = null
 let votePanelUrl = ''
@@ -354,16 +357,14 @@ function ensureArticleBanner() {
   })
 
   document.documentElement.appendChild(articleBanner)
-  renderArticleBanner(null, true)
-  reportExtensionEvent('article_banner_injected', true, { mode: 'fixed_top' })
+  renderArticleBannerFromCache(window.location.href)
 
-  fetchStatus(window.location.href)
-    .then((payload) => {
-      if (articleBannerUrl === window.location.href) renderArticleBanner(payload)
-    })
-    .catch(() => {
-      if (articleBannerUrl === window.location.href) renderArticleBanner(null, false, true)
-    })
+  if (!articleBannerReportedUrls.has(window.location.href)) {
+    articleBannerReportedUrls.add(window.location.href)
+    reportExtensionEvent('article_banner_injected', true, { mode: 'fixed_top' })
+  }
+
+  loadArticleBannerStatusOnce(window.location.href)
 
   return articleBanner
 }
@@ -405,6 +406,43 @@ function renderArticleBanner(payload, loading = false, failed = false) {
       <button data-truthshield-close-banner type="button" aria-label="關閉 TruthShield 橫幅" style="border:1px solid rgba(255,255,255,.16);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 9px;font:700 12px system-ui;cursor:pointer;">×</button>
     </div>
   `
+}
+
+function renderArticleBannerFromCache(url) {
+  const cached = articleBannerStatusCache.get(url)
+
+  if (cached?.state === 'success') {
+    renderArticleBanner(cached.payload)
+    return
+  }
+
+  if (cached?.state === 'failed') {
+    renderArticleBanner(null, false, true)
+    return
+  }
+
+  renderArticleBanner(null, true)
+}
+
+function loadArticleBannerStatusOnce(url) {
+  if (articleBannerStatusCache.has(url) || articleBannerStatusRequests.has(url)) {
+    return
+  }
+
+  const request = fetchStatus(url)
+    .then((payload) => {
+      articleBannerStatusCache.set(url, { state: 'success', payload })
+      if (articleBannerUrl === url) renderArticleBanner(payload)
+    })
+    .catch(() => {
+      articleBannerStatusCache.set(url, { state: 'failed' })
+      if (articleBannerUrl === url) renderArticleBanner(null, false, true)
+    })
+    .finally(() => {
+      articleBannerStatusRequests.delete(url)
+    })
+
+  articleBannerStatusRequests.set(url, request)
 }
 
 function ensureVotePanelFrame() {
