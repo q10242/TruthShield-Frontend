@@ -61,8 +61,14 @@ async function loadSummary() {
 }
 
 function bindActions() {
-  byId('openHub').addEventListener('click', () => openTab(state.settings.tooltipOrigin))
-  byId('openOptions').addEventListener('click', () => chrome.runtime.openOptionsPage())
+  byId('openHub').addEventListener('click', (event) => {
+    event.preventDefault()
+    openTab(state.settings.tooltipOrigin)
+  })
+  byId('openOptions').addEventListener('click', (event) => {
+    event.preventDefault()
+    chrome.runtime.openOptionsPage()
+  })
   byId('openDemo').addEventListener('click', () => openTab(truthUrl('/local-news-demo')))
   byId('openStatus').addEventListener('click', () => openWindow(truthUrl('/iframe-tooltip', { news_url: currentUrl() }), 420, 260))
   byId('openVote').addEventListener('click', () => openWindow(truthUrl('/iframe-vote-panel', { news_url: currentUrl(), expanded: '1' }), 460, 720))

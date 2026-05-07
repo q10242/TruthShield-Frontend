@@ -36,7 +36,7 @@ async function submit() {
         <textarea v-model="form.reason" class="min-h-28 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white" :placeholder="t('remaining.requestReasonPlaceholder')"></textarea>
         <p v-if="message" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm text-emerald-100">{{ message }}</p>
         <p v-if="error" class="rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{{ error }}</p>
-        <button class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950">{{ t('remaining.submitRequest') }}</button>
+        <button type="submit" class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950">{{ t('remaining.submitRequest') }}</button>
       </form>
     </section>
   </main>

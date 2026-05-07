@@ -70,7 +70,7 @@ onMounted(load)
           <option value="1">{{ t('evidence.trustedSource') }}</option>
           <option value="0">{{ t('evidence.unverifiedSource') }}</option>
         </select>
-        <button class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950">{{ t('evidence.filter') }}</button>
+        <button type="submit" class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950">{{ t('evidence.filter') }}</button>
       </form>
 
       <p v-if="meta" class="mt-3 text-xs text-zinc-500">{{ t('evidence.resultMeta', { total: meta.total, limit: meta.limit }) }}</p>

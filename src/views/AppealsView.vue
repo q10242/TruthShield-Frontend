@@ -58,7 +58,7 @@ onMounted(load)
         <textarea v-model="form.statement" required rows="5" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white" :placeholder="t('remaining.appealStatement')"></textarea>
         <p v-if="message" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-sm text-emerald-100">{{ message }}</p>
         <p v-if="error" class="rounded-md border border-red-400/40 bg-red-500/10 p-2 text-sm text-red-100">{{ error }}</p>
-        <button class="rounded-md bg-cyan-300 px-4 py-2 font-semibold text-zinc-950">{{ t('remaining.submitAppeal') }}</button>
+        <button type="submit" class="rounded-md bg-cyan-300 px-4 py-2 font-semibold text-zinc-950">{{ t('remaining.submitAppeal') }}</button>
       </form>
 
       <div class="mt-8 space-y-3">

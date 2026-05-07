@@ -170,7 +170,7 @@ async function realProviderLogin(provider) {
           <p v-if="error" class="rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{{ error }}</p>
           <p v-if="done" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm text-emerald-100">{{ t('auth.signedInReturning') }}</p>
 
-          <button class="w-full rounded-md bg-cyan-300 px-4 py-2 font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-60" :disabled="loading">
+          <button type="submit" class="w-full rounded-md bg-cyan-300 px-4 py-2 font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-60" :disabled="loading">
             {{ loading ? t('auth.signingIn') : t('auth.localLogin') }}
           </button>
         </form>

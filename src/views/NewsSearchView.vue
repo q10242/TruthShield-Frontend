@@ -40,7 +40,7 @@ onMounted(search)
           <option value="0">{{ t('remaining.watching') }}</option>
           <option value="1">{{ t('remaining.finalized') }}</option>
         </select>
-        <button class="rounded-md bg-cyan-300 px-4 py-2 font-semibold text-zinc-950">{{ t('remaining.search') }}</button>
+        <button type="submit" class="rounded-md bg-cyan-300 px-4 py-2 font-semibold text-zinc-950">{{ t('remaining.search') }}</button>
       </form>
       <p v-if="meta" class="mt-3 text-xs text-zinc-500">{{ t('evidence.resultMeta', { total: meta.total, limit: meta.limit }) }}</p>
       <div class="mt-5 space-y-2">
