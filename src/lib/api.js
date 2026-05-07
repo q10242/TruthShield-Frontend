@@ -432,3 +432,16 @@ export async function restoreEvidence(token, evidenceId, reason) {
     body: JSON.stringify({ reason }),
   })
 }
+
+export async function createDonation(payload) {
+  return request('/api/donations/ecpay', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function fetchDonation(tradeNo) {
+  return request(`/api/donations/${encodeURIComponent(tradeNo)}`, {
+    headers: { 'Content-Type': undefined },
+  })
+}

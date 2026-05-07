@@ -22,6 +22,7 @@ import AccountGraphView from '../views/AccountGraphView.vue'
 import ApiClientsView from '../views/ApiClientsView.vue'
 import LaunchOpsView from '../views/LaunchOpsView.vue'
 import LocalNewsDemoView from '../views/LocalNewsDemoView.vue'
+import DonateView from '../views/DonateView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -46,6 +47,8 @@ const router = createRouter({
     { path: '/api-clients', name: 'api-clients', component: ApiClientsView },
     { path: '/launch-ops', name: 'launch-ops', component: LaunchOpsView },
     { path: '/local-news-demo', name: 'local-news-demo', component: LocalNewsDemoView },
+    { path: '/donate', name: 'donate', component: DonateView },
+    { path: '/donate/return', name: 'donate-return', component: DonateView },
     { path: '/report-domain', name: 'report-domain', component: ReportDomainView },
     { path: '/iframe-tooltip', name: 'iframe-tooltip', component: IframeTooltipView },
     { path: '/iframe-vote-panel', name: 'iframe-vote-panel', component: IframeVotePanelView },

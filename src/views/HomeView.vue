@@ -6,6 +6,7 @@ const primaryLinks = [
   { to: '/evidence-library', label: '證據庫', description: '查看社群提交的澄清連結與截圖來源。' },
   { to: '/ranking', label: '媒體排行榜', description: '用加權投票觀察媒體累積表現。' },
   { to: '/transparency', label: '透明儀表板', description: '檢查系統狀態、審核與權重分布。' },
+  { to: '/donate', label: '支持專案', description: '用綠界贊助伺服器、備份與開源營運成本。' },
 ]
 
 const secondaryLinks = [
@@ -16,6 +17,7 @@ const secondaryLinks = [
   { to: '/extension-coverage', label: '插件覆蓋' },
   { to: '/account-graph', label: '帳號關聯' },
   { to: '/launch-ops', label: '上線營運' },
+  { to: '/donate', label: '捐款支持' },
   { to: '/algorithm', label: '演算法' },
   { to: '/api-docs', label: 'API 文件' },
 ]
