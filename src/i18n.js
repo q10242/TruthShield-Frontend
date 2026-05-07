@@ -1995,6 +1995,10 @@ export function setLocale(locale) {
   localStorage.setItem(STORAGE_KEY, locale)
 }
 
+export function currentLocale() {
+  return state.locale
+}
+
 export function useI18n() {
   const locale = computed(() => state.locale)
 

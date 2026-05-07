@@ -1,3 +1,5 @@
+import { currentLocale } from '../i18n'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 export { API_BASE_URL }
@@ -6,6 +8,7 @@ async function request(path, options = {}) {
   const { headers: optionHeaders, ...fetchOptions } = options
   const headers = {
     Accept: 'application/json',
+    'Accept-Language': currentLocale(),
     'Content-Type': 'application/json',
     ...(optionHeaders || {}),
   }
@@ -53,13 +56,13 @@ export async function fetchBotProtectionConfig() {
 }
 
 export async function fetchNewsStatus(url) {
-  return request(`/api/news/status?url=${encodeURIComponent(url)}`, {
+  return request(`/api/news/status?url=${encodeURIComponent(url)}&locale=${encodeURIComponent(currentLocale())}`, {
     headers: { 'Content-Type': undefined },
   })
 }
 
 export async function fetchNewsEvidence(url) {
-  const payload = await request(`/api/news/evidence?url=${encodeURIComponent(url)}`, {
+  const payload = await request(`/api/news/evidence?url=${encodeURIComponent(url)}&locale=${encodeURIComponent(currentLocale())}`, {
     headers: { 'Content-Type': undefined },
   })
 
@@ -67,7 +70,7 @@ export async function fetchNewsEvidence(url) {
 }
 
 export async function fetchTags() {
-  const payload = await request('/api/tags', {
+  const payload = await request(`/api/tags?locale=${encodeURIComponent(currentLocale())}`, {
     headers: { 'Content-Type': undefined },
   })
 

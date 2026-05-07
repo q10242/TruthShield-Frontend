@@ -53,13 +53,17 @@ function getSettings() {
 
 async function extensionRequestHeaders(settings, headers = {}) {
   const nonce = await extensionNonce(settings.apiOrigin)
+  const localizedHeaders = {
+    'Accept-Language': resolveLocale(settings.locale),
+    ...headers,
+  }
 
   if (!nonce?.nonce || !nonce?.signature) {
-    return headers
+    return localizedHeaders
   }
 
   return {
-    ...headers,
+    ...localizedHeaders,
     'X-TruthShield-Extension-Nonce': nonce.nonce,
     'X-TruthShield-Extension-Signature': nonce.signature,
   }

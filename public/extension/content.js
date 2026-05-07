@@ -129,7 +129,7 @@ async function loadExtensionNonce() {
 }
 
 function extensionRequestHeaders(headers = {}) {
-  const requestHeaders = { ...headers }
+  const requestHeaders = { 'Accept-Language': contentLocale, ...headers }
   if (extensionNonce?.nonce && extensionNonce?.signature) {
     requestHeaders['X-TruthShield-Extension-Nonce'] = extensionNonce.nonce
     requestHeaders['X-TruthShield-Extension-Signature'] = extensionNonce.signature
