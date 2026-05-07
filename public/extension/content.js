@@ -1,6 +1,8 @@
 let TOOLTIP_ORIGIN = 'http://127.0.0.1:15173'
 let API_ORIGIN = 'http://127.0.0.1:18080'
 const HOVER_DELAY_MS = 300
+const TOOLTIP_STATUS_CACHE_TTL_MS = 5 * 60 * 1000
+const TOOLTIP_STATUS_CACHE_MAX = 250
 let enableTooltip = true
 let enablePanel = true
 let enableReportButton = true
@@ -23,6 +25,8 @@ const FALLBACK_NEWS_DOMAINS = [
 let newsDomains = [...FALLBACK_NEWS_DOMAINS]
 let domainConfigs = []
 let tooltipBox = null
+const tooltipStatusCache = new Map()
+const tooltipStatusRequests = new Map()
 let articleBanner = null
 let articleBannerUrl = ''
 const articleBannerStatusCache = new Map()
@@ -293,16 +297,75 @@ async function showTooltip(anchor) {
   activeAnchor = anchor
 
   const box = ensureTooltipBox()
-  renderTooltip(null, true)
+  const cached = getTooltipStatusCache(anchor.href)
+  renderTooltip(cached?.payload || null, !cached, cached?.state === 'failed')
   box.style.display = 'block'
   positionTooltip(anchor)
   reportExtensionEvent('tooltip_shown', true, { href_host: new URL(anchor.href).hostname, mode: 'inline_dom' })
 
   try {
-    const payload = await fetchStatus(anchor.href)
+    const payload = await fetchTooltipStatus(anchor.href)
     if (activeAnchor === anchor) renderTooltip(payload)
   } catch {
     if (activeAnchor === anchor) renderTooltip(null, false, true)
+  }
+}
+
+async function fetchTooltipStatus(url) {
+  const cached = getTooltipStatusCache(url)
+  if (cached?.state === 'success') {
+    return cached.payload
+  }
+
+  if (cached?.state === 'failed') {
+    throw new Error('cached tooltip status failure')
+  }
+
+  if (tooltipStatusRequests.has(url)) {
+    return tooltipStatusRequests.get(url)
+  }
+
+  const request = fetchStatus(url)
+    .then((payload) => {
+      setTooltipStatusCache(url, { state: 'success', payload })
+      return payload
+    })
+    .catch((error) => {
+      setTooltipStatusCache(url, { state: 'failed' })
+      throw error
+    })
+    .finally(() => {
+      tooltipStatusRequests.delete(url)
+    })
+
+  tooltipStatusRequests.set(url, request)
+  return request
+}
+
+function getTooltipStatusCache(url) {
+  const cached = tooltipStatusCache.get(url)
+  if (!cached) {
+    return null
+  }
+
+  if (Date.now() - cached.cachedAt > TOOLTIP_STATUS_CACHE_TTL_MS) {
+    tooltipStatusCache.delete(url)
+    return null
+  }
+
+  return cached
+}
+
+function setTooltipStatusCache(url, value) {
+  tooltipStatusCache.set(url, { ...value, cachedAt: Date.now() })
+
+  if (tooltipStatusCache.size <= TOOLTIP_STATUS_CACHE_MAX) {
+    return
+  }
+
+  const oldestKey = tooltipStatusCache.keys().next().value
+  if (oldestKey) {
+    tooltipStatusCache.delete(oldestKey)
   }
 }
 
