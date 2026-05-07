@@ -17,6 +17,7 @@ const exportLinks = computed(() => [
   { href: '/api/exports/news-change-reports.csv', label: `${t('remaining.newsChangeReports')} CSV` },
   { href: '/api/exports/governance-events.csv', label: `${t('remaining.governanceEvents')} CSV` },
   { href: '/api/exports/community-signals.csv', label: `${t('remaining.communitySignals')} CSV` },
+  { href: '/api/exports/bug-reports.csv', label: `${t('common.bugReport')} CSV` },
   { href: '/api/exports/donations.csv', label: `${t('common.donate')} CSV` },
   { href: '/api/exports/user-data-requests.csv', label: `${t('remaining.dataRequestTitle')} CSV` },
 ])

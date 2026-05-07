@@ -59,6 +59,8 @@ const zhEndpointDescriptions = {
   'GET /api/donations/summary': '透明頁用的公開捐款彙總。',
   'GET /api/exports/donations.csv': '營運用捐款 CSV 匯出。',
   'POST /api/user-data-requests': '提交隱私資料匯出、刪除或更正請求。',
+  'POST /api/bug-reports': '提交一般 Bug、插件、資料、UX、翻譯或安全漏洞回報，進入後台 triage。',
+  'GET /api/exports/bug-reports.csv': 'Bug 與安全回報 CSV 匯出，供營運分類處理。',
   'GET /api/algorithm': '公開演算法摘要。',
 }
 
