@@ -44,6 +44,25 @@ const navGroups = computed(() => [
   { title: t('home.reviewerGroup'), links: secondaryLinks.value.slice(3, 6) },
   { title: t('home.opsGroup'), links: secondaryLinks.value.slice(6) },
 ])
+
+const missionStats = computed(() => [
+  { value: '72h', label: t('home.missionStatWindow'), description: t('home.missionStatWindowDesc') },
+  { value: t('home.missionStatOnePersonValue'), label: t('home.missionStatOnePerson'), description: t('home.missionStatOnePersonDesc') },
+  { value: t('home.missionStatOpenValue'), label: t('home.missionStatOpen'), description: t('home.missionStatOpenDesc') },
+])
+
+const missionSteps = computed(() => [
+  { number: '01', title: t('home.stepReadTitle'), description: t('home.stepReadDesc') },
+  { number: '02', title: t('home.stepEvidenceTitle'), description: t('home.stepEvidenceDesc') },
+  { number: '03', title: t('home.stepWeightTitle'), description: t('home.stepWeightDesc') },
+  { number: '04', title: t('home.stepPublicTitle'), description: t('home.stepPublicDesc') },
+])
+
+const pledges = computed(() => [
+  { title: t('home.pledgeNoCensorshipTitle'), description: t('home.pledgeNoCensorshipDesc') },
+  { title: t('home.pledgeTransparentTitle'), description: t('home.pledgeTransparentDesc') },
+  { title: t('home.pledgeCommunityTitle'), description: t('home.pledgeCommunityDesc') },
+])
 </script>
 
 <template>
@@ -72,29 +91,34 @@ const navGroups = computed(() => [
         </div>
       </nav>
 
-      <div class="grid gap-8 py-10 lg:grid-cols-[1fr_360px]">
+      <div class="grid gap-8 py-10 lg:grid-cols-[minmax(0,1fr)_390px]">
         <section class="space-y-6">
           <div>
-            <p class="text-sm font-semibold text-cyan-300">{{ t('home.network') }}</p>
-            <h1 class="mt-3 text-4xl font-semibold leading-tight text-white md:text-5xl">{{ t('home.title') }}</h1>
+            <p class="text-sm font-semibold text-cyan-300">{{ t('home.missionEyebrow') }}</p>
+            <h1 class="mt-3 max-w-3xl text-4xl font-semibold leading-tight text-white md:text-5xl">{{ t('home.missionTitle') }}</h1>
             <p class="mt-4 max-w-2xl text-base leading-7 text-zinc-300">
-              {{ t('home.subtitle') }}
+              {{ t('home.missionLead') }}
             </p>
           </div>
 
-          <div class="grid gap-3 md:grid-cols-2">
-            <RouterLink
-              v-for="link in primaryLinks"
-              :key="link.to"
-              class="group rounded-lg border border-white/10 bg-white/[0.03] p-5 hover:border-cyan-300/60 hover:bg-cyan-300/[0.06]"
-              :to="link.to"
-            >
-              <div class="flex items-center justify-between gap-4">
-                <h2 class="text-lg font-semibold text-white">{{ link.label }}</h2>
-                <span class="text-xl text-cyan-200">→</span>
-              </div>
-              <p class="mt-3 text-sm leading-6 text-zinc-400 group-hover:text-zinc-300">{{ link.description }}</p>
+          <div class="flex flex-wrap gap-3">
+            <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/local-news-demo">
+              {{ t('home.primaryCta') }}
             </RouterLink>
+            <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" :to="token ? '/profile' : '/login'">
+              {{ t('home.secondaryCta') }}
+            </RouterLink>
+            <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" to="/evidence-library">
+              {{ t('home.thirdCta') }}
+            </RouterLink>
+          </div>
+
+          <div class="grid gap-3 md:grid-cols-3">
+            <article v-for="stat in missionStats" :key="stat.label" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+              <div class="text-2xl font-semibold text-white">{{ stat.value }}</div>
+              <h2 class="mt-2 text-sm font-semibold text-cyan-100">{{ stat.label }}</h2>
+              <p class="mt-2 text-sm leading-6 text-zinc-400">{{ stat.description }}</p>
+            </article>
           </div>
         </section>
 
@@ -128,6 +152,57 @@ const navGroups = computed(() => [
           </div>
         </aside>
       </div>
+
+      <section class="border-t border-white/10 py-8">
+        <div class="max-w-2xl">
+          <p class="text-sm font-semibold text-cyan-300">{{ t('home.howItWorksEyebrow') }}</p>
+          <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.howItWorksTitle') }}</h2>
+        </div>
+        <div class="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <article v-for="step in missionSteps" :key="step.number" class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+            <div class="text-sm font-semibold text-cyan-300">{{ step.number }}</div>
+            <h3 class="mt-3 text-base font-semibold text-white">{{ step.title }}</h3>
+            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ step.description }}</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="grid gap-6 border-t border-white/10 py-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)]">
+        <div>
+          <p class="text-sm font-semibold text-cyan-300">{{ t('home.pledgeEyebrow') }}</p>
+          <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.pledgeTitle') }}</h2>
+          <p class="mt-4 text-sm leading-6 text-zinc-400">{{ t('home.pledgeIntro') }}</p>
+        </div>
+        <div class="grid gap-3">
+          <article v-for="pledge in pledges" :key="pledge.title" class="rounded-lg border border-white/10 bg-zinc-900/70 p-5">
+            <h3 class="text-base font-semibold text-white">{{ pledge.title }}</h3>
+            <p class="mt-2 text-sm leading-6 text-zinc-400">{{ pledge.description }}</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="border-t border-white/10 py-8">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p class="text-sm font-semibold text-cyan-300">{{ t('home.toolsEyebrow') }}</p>
+            <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.toolsTitle') }}</h2>
+          </div>
+        </div>
+        <div class="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+          <RouterLink
+            v-for="link in primaryLinks"
+            :key="link.to"
+            class="group rounded-lg border border-white/10 bg-white/[0.03] p-5 hover:border-cyan-300/60 hover:bg-cyan-300/[0.06]"
+            :to="link.to"
+          >
+            <div class="flex items-center justify-between gap-4">
+              <h3 class="text-base font-semibold text-white">{{ link.label }}</h3>
+              <span class="text-lg text-cyan-200">→</span>
+            </div>
+            <p class="mt-3 text-sm leading-6 text-zinc-400 group-hover:text-zinc-300">{{ link.description }}</p>
+          </RouterLink>
+        </div>
+      </section>
 
       <section class="grid gap-3 border-t border-white/10 py-6 md:grid-cols-3">
         <div v-for="group in navGroups" :key="group.title" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
