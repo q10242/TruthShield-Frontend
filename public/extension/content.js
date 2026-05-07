@@ -1,10 +1,12 @@
-let TOOLTIP_ORIGIN = 'http://localhost:15173'
-let API_ORIGIN = 'http://localhost:18080'
+let TOOLTIP_ORIGIN = 'http://127.0.0.1:15173'
+let API_ORIGIN = 'http://127.0.0.1:18080'
 const HOVER_DELAY_MS = 300
 let enableTooltip = true
-let enablePanel = true
+let enablePanel = false
 let enableReportButton = true
 const FALLBACK_NEWS_DOMAINS = [
+  '127.0.0.1',
+  'localhost',
   'cna.com.tw',
   'www.cna.com.tw',
   'news.pts.org.tw',
@@ -20,7 +22,7 @@ const FALLBACK_NEWS_DOMAINS = [
 
 let newsDomains = [...FALLBACK_NEWS_DOMAINS]
 let domainConfigs = []
-let tooltipFrame = null
+let tooltipBox = null
 let votePanelFrame = null
 let votePanelUrl = ''
 let reportButton = null
@@ -107,7 +109,7 @@ async function loadSettings() {
     tooltipOrigin: TOOLTIP_ORIGIN,
     apiOrigin: API_ORIGIN,
     enableTooltip: true,
-    enablePanel: true,
+    enablePanel: false,
     enableReportButton: true,
   })
 
@@ -136,6 +138,10 @@ function isCurrentNewsPage() {
 }
 
 function isLikelyArticlePage() {
+  if (isLocalTruthShieldDemoPage()) {
+    return true
+  }
+
   const matchedConfig = domainConfigs.find((config) => window.location.hostname === config.domain || window.location.hostname.endsWith(`.${config.domain}`))
   if (matchedConfig?.blocked_path_pattern) {
     try {
@@ -151,6 +157,11 @@ function isLikelyArticlePage() {
   return pathParts.length >= 2 || window.location.pathname.includes('news')
 }
 
+function isLocalTruthShieldDemoPage() {
+  return (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') &&
+    window.location.pathname.includes('/local-news-demo')
+}
+
 function isPotentialUntrackedNewsPage() {
   if (isCurrentNewsPage()) {
     return false
@@ -164,51 +175,125 @@ function isPotentialUntrackedNewsPage() {
   return Boolean(articleMeta || hasArticleShape || /news|article|story|politics|world|business/.test(path))
 }
 
-function ensureTooltipFrame() {
-  if (tooltipFrame) {
-    return tooltipFrame
+function ensureTooltipBox() {
+  if (tooltipBox) {
+    return tooltipBox
   }
 
-  tooltipFrame = document.createElement('iframe')
-  tooltipFrame.title = 'TruthShield credibility tooltip'
-  tooltipFrame.style.position = 'absolute'
-  tooltipFrame.style.zIndex = '2147483647'
-  tooltipFrame.style.width = '380px'
-  tooltipFrame.style.height = '150px'
-  tooltipFrame.style.border = '0'
-  tooltipFrame.style.borderRadius = '8px'
-  tooltipFrame.style.background = 'transparent'
-  tooltipFrame.style.boxShadow = '0 24px 60px rgba(0, 0, 0, 0.35)'
-  tooltipFrame.style.display = 'none'
-  tooltipFrame.addEventListener('mouseover', () => window.clearTimeout(hideTimer))
-  tooltipFrame.addEventListener('mouseout', scheduleHideTooltip)
-  document.body.appendChild(tooltipFrame)
+  tooltipBox = document.createElement('div')
+  tooltipBox.setAttribute('role', 'status')
+  tooltipBox.style.position = 'absolute'
+  tooltipBox.style.zIndex = '2147483647'
+  tooltipBox.style.width = '320px'
+  tooltipBox.style.border = '1px solid rgba(255, 255, 255, 0.12)'
+  tooltipBox.style.borderRadius = '8px'
+  tooltipBox.style.background = '#09090b'
+  tooltipBox.style.boxShadow = '0 24px 60px rgba(0, 0, 0, 0.42)'
+  tooltipBox.style.color = '#f4f4f5'
+  tooltipBox.style.font = '13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+  tooltipBox.style.display = 'none'
+  tooltipBox.style.overflow = 'hidden'
+  tooltipBox.addEventListener('mouseover', () => window.clearTimeout(hideTimer))
+  tooltipBox.addEventListener('mouseout', scheduleHideTooltip)
+  tooltipBox.addEventListener('click', () => {
+    if (!activeAnchor?.href) return
+    const panelUrl = new URL('/iframe-vote-panel', TOOLTIP_ORIGIN)
+    panelUrl.searchParams.set('news_url', activeAnchor.href)
+    window.open(panelUrl.toString(), 'truthshield-vote-panel', 'width=460,height=720')
+  })
+  document.body.appendChild(tooltipBox)
 
-  return tooltipFrame
+  return tooltipBox
 }
 
 function positionTooltip(anchor) {
   const rect = anchor.getBoundingClientRect()
   const top = window.scrollY + rect.bottom + 8
-  const maxLeft = window.scrollX + document.documentElement.clientWidth - 400
+  const maxLeft = window.scrollX + document.documentElement.clientWidth - 340
   const left = Math.min(window.scrollX + rect.left, maxLeft)
 
-  tooltipFrame.style.top = `${Math.max(8, top)}px`
-  tooltipFrame.style.left = `${Math.max(8, left)}px`
+  tooltipBox.style.top = `${Math.max(8, top)}px`
+  tooltipBox.style.left = `${Math.max(8, left)}px`
 }
 
-function showTooltip(anchor) {
+function tooltipToneStyle(tone) {
+  if (tone === 'danger') return { border: '#f87171', background: 'rgba(127, 29, 29, 0.94)', accent: '#fecaca' }
+  if (tone === 'warning') return { border: '#fb923c', background: 'rgba(124, 45, 18, 0.94)', accent: '#fed7aa' }
+  if (tone === 'positive') return { border: '#34d399', background: 'rgba(6, 78, 59, 0.94)', accent: '#bbf7d0' }
+
+  return { border: 'rgba(103, 232, 249, 0.45)', background: '#09090b', accent: '#67e8f9' }
+}
+
+function renderTooltip(payload, loading = false, failed = false) {
+  const box = ensureTooltipBox()
+  const tone = tooltipToneStyle(payload?.tone)
+  box.style.borderColor = tone.border
+  box.style.background = tone.background
+
+  const displayText = loading
+    ? '正在查核此連結...'
+    : failed
+      ? '暫時無法取得標籤'
+      : payload?.display_text || '尚無足夠投票資料'
+
+  const meta = payload?.finalized_at
+    ? '已定案'
+    : payload?.is_open === false
+      ? '投票已截止'
+      : '點擊開啟投票/證據面板'
+
+  box.innerHTML = `
+    <div style="padding: 12px 14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
+        <strong style="color:${tone.accent};font-size:12px;">TruthShield</strong>
+        <span style="color:#a1a1aa;font-size:11px;">${loading ? 'checking' : 'live'}</span>
+      </div>
+      <div style="font-weight:700;line-height:1.45;">${escapeHtml(displayText)}</div>
+      <div style="margin-top:6px;color:#d4d4d8;font-size:12px;line-height:1.45;">${escapeHtml(meta)}</div>
+    </div>
+  `
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+}
+
+async function showTooltip(anchor) {
   window.clearTimeout(hideTimer)
   activeAnchor = anchor
 
-  const frame = ensureTooltipFrame()
-  const tooltipUrl = new URL('/iframe-tooltip', TOOLTIP_ORIGIN)
-  tooltipUrl.searchParams.set('news_url', anchor.href)
-
-  frame.src = tooltipUrl.toString()
-  frame.style.display = 'block'
+  const box = ensureTooltipBox()
+  renderTooltip(null, true)
+  box.style.display = 'block'
   positionTooltip(anchor)
-  reportExtensionEvent('tooltip_shown', true, { href_host: new URL(anchor.href).hostname })
+  reportExtensionEvent('tooltip_shown', true, { href_host: new URL(anchor.href).hostname, mode: 'inline_dom' })
+
+  try {
+    const payload = await fetchStatus(anchor.href)
+    if (activeAnchor === anchor) renderTooltip(payload)
+  } catch {
+    if (activeAnchor === anchor) renderTooltip(null, false, true)
+  }
+}
+
+async function fetchStatus(url) {
+  if (chrome.runtime?.sendMessage) {
+    const response = await chrome.runtime.sendMessage({ type: 'TRUTH_SHIELD_FETCH_STATUS', url })
+    if (!response?.ok) throw new Error(response?.message || `status ${response?.status || 0}`)
+    return response.payload
+  }
+
+  const response = await fetch(`${API_ORIGIN}/api/news/status?url=${encodeURIComponent(url)}`, {
+    headers: { Accept: 'application/json' },
+  })
+
+  if (!response.ok) throw new Error(`status ${response.status}`)
+  return response.json()
 }
 
 function ensureVotePanelFrame() {
@@ -402,8 +487,8 @@ function scheduleTooltip(anchor) {
 function scheduleHideTooltip() {
   window.clearTimeout(hoverTimer)
   hideTimer = window.setTimeout(() => {
-    if (tooltipFrame) {
-      tooltipFrame.style.display = 'none'
+    if (tooltipBox) {
+      tooltipBox.style.display = 'none'
     }
     activeAnchor = null
   }, 180)
@@ -435,7 +520,7 @@ document.addEventListener(
 )
 
 window.addEventListener('scroll', () => {
-  if (tooltipFrame?.style.display === 'block' && activeAnchor) {
+  if (tooltipBox?.style.display === 'block' && activeAnchor) {
     positionTooltip(activeAnchor)
   }
 })
@@ -445,15 +530,32 @@ window.addEventListener('message', (event) => {
     return
   }
 
-  if (event.data?.type === 'TRUTH_SHIELD_TOOLTIP_RESIZE' && tooltipFrame) {
-    const height = Number(event.data.height)
-    tooltipFrame.style.height = `${Math.max(110, Math.min(height, 210))}px`
-  }
-
   if (event.data?.type === 'TRUTH_SHIELD_VOTE_PANEL_RESIZE' && votePanelFrame) {
     const height = Number(event.data.height)
     votePanelFrame.style.height = `${Math.max(70, Math.min(height, 620))}px`
   }
+})
+
+chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
+  if (message?.type === 'TRUTH_SHIELD_SHOW_VOTE_PANEL') {
+    ensureVotePanelFrame()
+    startArticleReadTimer()
+    sendResponse({ ok: true })
+    return true
+  }
+
+  if (message?.type === 'TRUTH_SHIELD_GET_PAGE_CONTEXT') {
+    sendResponse({
+      ok: true,
+      url: window.location.href,
+      title: document.title || '',
+      isTrackedNews: isCurrentNewsPage(),
+      isLikelyArticle: isLikelyArticlePage(),
+    })
+    return true
+  }
+
+  return false
 })
 
 loadSettings().then(loadNewsDomains).finally(() => {

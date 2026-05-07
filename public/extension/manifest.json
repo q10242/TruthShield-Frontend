@@ -8,8 +8,13 @@
     "default_popup": "popup.html"
   },
   "permissions": [
+    "activeTab",
+    "contextMenus",
     "storage"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "options_page": "options.html",
   "host_permissions": [
     "<all_urls>"

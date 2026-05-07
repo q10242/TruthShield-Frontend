@@ -4,25 +4,75 @@
     <meta charset="utf-8" />
     <title>TruthShield</title>
     <style>
-      body { width: 280px; margin: 0; background: #09090b; color: #f4f4f5; font: 13px system-ui, sans-serif; }
+      body {
+        width: 330px;
+        margin: 0;
+        background: #09090b;
+        color: #f4f4f5;
+        font: 13px system-ui, sans-serif;
+      }
       main { padding: 16px; }
-      h1 { font-size: 16px; margin: 0 0 12px; }
-      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      h1 { font-size: 16px; margin: 0; }
+      p { margin: 6px 0 0; color: #a1a1aa; line-height: 1.5; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
       .card { border: 1px solid #27272a; border-radius: 8px; padding: 10px; background: #18181b; }
       .label { color: #a1a1aa; font-size: 11px; }
       .value { margin-top: 4px; font-weight: 700; font-size: 18px; }
+      .target {
+        margin-top: 12px;
+        border: 1px solid #27272a;
+        border-radius: 8px;
+        padding: 10px;
+        background: #111113;
+        color: #d4d4d8;
+        word-break: break-all;
+      }
+      button {
+        width: 100%;
+        margin-top: 8px;
+        border: 1px solid #27272a;
+        border-radius: 8px;
+        background: #18181b;
+        color: #f4f4f5;
+        padding: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: left;
+      }
+      button.primary {
+        border-color: #67e8f9;
+        background: #67e8f9;
+        color: #09090b;
+      }
+      button:disabled { cursor: not-allowed; opacity: .48; }
       a { display: block; margin-top: 10px; color: #67e8f9; text-decoration: none; font-weight: 700; }
+      #status { min-height: 18px; margin-top: 10px; color: #86efac; }
     </style>
   </head>
   <body>
     <main>
       <h1>TruthShield</h1>
+      <p>Hover 只顯示標籤提示；投票與證據由你主動開啟。</p>
+
       <div class="grid">
-        <div class="card"><div class="label">Domains</div><div id="domains" class="value">-</div></div>
-        <div class="card"><div class="label">Votes</div><div id="votes" class="value">-</div></div>
+        <div class="card"><div class="label">監控網域</div><div id="domains" class="value">-</div></div>
+        <div class="card"><div class="label">投票數</div><div id="votes" class="value">-</div></div>
       </div>
-      <a id="openHub" href="#">Open Truth Hub</a>
-      <a id="openOptions" href="#">Settings</a>
+
+      <div class="target">
+        <div class="label">目前分頁</div>
+        <div id="currentUrl">讀取中...</div>
+      </div>
+
+      <button id="openStatus">查看此頁評分</button>
+      <button id="openVote" class="primary">我已閱讀，提交評分</button>
+      <button id="showInlinePanel">在此頁暫時顯示投票面板</button>
+      <button id="reportDomain">回報未收錄新聞站</button>
+      <button id="openDemo">開啟本地測試新聞頁</button>
+
+      <a id="openHub" href="#">開啟 Truth Hub</a>
+      <a id="openOptions" href="#">設定</a>
+      <div id="status"></div>
     </main>
     <script src="popup.js"></script>
   </body>
