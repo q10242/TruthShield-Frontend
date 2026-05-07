@@ -490,7 +490,7 @@ function renderTooltip(payload, loading = false, failed = false) {
 
   const meta = payload?.finalized_at
     ? t('finalized')
-    : payload?.is_open === false
+    : isPayloadVotingClosed(payload)
       ? t('voteClosed')
       : t('tooltipHint')
 
@@ -504,6 +504,10 @@ function renderTooltip(payload, loading = false, failed = false) {
       <div style="margin-top:6px;color:#d4d4d8;font-size:12px;line-height:1.45;">${escapeHtml(meta)}</div>
     </div>
   `
+}
+
+function isPayloadVotingClosed(payload) {
+  return payload?.is_open === false && Boolean(payload?.voting_closes_at || payload?.finalized_at)
 }
 
 function escapeHtml(value) {
@@ -771,7 +775,7 @@ function renderArticleBanner(payload, loading = false, failed = false) {
 
   const statusText = payload?.finalized_at
     ? t('resultFinalized')
-    : payload?.is_open === false
+    : isPayloadVotingClosed(payload)
       ? t('voteClosed')
       : t('readEvidence')
 
