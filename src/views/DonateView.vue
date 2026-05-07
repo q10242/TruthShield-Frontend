@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { createDonation, fetchDonation, fetchDonationSummary } from '../lib/api'
+import { createDonation, fetchDonation, fetchDonationSummary, fetchDonationSupporters } from '../lib/api'
 
 const route = useRoute()
 const amounts = [100, 300, 500, 1000, 2000, 5000]
@@ -17,6 +17,7 @@ const checkout = ref(null)
 const donation = ref(null)
 const returnLoading = ref(false)
 const summary = ref(null)
+const supporters = ref([])
 const isReturn = computed(() => route.path === '/donate/return')
 const tradeNo = computed(() => String(route.query.trade_no || ''))
 
@@ -60,6 +61,9 @@ async function submitDonation() {
 onMounted(async () => {
   fetchDonationSummary().then((payload) => {
     summary.value = payload
+  }).catch(() => null)
+  fetchDonationSupporters().then((payload) => {
+    supporters.value = payload
   }).catch(() => null)
 
   if (!isReturn.value || !tradeNo.value) return
@@ -167,6 +171,18 @@ onMounted(async () => {
           </div>
           <div class="mt-5 rounded-md border border-white/10 bg-white/[0.03] p-4 text-xs leading-5 text-zinc-500">
             本機開發預設使用綠界測試環境。正式 MerchantID、HashKey、HashIV 請只放在 backend 環境變數。
+          </div>
+          <div v-if="supporters.length" class="mt-5">
+            <h3 class="text-sm font-semibold text-white">最近支持者</h3>
+            <div class="mt-3 space-y-2">
+              <div v-for="supporter in supporters.slice(0, 6)" :key="`${supporter.name}-${supporter.paid_at}`" class="rounded-md bg-white/[0.04] p-3 text-sm">
+                <div class="flex items-center justify-between gap-3">
+                  <span class="font-medium text-white">{{ supporter.name }}</span>
+                  <span class="text-cyan-200">NT$ {{ supporter.amount }}</span>
+                </div>
+                <p v-if="supporter.message" class="mt-1 text-xs text-zinc-500">{{ supporter.message }}</p>
+              </div>
+            </div>
           </div>
         </aside>
       </div>

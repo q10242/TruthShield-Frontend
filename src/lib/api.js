@@ -451,3 +451,11 @@ export async function fetchDonationSummary() {
     headers: { 'Content-Type': undefined },
   })
 }
+
+export async function fetchDonationSupporters() {
+  const payload = await request('/api/donations/supporters', {
+    headers: { 'Content-Type': undefined },
+  })
+
+  return payload.data || []
+}
