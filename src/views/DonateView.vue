@@ -64,6 +64,20 @@ async function submitDonation() {
   }
 }
 
+async function refreshDonationStatus() {
+  if (!tradeNo.value) return
+
+  returnLoading.value = true
+  error.value = ''
+  try {
+    donation.value = await fetchDonation(tradeNo.value)
+  } catch (err) {
+    error.value = err.message || '查詢捐款狀態失敗'
+  } finally {
+    returnLoading.value = false
+  }
+}
+
 onMounted(async () => {
   fetchDonationSummary().then((payload) => {
     summary.value = payload
@@ -74,14 +88,7 @@ onMounted(async () => {
 
   if (!isReturn.value || !tradeNo.value) return
 
-  returnLoading.value = true
-  try {
-    donation.value = await fetchDonation(tradeNo.value)
-  } catch (err) {
-    error.value = err.message || '查詢捐款狀態失敗'
-  } finally {
-    returnLoading.value = false
-  }
+  await refreshDonationStatus()
 })
 </script>
 
@@ -114,7 +121,12 @@ onMounted(async () => {
               <p class="mt-2 text-sm text-emerald-100/75">訂單：{{ donation.donation.merchant_trade_no }}，金額 NT$ {{ donation.donation.amount }}</p>
             </div>
             <p v-if="error" class="mt-4 rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{{ error }}</p>
-            <RouterLink class="mt-5 inline-flex rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" to="/donate">再次支持</RouterLink>
+            <div class="mt-5 flex flex-wrap gap-2">
+              <button class="rounded-md border border-white/10 px-4 py-2 text-sm font-semibold text-zinc-200 hover:border-cyan-300/60" :disabled="returnLoading" @click="refreshDonationStatus">
+                重新查詢
+              </button>
+              <RouterLink class="inline-flex rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" to="/donate">再次支持</RouterLink>
+            </div>
           </div>
 
           <form v-else class="mt-8 space-y-5 rounded-lg border border-white/10 bg-white/[0.03] p-5" @submit.prevent="submitDonation">
