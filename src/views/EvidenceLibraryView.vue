@@ -11,6 +11,7 @@ const q = ref('')
 const tag = ref('')
 const trusted = ref('')
 const sort = ref('helpful')
+const focus = ref('')
 const { t } = useI18n()
 
 async function load() {
@@ -21,6 +22,7 @@ async function load() {
       tag: tag.value,
       trusted: trusted.value,
       sort: sort.value,
+      focus: focus.value,
     })
     items.value = payload.data || []
     meta.value = payload.meta || null
@@ -65,7 +67,7 @@ onMounted(load)
         </RouterLink>
       </div>
 
-      <form class="mt-6 grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[1fr_150px_150px_150px_auto]" @submit.prevent="load">
+      <form class="mt-6 grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[1fr_150px_150px_150px_170px_auto]" @submit.prevent="load">
         <input v-model="q" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :placeholder="t('evidence.searchPlaceholder')" />
         <select v-model="tag" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
           <option value="">{{ t('evidence.allTags') }}</option>
@@ -84,6 +86,10 @@ onMounted(load)
           <option value="quality">{{ t('evidence.sortQuality') }}</option>
           <option value="controversial">{{ t('evidence.sortControversial') }}</option>
           <option value="latest">{{ t('evidence.sortLatest') }}</option>
+        </select>
+        <select v-model="focus" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+          <option value="">{{ t('evidence.allEvidence') }}</option>
+          <option value="community">{{ t('evidence.communityNeeds') }}</option>
         </select>
         <button type="submit" class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950">{{ t('evidence.filter') }}</button>
       </form>

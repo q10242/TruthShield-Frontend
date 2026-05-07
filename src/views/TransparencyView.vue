@@ -20,6 +20,11 @@ const sections = [
     keys: ['pending_domain_reports', 'pending_news_change_reports', 'reviewed_news_change_reports', 'pending_evidence_reports', 'open_abuse_events', 'pending_appeals', 'pending_user_data_requests', 'moderation_events_24h', 'audit_events_24h', 'governance_pressure_score', 'governance_distribution'],
   },
   {
+    titleKey: 'transparency.communityAutomation',
+    descriptionKey: 'transparency.communityAutomationDesc',
+    keys: ['community_open_tasks', 'community_escalated_tasks', 'community_resolved_tasks', 'community_signals', 'community_authenticated_signals', 'community_demoted_evidence'],
+  },
+  {
     titleKey: 'transparency.riskMonitoring',
     descriptionKey: 'transparency.riskMonitoringDesc',
     keys: ['account_edges', 'high_risk_account_edges', 'extension_failures_24h', 'operational_events_24h', 'selector_failures_24h'],

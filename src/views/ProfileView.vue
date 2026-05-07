@@ -23,7 +23,7 @@ const newlyUnlocked = computed(() => {
 })
 const contributionSuggestions = computed(() => [
   { to: '/local-news-demo', title: t('profile.suggestRead'), description: t('profile.suggestReadDesc') },
-  { to: '/evidence-library', title: t('profile.suggestRate'), description: t('profile.suggestRateDesc') },
+  { to: '/community-tasks', title: t('profile.suggestCommunityTasks'), description: t('profile.suggestCommunityTasksDesc') },
   { to: '/report-domain', title: t('profile.suggestMaintain'), description: t('profile.suggestMaintainDesc') },
 ])
 
@@ -124,6 +124,21 @@ onMounted(async () => {
               <p class="text-sm font-semibold text-cyan-100">{{ item.title }}</p>
               <p class="mt-2 text-xs leading-5 text-zinc-500">{{ item.description }}</p>
             </RouterLink>
+          </div>
+        </section>
+        <section v-if="profile.community_roles?.length" class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="text-xl font-semibold text-white">{{ t('profile.communityRoles') }}</h2>
+              <p class="mt-1 text-sm text-zinc-500">{{ t('profile.communityRolesDesc') }}</p>
+            </div>
+            <RouterLink class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100" to="/community-tasks">{{ t('common.communityTasks') }}</RouterLink>
+          </div>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            <div v-for="role in profile.community_roles" :key="role.key" class="rounded-md border border-cyan-300/20 bg-zinc-950/70 p-4">
+              <p class="text-sm font-semibold text-cyan-100">{{ role.name }}</p>
+              <p class="mt-2 text-xs leading-5 text-zinc-500">{{ role.description }}</p>
+            </div>
           </div>
         </section>
         <div v-if="newlyUnlocked.length" class="mt-4 rounded-lg border border-cyan-300/40 bg-cyan-300/10 p-4">

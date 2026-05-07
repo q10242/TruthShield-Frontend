@@ -236,6 +236,19 @@ export async function fetchVisionReadiness() {
   })
 }
 
+export async function fetchCommunityTasks(params = {}) {
+  const query = toQuery(params)
+  return request(`/api/community/tasks${query ? `?${query}` : ''}`, {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
+export async function fetchCommunityTaskStats() {
+  return request('/api/community/tasks/stats', {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
 export async function fetchApiDocs() {
   return request('/api/docs', {
     headers: { 'Content-Type': undefined },

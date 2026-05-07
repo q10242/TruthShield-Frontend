@@ -12,8 +12,8 @@ const { t } = useI18n()
 const primaryLinks = computed(() => [
   { to: '/local-news-demo', label: t('common.localNewsDemo'), description: t('home.localNewsDemoDesc'), mark: '01' },
   { to: '/local-qa-checklist', label: t('common.localQaChecklist'), description: t('home.localQaChecklistDesc'), mark: '02' },
-  { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc'), mark: '03' },
-  { to: '/ranking', label: t('common.ranking'), description: t('home.rankingDesc'), mark: '04' },
+  { to: '/community-tasks', label: t('common.communityTasks'), description: t('home.communityTasksDesc'), mark: '03' },
+  { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc'), mark: '04' },
   { to: '/transparency', label: t('common.transparency'), description: t('home.transparencyDesc'), mark: '05' },
 ])
 
@@ -32,6 +32,7 @@ const secondaryLinks = computed(() => [
   { to: '/trust-leaderboard', label: t('common.trustLeaderboard') },
   { to: '/moderation-events', label: t('common.moderationEvents') },
   { to: '/extension-coverage', label: t('common.extensionCoverage') },
+  { to: '/community-tasks', label: t('common.communityTasks') },
   { to: '/account-graph', label: t('common.accountGraph') },
   { to: '/launch-ops', label: t('common.launchOps') },
   { to: '/vision-readiness', label: t('common.visionReadiness') },
