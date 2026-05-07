@@ -26,6 +26,7 @@ import DonateView from '../views/DonateView.vue'
 import PrivacyView from '../views/PrivacyView.vue'
 import SecurityView from '../views/SecurityView.vue'
 import TermsView from '../views/TermsView.vue'
+import GovernanceView from '../views/GovernanceView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -55,6 +56,7 @@ const router = createRouter({
     { path: '/privacy', name: 'privacy', component: PrivacyView },
     { path: '/security', name: 'security', component: SecurityView },
     { path: '/terms', name: 'terms', component: TermsView },
+    { path: '/governance', name: 'governance', component: GovernanceView },
     { path: '/report-domain', name: 'report-domain', component: ReportDomainView },
     { path: '/iframe-tooltip', name: 'iframe-tooltip', component: IframeTooltipView },
     { path: '/iframe-vote-panel', name: 'iframe-vote-panel', component: IframeVotePanelView },
