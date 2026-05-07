@@ -434,8 +434,11 @@ export async function restoreEvidence(token, evidenceId, reason) {
 }
 
 export async function createDonation(payload) {
+  const token = localStorage.getItem('truthshield_api_token')
+
   return request('/api/donations/ecpay', {
     method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: JSON.stringify(payload),
   })
 }
