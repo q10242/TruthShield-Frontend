@@ -4,7 +4,7 @@ import { useI18n } from '../i18n'
 import { legalDocument } from '../legalContent'
 
 const { locale, t } = useI18n()
-const doc = legalDocument(locale.value, 'privacy')
+const doc = legalDocument(locale.value, 'officialResponse')
 </script>
 
 <template>
@@ -22,7 +22,6 @@ const doc = legalDocument(locale.value, 'privacy')
             <li v-for="item in section.body" :key="item">{{ item }}</li>
           </ul>
         </section>
-        <RouterLink class="inline-flex rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" to="/data-request">{{ t('remaining.dataRequestLink') }}</RouterLink>
       </div>
     </section>
   </main>

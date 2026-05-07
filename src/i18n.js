@@ -41,6 +41,8 @@ export const messages = {
       communityTasks: '社群任務',
       platformRules: '平台規則',
       labelGuide: '標籤指南',
+      dataProcessingPolicy: '資料處理說明',
+      officialResponsePolicy: '官方澄清政策',
       language: '語言',
     },
     home: {
@@ -705,6 +707,7 @@ export const messages = {
       user: '使用者',
       noEdges: '尚無關聯資料。',
       governanceTitle: '透明治理',
+      effectiveDate: '生效/草案日期',
       auditable: '可稽核',
       auditableDesc: '審核、申訴、降權與信任調整都需要保存原因。',
       appealable: '可申訴',
@@ -925,6 +928,8 @@ export const messages = {
       communityTasks: 'Community Tasks',
       platformRules: 'Platform Rules',
       labelGuide: 'Label Guide',
+      dataProcessingPolicy: 'Data Processing',
+      officialResponsePolicy: 'Response Policy',
       language: 'Language',
     },
     home: {
@@ -1589,6 +1594,7 @@ export const messages = {
       user: 'User',
       noEdges: 'No edge data yet.',
       governanceTitle: 'Transparent Governance',
+      effectiveDate: 'Effective / draft date',
       auditable: 'Auditable',
       auditableDesc: 'Moderation, appeals, restrictions, and trust adjustments must keep reasons.',
       appealable: 'Appealable',

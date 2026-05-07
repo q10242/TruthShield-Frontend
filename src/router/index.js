@@ -35,6 +35,8 @@ import CommunityTasksView from '../views/CommunityTasksView.vue'
 import CommunityTaskDetailView from '../views/CommunityTaskDetailView.vue'
 import PlatformRulesView from '../views/PlatformRulesView.vue'
 import LabelGuideView from '../views/LabelGuideView.vue'
+import DataProcessingPolicyView from '../views/DataProcessingPolicyView.vue'
+import OfficialResponsePolicyView from '../views/OfficialResponsePolicyView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -73,6 +75,8 @@ const router = createRouter({
     { path: '/data-request', name: 'data-request', component: DataRequestView },
     { path: '/platform-rules', name: 'platform-rules', component: PlatformRulesView },
     { path: '/label-guide', name: 'label-guide', component: LabelGuideView },
+    { path: '/data-processing-policy', name: 'data-processing-policy', component: DataProcessingPolicyView },
+    { path: '/official-response-policy', name: 'official-response-policy', component: OfficialResponsePolicyView },
     { path: '/report-domain', name: 'report-domain', component: ReportDomainView },
     { path: '/iframe-tooltip', name: 'iframe-tooltip', component: IframeTooltipView },
     { path: '/iframe-vote-panel', name: 'iframe-vote-panel', component: IframeVotePanelView },
