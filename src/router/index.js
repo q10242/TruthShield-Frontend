@@ -18,6 +18,7 @@ import NewsDetailView from '../views/NewsDetailView.vue'
 import AppealsView from '../views/AppealsView.vue'
 import ModerationEventsView from '../views/ModerationEventsView.vue'
 import ExtensionCoverageView from '../views/ExtensionCoverageView.vue'
+import ExtensionInstallView from '../views/ExtensionInstallView.vue'
 import AccountGraphView from '../views/AccountGraphView.vue'
 import ApiClientsView from '../views/ApiClientsView.vue'
 import LaunchOpsView from '../views/LaunchOpsView.vue'
@@ -52,6 +53,7 @@ const router = createRouter({
     { path: '/appeals', name: 'appeals', component: AppealsView },
     { path: '/moderation-events', name: 'moderation-events', component: ModerationEventsView },
     { path: '/extension-coverage', name: 'extension-coverage', component: ExtensionCoverageView },
+    { path: '/extension-install', name: 'extension-install', component: ExtensionInstallView },
     { path: '/account-graph', name: 'account-graph', component: AccountGraphView },
     { path: '/api-clients', name: 'api-clients', component: ApiClientsView },
     { path: '/launch-ops', name: 'launch-ops', component: LaunchOpsView },

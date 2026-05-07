@@ -12,8 +12,8 @@ const communityStats = ref(null)
 const { t } = useI18n()
 
 const primaryLinks = computed(() => [
-  { to: '/local-news-demo', label: t('common.localNewsDemo'), description: t('home.localNewsDemoDesc'), mark: '01' },
-  { to: '/local-qa-checklist', label: t('common.localQaChecklist'), description: t('home.localQaChecklistDesc'), mark: '02' },
+  { to: '/extension-install', label: t('common.extensionInstall'), description: t('home.extensionInstallDesc'), mark: '01' },
+  { to: '/local-news-demo', label: t('common.localNewsDemo'), description: t('home.localNewsDemoDesc'), mark: '02' },
   { to: '/community-tasks', label: t('common.communityTasks'), description: t('home.communityTasksDesc'), mark: '03' },
   { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc'), mark: '04' },
   { to: '/transparency', label: t('common.transparency'), description: t('home.transparencyDesc'), mark: '05' },
@@ -29,6 +29,7 @@ function signOut() {
 }
 
 const secondaryLinks = computed(() => [
+  { to: '/extension-install', label: t('common.extensionInstall') },
   { to: '/news-search', label: t('common.newsSearch') },
   { to: '/profile', label: t('common.profile') },
   { to: '/trust-leaderboard', label: t('common.trustLeaderboard') },
@@ -122,6 +123,9 @@ onMounted(async () => {
           </div>
 
           <div class="flex flex-wrap gap-3">
+            <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/extension-install">
+              {{ t('home.installExtensionCta') }}
+            </RouterLink>
             <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/local-news-demo">
               {{ t('home.primaryCta') }}
             </RouterLink>
