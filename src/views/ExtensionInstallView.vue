@@ -8,6 +8,11 @@ const { t } = useI18n()
 const health = ref(null)
 const botConfig = ref(null)
 const loading = ref(true)
+const localCheckSkipped = ref(false)
+
+function isLocalHostname(hostname) {
+  return ['localhost', '127.0.0.1', '::1'].includes(hostname) || hostname.endsWith('.localhost')
+}
 
 const installSteps = computed(() => [
   {
@@ -52,6 +57,12 @@ const updateSteps = computed(() => [
 ])
 
 onMounted(async () => {
+  if (!isLocalHostname(window.location.hostname)) {
+    localCheckSkipped.value = true
+    loading.value = false
+    return
+  }
+
   loading.value = true
   const [healthPayload, botPayload] = await Promise.all([
     fetchSystemHealth().catch(() => null),
@@ -118,7 +129,7 @@ onMounted(async () => {
             <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
               <p class="text-xs text-zinc-500">API</p>
               <p class="mt-1 text-sm font-semibold" :class="health?.ok ? 'text-emerald-200' : 'text-amber-200'">
-                {{ loading ? t('common.loading') : health?.ok ? t('extensionInstall.healthy') : t('extensionInstall.needsCheck') }}
+                {{ loading ? t('common.loading') : localCheckSkipped ? t('extensionInstall.localCheckSkipped') : health?.ok ? t('extensionInstall.healthy') : t('extensionInstall.needsCheck') }}
               </p>
             </div>
             <div v-for="card in capabilityCards" :key="card.label" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
