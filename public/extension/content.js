@@ -420,6 +420,16 @@ function shouldSuppressHoverTooltip() {
   return Boolean(articleBanner && document.documentElement.contains(articleBanner) && articleBannerUrl === window.location.href)
 }
 
+function youtubeActionContainer() {
+  if (!isYouTubeVideoPage()) {
+    return null
+  }
+
+  return document.querySelector('ytd-watch-metadata #top-level-buttons-computed')
+    || document.querySelector('ytd-watch-metadata #actions')
+    || document.querySelector('#top-level-buttons-computed')
+}
+
 function ensureTooltipBox() {
   if (tooltipBox) {
     return tooltipBox
@@ -655,31 +665,43 @@ function ensureArticleBanner() {
     return null
   }
 
-  if (articleBanner && document.body.contains(articleBanner) && articleBannerUrl === window.location.href) {
-    return articleBanner
+  if (articleBanner && document.documentElement.contains(articleBanner) && articleBannerUrl === window.location.href) {
+    const container = youtubeActionContainer()
+    if (!isYouTubeVideoPage() || !container || container.contains(articleBanner)) {
+      return articleBanner
+    }
+
+    removeArticleBanner()
   }
 
   removeArticleBanner()
 
   articleBanner = document.createElement('div')
   articleBannerUrl = window.location.href
+  const youtubeMode = isYouTubeVideoPage()
+  const youtubeContainer = youtubeMode ? youtubeActionContainer() : null
+  articleBanner.dataset.truthshieldMode = youtubeMode ? 'youtube_chip' : 'article_bar'
   articleBanner.setAttribute('role', 'region')
   articleBanner.setAttribute('aria-label', t('newsStatus'))
-  articleBanner.style.position = 'fixed'
-  articleBanner.style.top = '0'
-  articleBanner.style.left = '0'
-  articleBanner.style.right = '0'
+  articleBanner.style.position = youtubeContainer ? 'relative' : 'fixed'
+  articleBanner.style.top = youtubeMode ? (youtubeContainer ? 'auto' : '72px') : '0'
+  articleBanner.style.left = youtubeMode ? 'auto' : '0'
+  articleBanner.style.right = youtubeMode ? '16px' : '0'
   articleBanner.style.zIndex = '2147483646'
   articleBanner.style.boxSizing = 'border-box'
-  articleBanner.style.padding = '8px 14px'
+  articleBanner.style.padding = youtubeMode ? '6px 8px' : '8px 14px'
+  articleBanner.style.border = youtubeMode ? '1px solid rgba(255, 255, 255, 0.16)' : '0'
   articleBanner.style.borderBottom = '1px solid rgba(255, 255, 255, 0.16)'
+  articleBanner.style.borderRadius = youtubeMode ? '999px' : '0'
   articleBanner.style.background = 'rgba(9, 9, 11, 0.96)'
   articleBanner.style.color = '#f4f4f5'
-  articleBanner.style.boxShadow = '0 18px 48px rgba(0, 0, 0, 0.34)'
+  articleBanner.style.boxShadow = youtubeMode ? '0 10px 30px rgba(0, 0, 0, 0.34)' : '0 18px 48px rgba(0, 0, 0, 0.34)'
   articleBanner.style.font = '13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   articleBanner.style.colorScheme = 'normal'
   articleBanner.style.backdropFilter = 'blur(12px)'
   articleBanner.style.cursor = 'pointer'
+  articleBanner.style.maxWidth = youtubeMode ? 'min(360px, calc(100vw - 32px))' : 'none'
+  articleBanner.style.marginRight = youtubeContainer ? '8px' : '0'
   articleBanner.addEventListener('click', (event) => {
     const target = event.target
     if (target?.closest?.('[data-truthshield-close-banner]')) {
@@ -692,12 +714,16 @@ function ensureArticleBanner() {
     ensureVotePanelFrame()
   })
 
-  document.documentElement.appendChild(articleBanner)
+  if (youtubeContainer) {
+    youtubeContainer.prepend(articleBanner)
+  } else {
+    document.documentElement.appendChild(articleBanner)
+  }
   renderArticleBannerFromCache(window.location.href)
 
   if (!articleBannerReportedUrls.has(window.location.href)) {
     articleBannerReportedUrls.add(window.location.href)
-    reportExtensionEvent('article_banner_injected', true, { mode: 'fixed_top' })
+    reportExtensionEvent('article_banner_injected', true, { mode: youtubeMode ? (youtubeContainer ? 'youtube_action_chip' : 'youtube_floating_chip') : 'fixed_top' })
   }
 
   loadArticleBannerStatusOnce(window.location.href)
@@ -725,6 +751,7 @@ function renderArticleBanner(payload, loading = false, failed = false) {
   }
 
   const tone = tooltipToneStyle(payload?.tone)
+  articleBanner.style.borderColor = articleBanner.dataset.truthshieldMode === 'youtube_chip' ? tone.border : 'transparent'
   articleBanner.style.borderBottomColor = tone.border
 
   const displayText = loading
@@ -738,6 +765,19 @@ function renderArticleBanner(payload, loading = false, failed = false) {
     : payload?.is_open === false
       ? t('voteClosed')
       : t('readEvidence')
+
+  if (articleBanner.dataset.truthshieldMode === 'youtube_chip') {
+    articleBanner.innerHTML = `
+      <div style="display:flex;align-items:center;gap:7px;min-width:0;">
+        <strong style="color:${tone.accent};white-space:nowrap;font-size:12px;letter-spacing:0;">TruthShield</strong>
+        <span style="max-width:178px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.2;">${escapeHtml(displayText)}</span>
+        <span style="border:1px solid ${tone.border};border-radius:999px;color:${tone.accent};background:rgba(255,255,255,.04);padding:3px 7px;font:700 11px system-ui;white-space:nowrap;">${t('open')}</span>
+        <button data-truthshield-close-banner type="button" aria-label="${t('closeBanner')}" style="border:0;background:transparent;color:#a1a1aa;padding:2px 3px;font:800 13px system-ui;cursor:pointer;">×</button>
+      </div>
+    `
+    articleBanner.title = `${displayText} · ${statusText}`
+    return
+  }
 
   articleBanner.innerHTML = `
     <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;max-width:1180px;margin:0 auto;">
@@ -896,6 +936,10 @@ function maybeInjectVotePanel() {
       reportExtensionEvent('article_banner_skipped', false, { reason: 'not_article_shape' })
     }
     return
+  }
+
+  if (isYouTubeVideoPage() && articleBanner && articleBanner.dataset.truthshieldMode === 'youtube_chip' && !document.documentElement.contains(articleBanner)) {
+    removeArticleBanner()
   }
 
   if (ensureArticleBanner()) {
