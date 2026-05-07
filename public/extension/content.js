@@ -3,6 +3,8 @@ let API_ORIGIN = 'http://127.0.0.1:18080'
 const HOVER_DELAY_MS = 300
 const TOOLTIP_STATUS_CACHE_TTL_MS = 5 * 60 * 1000
 const TOOLTIP_STATUS_CACHE_MAX = 250
+const TELEMETRY_CACHE_TTL_MS = 5 * 60 * 1000
+const TELEMETRY_CACHE_MAX = 300
 let enableTooltip = true
 let enablePanel = true
 let enableReportButton = true
@@ -27,11 +29,13 @@ let domainConfigs = []
 let tooltipBox = null
 const tooltipStatusCache = new Map()
 const tooltipStatusRequests = new Map()
+const telemetryCache = new Map()
 let articleBanner = null
 let articleBannerUrl = ''
 const articleBannerStatusCache = new Map()
 const articleBannerStatusRequests = new Map()
 const articleBannerReportedUrls = new Set()
+const articleBannerSkippedUrls = new Set()
 let votePanelFrame = null
 let votePanelBackdrop = null
 let votePanelUrl = ''
@@ -52,6 +56,10 @@ function extensionVersion() {
 
 function reportExtensionEvent(eventType, success = true, metadata = {}) {
   try {
+    if (shouldSkipTelemetry(eventType, success, metadata)) {
+      return
+    }
+
     fetch(`${API_ORIGIN}/api/extension/events`, {
       method: 'POST',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
@@ -66,6 +74,34 @@ function reportExtensionEvent(eventType, success = true, metadata = {}) {
   } catch {
     // Telemetry must never break page behavior.
   }
+}
+
+function shouldSkipTelemetry(eventType, success, metadata) {
+  const key = telemetryKey(eventType, success, metadata)
+  const cachedAt = telemetryCache.get(key)
+  const now = Date.now()
+
+  if (cachedAt && now - cachedAt < TELEMETRY_CACHE_TTL_MS) {
+    return true
+  }
+
+  telemetryCache.set(key, now)
+
+  if (telemetryCache.size > TELEMETRY_CACHE_MAX) {
+    const oldestKey = telemetryCache.keys().next().value
+    if (oldestKey) telemetryCache.delete(oldestKey)
+  }
+
+  return false
+}
+
+function telemetryKey(eventType, success, metadata) {
+  const hrefHost = metadata?.href_host || ''
+  const reason = metadata?.reason || ''
+  const mode = metadata?.mode || ''
+  const pageKey = eventType === 'tooltip_shown' ? hrefHost : window.location.href
+
+  return [eventType, success ? '1' : '0', window.location.hostname, pageKey, reason, mode].join('|')
 }
 
 function reportSelectorCheck(checkType, success, selector = null, metadata = {}) {
@@ -600,7 +636,10 @@ function closeVotePanelModal() {
 
 function maybeInjectVotePanel() {
   if (!isCurrentNewsPage() || !isLikelyArticlePage()) {
-    if (isCurrentNewsPage()) reportExtensionEvent('article_banner_skipped', false, { reason: 'not_article_shape' })
+    if (isCurrentNewsPage() && !articleBannerSkippedUrls.has(window.location.href)) {
+      articleBannerSkippedUrls.add(window.location.href)
+      reportExtensionEvent('article_banner_skipped', false, { reason: 'not_article_shape' })
+    }
     return
   }
 
@@ -633,6 +672,15 @@ function startArticleReadTimer() {
   }, 1000)
 }
 
+function stopArticleReadTimer() {
+  if (!articleReadTimer) {
+    return
+  }
+
+  window.clearInterval(articleReadTimer)
+  articleReadTimer = null
+}
+
 function schedulePageInjection() {
   window.clearTimeout(schedulePageInjection.timer)
   schedulePageInjection.timer = window.setTimeout(() => {
@@ -650,6 +698,7 @@ function observeArticleChanges() {
       removeArticleBanner()
       votePanelUrl = ''
       articleReadSeconds = 0
+      stopArticleReadTimer()
     }
 
     schedulePageInjection()
