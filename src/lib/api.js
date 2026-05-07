@@ -476,3 +476,13 @@ export async function fetchDonationConfig() {
     headers: { 'Content-Type': undefined },
   })
 }
+
+export async function createUserDataRequest(payload) {
+  const token = localStorage.getItem('truthshield_api_token')
+
+  return request('/api/user-data-requests', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: JSON.stringify(payload),
+  })
+}
