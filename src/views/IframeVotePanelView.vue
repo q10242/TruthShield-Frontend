@@ -634,9 +634,12 @@ onMounted(async () => {
 
     <section v-else class="rounded-lg border border-white/10 bg-zinc-950 p-4 shadow-xl shadow-black/30">
       <div class="mb-3 flex items-center justify-between gap-4">
-        <div>
+        <div class="min-w-0">
           <div class="flex items-center gap-2">
-            <p class="text-xs font-semibold text-cyan-300">TruthShield</p>
+            <a class="inline-flex min-w-0 items-center gap-2 rounded-md pr-1 hover:text-cyan-100" href="/" target="_blank" rel="noopener noreferrer" title="TruthShield">
+              <img class="h-6 w-6 shrink-0" src="/brand/truthshield-mark.svg" alt="" />
+              <span class="truncate text-sm font-semibold text-white">TruthShield</span>
+            </a>
             <span class="rounded bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-zinc-300">{{ statusBadgeText }}</span>
           </div>
           <p class="mt-1 text-[11px] text-zinc-500">{{ nextActionText }}</p>
