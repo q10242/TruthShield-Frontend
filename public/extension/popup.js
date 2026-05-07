@@ -73,6 +73,8 @@ function bindActions() {
   byId('openStatus').addEventListener('click', () => openWindow(truthUrl('/iframe-tooltip', { news_url: currentUrl() }), 420, 260))
   byId('openVote').addEventListener('click', () => openWindow(truthUrl('/iframe-vote-panel', { news_url: currentUrl(), expanded: '1' }), 460, 720))
   byId('openReport').addEventListener('click', () => openWindow(truthUrl('/report-domain', { url: currentUrl(), page_title: currentTitle() }), 540, 760))
+  byId('openReadiness').addEventListener('click', () => openTab(truthUrl('/vision-readiness')))
+  byId('openHealth').addEventListener('click', () => openTab(truthUrl('/health')))
 }
 
 chrome.storage.sync.get(defaults, async (settings) => {

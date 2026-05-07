@@ -19,6 +19,15 @@ function eventLabel(type) {
   return eventLabels[type] ? t(eventLabels[type]) : type
 }
 
+function domainGrade(row) {
+  const events = row.events || []
+  if (!events.length) return { label: t('remaining.coverageWatch'), class: 'bg-amber-500/15 text-amber-200' }
+  const average = events.reduce((sum, event) => sum + Number(event.success_rate || 0), 0) / events.length
+  if (average >= 90) return { label: t('remaining.coverageStable'), class: 'bg-emerald-500/15 text-emerald-200' }
+  if (average >= 65) return { label: t('remaining.coverageWatch'), class: 'bg-amber-500/15 text-amber-200' }
+  return { label: t('remaining.coverageFailing'), class: 'bg-red-500/15 text-red-200' }
+}
+
 onMounted(async () => {
   rows.value = await fetchExtensionCoverage()
 })
@@ -38,7 +47,10 @@ onMounted(async () => {
           {{ t('remaining.extensionCoverageEmpty') }}
         </div>
         <article v-for="row in rows" :key="row.domain" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-          <h2 class="font-semibold text-white">{{ row.domain }}</h2>
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="font-semibold text-white">{{ row.domain }}</h2>
+            <span class="rounded px-2 py-1 text-xs font-semibold" :class="domainGrade(row).class">{{ domainGrade(row).label }}</span>
+          </div>
           <div class="mt-3 grid gap-2 md:grid-cols-3">
             <div v-for="event in row.events" :key="event.event_type" class="rounded-md border border-white/10 p-3">
               <p class="text-xs text-zinc-500">{{ eventLabel(event.event_type) }}</p>

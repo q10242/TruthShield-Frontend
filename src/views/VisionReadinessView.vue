@@ -7,11 +7,14 @@ import { useI18n } from '../i18n'
 const payload = ref(null)
 const loading = ref(true)
 const activeCategory = ref('')
+const activeMode = ref('next')
 const { t } = useI18n()
 
 const categoriesByKey = computed(() => Object.fromEntries((payload.value?.categories || []).map((item) => [item.key, item])))
 const filteredPoints = computed(() => {
-  const points = payload.value?.feature_points || []
+  const points = activeMode.value === 'next'
+    ? payload.value?.local_next_points || []
+    : payload.value?.feature_points || []
   if (!activeCategory.value) return points
 
   return points.filter((item) => item.category === activeCategory.value)
@@ -70,6 +73,10 @@ onMounted(async () => {
                 <p class="mt-1 text-3xl font-semibold text-white">{{ payload.summary.completed_local_points }} / {{ payload.summary.local_feature_points }}</p>
               </div>
               <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+                <p class="text-xs text-zinc-500">{{ t('vision.nextPoints') }}</p>
+                <p class="mt-1 text-3xl font-semibold text-white">{{ payload.summary.local_next_points }}</p>
+              </div>
+              <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
                 <p class="text-xs text-zinc-500">{{ t('vision.externalDeps') }}</p>
                 <p class="mt-1 text-3xl font-semibold text-white">{{ payload.summary.external_launch_dependencies }}</p>
               </div>
@@ -97,19 +104,27 @@ onMounted(async () => {
 
         <section class="mt-8 rounded-lg border border-white/10 bg-white/[0.03] p-5">
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-xl font-semibold text-white">{{ t('vision.featurePoints') }}</h2>
+            <h2 class="text-xl font-semibold text-white">{{ activeMode === 'next' ? t('vision.nextFeaturePoints') : t('vision.featurePoints') }}</h2>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="rounded-md border px-3 py-2 text-xs font-semibold" :class="activeMode === 'next' ? 'border-cyan-300 bg-cyan-300 text-zinc-950' : 'border-white/10 text-zinc-300'" @click="activeMode = 'next'">{{ t('vision.nextMode') }}</button>
+              <button type="button" class="rounded-md border px-3 py-2 text-xs font-semibold" :class="activeMode === 'completed' ? 'border-cyan-300 bg-cyan-300 text-zinc-950' : 'border-white/10 text-zinc-300'" @click="activeMode = 'completed'">{{ t('vision.completedMode') }}</button>
+              <button type="button" class="rounded-md border px-3 py-2 text-xs font-semibold" :class="activeMode === 'external' ? 'border-cyan-300 bg-cyan-300 text-zinc-950' : 'border-white/10 text-zinc-300'" @click="activeMode = 'external'">{{ t('vision.externalMode') }}</button>
+            </div>
             <button v-if="activeCategory" type="button" class="rounded-md border border-white/10 px-3 py-2 text-xs text-zinc-300" @click="activeCategory = ''">{{ t('vision.clearFilter') }}</button>
           </div>
-          <div class="mt-4 grid gap-2 md:grid-cols-2">
+          <div v-if="activeMode !== 'external'" class="mt-4 grid gap-2 md:grid-cols-2">
             <article v-for="point in filteredPoints" :key="point.id" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <p class="text-sm font-semibold text-white">{{ point.id }}. {{ point.title }}</p>
-                  <p class="mt-1 text-xs text-zinc-500">{{ categoriesByKey[point.category]?.name }}</p>
+                  <p class="mt-1 text-xs text-zinc-500">{{ point.impact || categoriesByKey[point.category]?.name }}</p>
                 </div>
-                <span class="rounded bg-emerald-500/15 px-2 py-1 text-[11px] font-semibold text-emerald-200">{{ t('vision.implemented') }}</span>
+                <span class="rounded px-2 py-1 text-[11px] font-semibold" :class="activeMode === 'next' ? 'bg-amber-500/15 text-amber-200' : 'bg-emerald-500/15 text-emerald-200'">{{ activeMode === 'next' ? t('vision.next') : t('vision.implemented') }}</span>
               </div>
             </article>
+          </div>
+          <div v-else class="mt-4 grid gap-2 md:grid-cols-2">
+            <article v-for="item in payload.launch_dependencies" :key="item" class="rounded-md border border-white/10 bg-zinc-950/70 p-3 text-sm text-zinc-300">{{ item }}</article>
           </div>
         </section>
 
@@ -178,6 +193,28 @@ onMounted(async () => {
             <ul class="mt-4 space-y-2 text-xs leading-5 text-zinc-400">
               <li v-for="item in payload.launch_dependencies" :key="item">• {{ item }}</li>
             </ul>
+          </div>
+        </section>
+
+        <section class="mt-8 grid gap-5 lg:grid-cols-2">
+          <div class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+            <h2 class="text-lg font-semibold text-white">{{ t('vision.productionChecklist') }}</h2>
+            <div class="mt-4 space-y-2">
+              <article v-for="item in payload.production_checklist" :key="item.key" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+                <p class="text-sm font-semibold text-white">{{ item.title }}</p>
+                <code class="mt-2 block rounded bg-black/30 px-2 py-1 text-xs text-cyan-100">{{ item.command }}</code>
+              </article>
+            </div>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+            <h2 class="text-lg font-semibold text-white">{{ t('vision.securityFlow') }}</h2>
+            <div class="mt-4 space-y-2">
+              <article v-for="item in payload.security_report_flow" :key="item.severity" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+                <p class="text-sm font-semibold text-white">{{ item.severity }}</p>
+                <p class="mt-1 text-xs leading-5 text-zinc-500">{{ item.target }}</p>
+                <p class="mt-2 text-xs text-cyan-200">{{ item.sla }}</p>
+              </article>
+            </div>
           </div>
         </section>
       </template>

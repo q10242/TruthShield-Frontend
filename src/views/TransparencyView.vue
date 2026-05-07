@@ -17,7 +17,7 @@ const sections = [
   {
     titleKey: 'transparency.governanceStatus',
     descriptionKey: 'transparency.governanceStatusDesc',
-    keys: ['pending_domain_reports', 'pending_news_change_reports', 'reviewed_news_change_reports', 'pending_evidence_reports', 'open_abuse_events', 'pending_appeals', 'pending_user_data_requests', 'moderation_events_24h', 'audit_events_24h', 'governance_distribution'],
+    keys: ['pending_domain_reports', 'pending_news_change_reports', 'reviewed_news_change_reports', 'pending_evidence_reports', 'open_abuse_events', 'pending_appeals', 'pending_user_data_requests', 'moderation_events_24h', 'audit_events_24h', 'governance_pressure_score', 'governance_distribution'],
   },
   {
     titleKey: 'transparency.riskMonitoring',

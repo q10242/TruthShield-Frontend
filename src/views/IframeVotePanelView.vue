@@ -665,6 +665,11 @@ onMounted(async () => {
             {{ tag.name }}
           </button>
         </div>
+        <details class="rounded-md border border-white/10 bg-zinc-950/70 p-3 text-xs text-zinc-400">
+          <summary class="cursor-pointer font-semibold text-cyan-100">{{ t('votePanel.tagCriteria') }}</summary>
+          <p class="mt-2 leading-5">{{ selectedTag?.description || t('votePanel.tagCriteriaFallback') }}</p>
+          <p class="mt-2 leading-5">{{ selectedTag?.requires_evidence ? t('votePanel.negativeCriteria') : t('votePanel.positiveCriteria') }}</p>
+        </details>
 
         <label class="block text-xs text-zinc-400">
           {{ t('votePanel.evidenceUrlLabel') }}

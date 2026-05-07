@@ -49,3 +49,16 @@ document.getElementById('checkHealth').addEventListener('click', async () => {
     health.textContent = t('apiUnreachable')
   }
 })
+
+document.getElementById('checkWeb').addEventListener('click', async () => {
+  const webOrigin = fields.tooltipOrigin.value || defaults.tooltipOrigin
+  const webHealth = document.getElementById('webHealth')
+  webHealth.textContent = t('checking')
+
+  try {
+    const response = await fetch(`${webOrigin}/vision-readiness`, { method: 'GET' })
+    webHealth.textContent = response.ok ? t('healthy') : t('degraded')
+  } catch {
+    webHealth.textContent = t('apiUnreachable')
+  }
+})

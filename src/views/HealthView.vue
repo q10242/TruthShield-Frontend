@@ -60,6 +60,14 @@ onMounted(async () => {
       </div>
       <div v-if="health && !health.ok" class="mt-4 rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">
         {{ t('remaining.degraded') }}
+        <span v-if="health.degraded_reasons?.length"> · {{ health.degraded_reasons.join(', ') }}</span>
+      </div>
+      <div v-if="health" class="mt-4 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+        <p class="text-xs text-zinc-500">{{ t('remaining.governancePressureScore') }}</p>
+        <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+          <div class="h-full rounded-full" :class="health.governance_pressure_score >= 70 ? 'bg-red-400' : health.governance_pressure_score >= 40 ? 'bg-amber-300' : 'bg-emerald-300'" :style="{ width: `${Math.min(100, health.governance_pressure_score || 0)}%` }"></div>
+        </div>
+        <p class="mt-2 text-sm text-zinc-300">{{ health.governance_pressure_score || 0 }} / 100</p>
       </div>
       <div v-if="health" class="mt-6 grid gap-6 lg:grid-cols-2">
         <section class="rounded-lg border border-white/10 bg-white/[0.03] p-4">

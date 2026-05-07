@@ -1,12 +1,13 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { fetchRateLimitPolicies, fetchSelectorChecks, fetchTrustedEvidenceSources } from '../lib/api'
+import { fetchRateLimitPolicies, fetchSelectorChecks, fetchTrustedEvidenceSources, fetchVisionReadiness } from '../lib/api'
 import { useI18n } from '../i18n'
 
 const sources = ref([])
 const policies = ref([])
 const checks = ref(null)
+const readiness = ref(null)
 const { t } = useI18n()
 const releaseCommands = [
   'php artisan truthshield:check-production-env',
@@ -27,15 +28,17 @@ const exportLinks = computed(() => [
 ])
 
 onMounted(async () => {
-  const [sourceRows, policyRows, checkRows] = await Promise.all([
+  const [sourceRows, policyRows, checkRows, readinessPayload] = await Promise.all([
     fetchTrustedEvidenceSources(),
     fetchRateLimitPolicies(),
     fetchSelectorChecks(),
+    fetchVisionReadiness(),
   ])
 
   sources.value = sourceRows
   policies.value = policyRows
   checks.value = checkRows
+  readiness.value = readinessPayload
 })
 </script>
 
@@ -52,6 +55,18 @@ onMounted(async () => {
         <h2 class="text-lg font-semibold text-white">{{ t('remaining.preReleaseCommands') }}</h2>
         <div class="mt-3 grid gap-2 md:grid-cols-2">
           <code v-for="command in releaseCommands" :key="command" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">{{ command }}</code>
+        </div>
+      </section>
+      <section class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-lg font-semibold text-white">{{ t('vision.productionChecklist') }}</h2>
+          <RouterLink class="rounded-md border border-cyan-300/30 px-3 py-2 text-xs font-semibold text-cyan-100" to="/vision-readiness">{{ t('common.visionReadiness') }}</RouterLink>
+        </div>
+        <div class="mt-3 grid gap-2 md:grid-cols-2">
+          <article v-for="item in readiness?.production_checklist || []" :key="item.key" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+            <p class="text-sm font-semibold text-white">{{ item.title }}</p>
+            <code class="mt-2 block rounded bg-black/30 px-2 py-1 text-xs text-cyan-100">{{ item.command }}</code>
+          </article>
         </div>
       </section>
       <section class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-4">

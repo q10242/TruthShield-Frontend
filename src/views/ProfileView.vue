@@ -21,6 +21,11 @@ const newlyUnlocked = computed(() => {
   const slugs = profile.value?.achievement_summary?.unlocked_now || []
   return (profile.value?.achievements || []).filter((achievement) => slugs.includes(achievement.slug))
 })
+const contributionSuggestions = computed(() => [
+  { to: '/local-news-demo', title: t('profile.suggestRead'), description: t('profile.suggestReadDesc') },
+  { to: '/evidence-library', title: t('profile.suggestRate'), description: t('profile.suggestRateDesc') },
+  { to: '/report-domain', title: t('profile.suggestMaintain'), description: t('profile.suggestMaintainDesc') },
+])
 
 async function signOut() {
   if (token.value) await logout(token.value).catch(() => null)
@@ -112,6 +117,15 @@ onMounted(async () => {
           </div>
         </div>
         <p v-if="exportMessage" class="mt-3 rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs text-emerald-100">{{ exportMessage }}</p>
+        <section class="mt-6 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5">
+          <h2 class="text-xl font-semibold text-white">{{ t('profile.nextContribution') }}</h2>
+          <div class="mt-4 grid gap-3 md:grid-cols-3">
+            <RouterLink v-for="item in contributionSuggestions" :key="item.to" :to="item.to" class="rounded-md border border-white/10 bg-zinc-950/70 p-4 hover:border-cyan-300/60">
+              <p class="text-sm font-semibold text-cyan-100">{{ item.title }}</p>
+              <p class="mt-2 text-xs leading-5 text-zinc-500">{{ item.description }}</p>
+            </RouterLink>
+          </div>
+        </section>
         <div v-if="newlyUnlocked.length" class="mt-4 rounded-lg border border-cyan-300/40 bg-cyan-300/10 p-4">
           <p class="text-sm font-semibold text-cyan-100">{{ t('profile.newlyUnlocked', { count: newlyUnlocked.length }) }}</p>
           <div class="mt-2 flex flex-wrap gap-2">
