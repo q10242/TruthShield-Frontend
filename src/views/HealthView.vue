@@ -4,6 +4,11 @@ import { RouterLink } from 'vue-router'
 import { fetchSystemHealth } from '../lib/api'
 
 const health = ref(null)
+const labels = {
+  ok: '整體',
+  database: '資料庫',
+  cache: '快取',
+}
 
 onMounted(async () => {
   health.value = await fetchSystemHealth()
@@ -19,9 +24,12 @@ onMounted(async () => {
       <h1 class="text-3xl font-semibold text-white">系統健康</h1>
       <div v-if="health" class="mt-6 grid gap-3 sm:grid-cols-3">
         <div v-for="key in ['ok', 'database', 'cache']" :key="key" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-          <p class="text-xs uppercase text-zinc-500">{{ key }}</p>
+          <p class="text-xs text-zinc-500">{{ labels[key] }}</p>
           <p class="mt-2 text-2xl font-semibold" :class="health[key] ? 'text-emerald-300' : 'text-red-300'">{{ health[key] ? 'OK' : 'FAIL' }}</p>
         </div>
+      </div>
+      <div v-if="health && !health.ok" class="mt-4 rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">
+        系統處於降級狀態，請優先檢查 queue worker、Redis 與 PostgreSQL。
       </div>
       <div v-if="health" class="mt-6 grid gap-6 lg:grid-cols-2">
         <section class="rounded-lg border border-white/10 bg-white/[0.03] p-4">

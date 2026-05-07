@@ -204,6 +204,10 @@ onMounted(async () => {
         <p v-if="message" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm text-emerald-100">{{ message }}</p>
         <p v-if="classificationMessage" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm text-emerald-100">{{ classificationMessage }}</p>
         <p v-if="sourceMessage" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm text-emerald-100">{{ sourceMessage }}</p>
+        <div v-if="message || classificationMessage || sourceMessage" class="rounded-md border border-white/10 bg-zinc-900 p-3 text-sm text-zinc-300">
+          <p class="font-semibold text-white">接下來會發生什麼？</p>
+          <p class="mt-1 leading-6 text-zinc-400">系統會累積同 domain / 同規則的回報。達到足夠訊號後，管理員可在後台審核並轉成插件規則或可信來源。</p>
+        </div>
 
         <div class="grid gap-2 sm:grid-cols-3">
           <button

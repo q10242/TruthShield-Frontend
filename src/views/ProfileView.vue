@@ -25,6 +25,10 @@ const nextAchievements = computed(() => (profile.value?.achievements || [])
   .filter((achievement) => !achievement.unlocked)
   .sort((a, b) => b.percentage - a.percentage)
   .slice(0, 3))
+const newlyUnlocked = computed(() => {
+  const slugs = profile.value?.achievement_summary?.unlocked_now || []
+  return (profile.value?.achievements || []).filter((achievement) => slugs.includes(achievement.slug))
+})
 
 async function signOut() {
   if (token.value) await logout(token.value).catch(() => null)
@@ -109,6 +113,14 @@ onMounted(async () => {
           </div>
         </div>
         <p v-if="exportMessage" class="mt-3 rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs text-emerald-100">{{ exportMessage }}</p>
+        <div v-if="newlyUnlocked.length" class="mt-4 rounded-lg border border-cyan-300/40 bg-cyan-300/10 p-4">
+          <p class="text-sm font-semibold text-cyan-100">剛解鎖 {{ newlyUnlocked.length }} 個成就</p>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <span v-for="achievement in newlyUnlocked" :key="achievement.slug" class="rounded-full bg-cyan-300 px-3 py-1 text-xs font-semibold text-zinc-950">
+              {{ achievement.name }}
+            </span>
+          </div>
+        </div>
 
         <section class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
           <div class="flex items-center justify-between gap-3">

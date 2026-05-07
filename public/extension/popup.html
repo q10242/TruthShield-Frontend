@@ -52,7 +52,7 @@
   <body>
     <main>
       <h1>TruthShield</h1>
-      <p>Hover 與頂部橫幅只顯示狀態；查看、投票、回報請使用頁面右鍵選單。</p>
+      <p>新聞頁會顯示頂部橫幅；點擊橫幅可開啟投票與證據面板。連結也可用右鍵查看或回報。</p>
 
       <div class="grid">
         <div class="card"><div class="label">監控網域</div><div id="domains" class="value">-</div></div>
@@ -64,6 +64,9 @@
         <div id="currentUrl">讀取中...</div>
       </div>
 
+      <button id="openStatus" class="primary">查看目前頁面評分</button>
+      <button id="openVote">開啟投票與證據面板</button>
+      <button id="openReport">回報未收錄或分類錯誤</button>
       <button id="openDemo">開啟本地測試新聞頁</button>
 
       <a id="openHub" href="#">開啟 Truth Hub</a>

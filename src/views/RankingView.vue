@@ -28,7 +28,21 @@ onMounted(async () => {
 
       <div class="mb-8">
         <h1 class="text-4xl font-semibold text-white">媒體信用排行榜</h1>
-        <p class="mt-3 max-w-2xl text-zinc-400">依媒體旗下新聞的加權正負標籤比例計算。</p>
+        <p class="mt-3 max-w-2xl text-zinc-400">依媒體旗下新聞的加權正負標籤比例計算。分數不是審查結果，而是社群對新聞連結的累積評價。</p>
+        <div class="mt-4 grid gap-3 text-sm md:grid-cols-3">
+          <div class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+            <p class="font-semibold text-white">分數</p>
+            <p class="mt-1 text-zinc-500">正向與負向權重的相對結果。</p>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+            <p class="font-semibold text-white">權重</p>
+            <p class="mt-1 text-zinc-500">投票會受使用者信用與風險狀態影響。</p>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+            <p class="font-semibold text-white">風險</p>
+            <p class="mt-1 text-zinc-500">協助讀者判斷是否需要更多證據。</p>
+          </div>
+        </div>
       </div>
 
       <div class="overflow-hidden rounded-lg border border-white/10">
@@ -45,6 +59,9 @@ onMounted(async () => {
           <tbody>
             <tr v-if="loading" class="border-t border-white/10">
               <td class="px-5 py-5 text-zinc-400" colspan="5">讀取中...</td>
+            </tr>
+            <tr v-else-if="rankings.length === 0" class="border-t border-white/10">
+              <td class="px-5 py-5 text-zinc-400" colspan="5">尚無足夠投票資料產生排行榜。</td>
             </tr>
             <tr v-for="item in rankings" :key="item.id" class="border-t border-white/10">
               <td class="px-5 py-4 font-medium text-white">{{ item.name }}</td>

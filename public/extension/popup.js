@@ -63,6 +63,9 @@ function bindActions() {
   byId('openHub').addEventListener('click', () => openTab(state.settings.tooltipOrigin))
   byId('openOptions').addEventListener('click', () => chrome.runtime.openOptionsPage())
   byId('openDemo').addEventListener('click', () => openTab(truthUrl('/local-news-demo')))
+  byId('openStatus').addEventListener('click', () => openWindow(truthUrl('/iframe-tooltip', { news_url: currentUrl() }), 420, 260))
+  byId('openVote').addEventListener('click', () => openWindow(truthUrl('/iframe-vote-panel', { news_url: currentUrl(), expanded: '1' }), 460, 720))
+  byId('openReport').addEventListener('click', () => openWindow(truthUrl('/report-domain', { url: currentUrl(), page_title: currentTitle() }), 540, 760))
 }
 
 chrome.storage.sync.get(defaults, async (settings) => {
@@ -72,7 +75,10 @@ chrome.storage.sync.get(defaults, async (settings) => {
   const url = currentUrl()
   byId('currentUrl').textContent = url || '無法取得目前分頁'
   const disabled = !url || url.startsWith('chrome://') || url.startsWith('chrome-extension://')
-  setStatus(disabled ? '目前分頁不支援右鍵 TruthShield 動作' : '目前頁面請用右鍵選單操作')
+  byId('openStatus').disabled = disabled
+  byId('openVote').disabled = disabled
+  byId('openReport').disabled = disabled
+  setStatus(disabled ? '目前分頁不支援 TruthShield 動作' : '可直接開啟面板，也可使用右鍵選單')
 
   bindActions()
   await loadSummary()

@@ -6,22 +6,31 @@
     <style>
       body { margin: 0; background: #09090b; color: #f4f4f5; font: 14px system-ui, sans-serif; }
       main { max-width: 680px; margin: 0 auto; padding: 28px; }
+      p { color: #a1a1aa; line-height: 1.6; }
       label { display: block; margin: 18px 0; color: #a1a1aa; }
       input { width: 100%; box-sizing: border-box; margin-top: 8px; border: 1px solid #27272a; border-radius: 8px; background: #18181b; color: #fff; padding: 10px; }
       button { border: 0; border-radius: 8px; background: #67e8f9; color: #09090b; padding: 10px 14px; font-weight: 700; cursor: pointer; }
       .row { display: flex; gap: 10px; align-items: center; }
       .row input { width: auto; }
+      .panel { border: 1px solid #27272a; border-radius: 10px; background: #111113; padding: 16px; margin-top: 16px; }
       #status { margin-top: 12px; color: #86efac; }
     </style>
   </head>
   <body>
     <main>
       <h1>TruthShield 設定</h1>
-      <label>官網 / iframe 來源 <input id="tooltipOrigin" /></label>
-      <label>API 來源 <input id="apiOrigin" /></label>
-      <label class="row"><input id="enableTooltip" type="checkbox" /> 啟用 hover 標籤提示</label>
-      <label class="row"><input id="enablePanel" type="checkbox" /> 進入新聞頁時顯示頂部 TruthShield 橫幅</label>
-      <label class="row"><input id="enableReportButton" type="checkbox" /> 顯示未收錄新聞站回報按鈕</label>
+      <p>一般使用者只需要確認官網與 API 來源正確。Hover 提示是低干擾提醒，新聞頁橫幅是主要入口。</p>
+      <section class="panel">
+        <h2>連線來源</h2>
+        <label>官網 / iframe 來源 <input id="tooltipOrigin" /></label>
+        <label>API 來源 <input id="apiOrigin" /></label>
+      </section>
+      <section class="panel">
+        <h2>顯示偏好</h2>
+        <label class="row"><input id="enableTooltip" type="checkbox" /> 啟用 hover 標籤提示</label>
+        <label class="row"><input id="enablePanel" type="checkbox" /> 進入新聞頁時顯示頂部 TruthShield 橫幅</label>
+        <label class="row"><input id="enableReportButton" type="checkbox" /> 顯示未收錄新聞站回報按鈕</label>
+      </section>
       <button id="save">儲存</button>
       <button id="checkHealth" type="button">檢查 API 健康狀態</button>
       <div id="status"></div>
