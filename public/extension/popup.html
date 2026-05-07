@@ -52,27 +52,28 @@
   <body>
     <main>
       <h1>TruthShield</h1>
-      <p>新聞頁會顯示頂部橫幅；點擊橫幅可開啟投票與證據面板。連結也可用右鍵查看或回報。</p>
+      <p data-i18n="popupIntro">新聞頁會顯示頂部橫幅；點擊橫幅可開啟投票與證據面板。連結也可用右鍵查看或回報。</p>
 
       <div class="grid">
-        <div class="card"><div class="label">監控網域</div><div id="domains" class="value">-</div></div>
-        <div class="card"><div class="label">投票數</div><div id="votes" class="value">-</div></div>
+        <div class="card"><div class="label" data-i18n="monitoredDomains">監控網域</div><div id="domains" class="value">-</div></div>
+        <div class="card"><div class="label" data-i18n="votes">投票數</div><div id="votes" class="value">-</div></div>
       </div>
 
       <div class="target">
-        <div class="label">目前分頁</div>
-        <div id="currentUrl">讀取中...</div>
+        <div class="label" data-i18n="currentTab">目前分頁</div>
+        <div id="currentUrl" data-i18n="loading">讀取中...</div>
       </div>
 
-      <button id="openStatus" class="primary">查看目前頁面評分</button>
-      <button id="openVote">開啟投票與證據面板</button>
-      <button id="openReport">回報未收錄或分類錯誤</button>
-      <button id="openDemo">開啟本地測試新聞頁</button>
+      <button id="openStatus" class="primary" data-i18n="openStatus">查看目前頁面評分</button>
+      <button id="openVote" data-i18n="openVote">開啟投票與證據面板</button>
+      <button id="openReport" data-i18n="openReport">回報未收錄或分類錯誤</button>
+      <button id="openDemo" data-i18n="openDemo">開啟本地測試新聞頁</button>
 
-      <a id="openHub" href="#">開啟真相總部</a>
-      <a id="openOptions" href="#">設定</a>
+      <a id="openHub" href="#" data-i18n="openHub">開啟真相總部</a>
+      <a id="openOptions" href="#" data-i18n="settings">設定</a>
       <div id="status"></div>
     </main>
+    <script src="extension-i18n.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

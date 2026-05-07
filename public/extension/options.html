@@ -18,25 +18,26 @@
   </head>
   <body>
     <main>
-      <h1>TruthShield 設定</h1>
-      <p>一般使用者只需要確認官網與 API 來源正確。滑過提示是低干擾提醒，新聞頁橫幅是主要入口。</p>
+      <h1 data-i18n="settingsTitle" data-i18n-title="settingsTitle">TruthShield 設定</h1>
+      <p data-i18n="settingsIntro">一般使用者只需要確認官網與 API 來源正確。滑過提示是低干擾提醒，新聞頁橫幅是主要入口。</p>
       <section class="panel">
-        <h2>連線來源</h2>
-        <label>官網 / 內嵌頁來源 <input id="tooltipOrigin" /></label>
-        <label>API 來源 <input id="apiOrigin" /></label>
+        <h2 data-i18n="connectionOrigins">連線來源</h2>
+        <label><span data-i18n="webOrigin">官網 / 內嵌頁來源</span> <input id="tooltipOrigin" /></label>
+        <label><span data-i18n="apiOrigin">API 來源</span> <input id="apiOrigin" /></label>
       </section>
       <section class="panel">
-        <h2>顯示偏好</h2>
-        <label class="row"><input id="enableTooltip" type="checkbox" /> 啟用滑過標籤提示</label>
-        <label class="row"><input id="enablePanel" type="checkbox" /> 進入新聞頁時顯示頂部 TruthShield 橫幅</label>
-        <label class="row"><input id="enableReportButton" type="checkbox" /> 顯示未收錄新聞站回報按鈕</label>
+        <h2 data-i18n="displayPrefs">顯示偏好</h2>
+        <label class="row"><input id="enableTooltip" type="checkbox" /> <span data-i18n="enableTooltip">啟用滑過標籤提示</span></label>
+        <label class="row"><input id="enablePanel" type="checkbox" /> <span data-i18n="enablePanel">進入新聞頁時顯示頂部 TruthShield 橫幅</span></label>
+        <label class="row"><input id="enableReportButton" type="checkbox" /> <span data-i18n="enableReportButton">顯示未收錄新聞站回報按鈕</span></label>
       </section>
-      <button id="save">儲存</button>
-      <button id="checkHealth" type="button">檢查 API 健康狀態</button>
+      <button id="save" data-i18n="save">儲存</button>
+      <button id="checkHealth" type="button" data-i18n="checkHealth">檢查 API 健康狀態</button>
       <div id="status"></div>
       <div id="health"></div>
       <p id="version"></p>
     </main>
+    <script src="extension-i18n.js"></script>
     <script src="options.js"></script>
   </body>
 </html>
