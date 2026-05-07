@@ -118,6 +118,13 @@ const navGroups = [
           </div>
         </div>
       </section>
+      <footer class="flex flex-wrap gap-3 border-t border-white/10 py-5 text-sm text-zinc-500">
+        <RouterLink class="hover:text-cyan-100" to="/privacy">隱私權</RouterLink>
+        <RouterLink class="hover:text-cyan-100" to="/terms">服務條款</RouterLink>
+        <RouterLink class="hover:text-cyan-100" to="/security">安全回報</RouterLink>
+        <RouterLink class="hover:text-cyan-100" to="/governance">透明治理</RouterLink>
+        <RouterLink class="hover:text-cyan-100" to="/donate">捐款支持</RouterLink>
+      </footer>
     </section>
   </main>
 </template>
