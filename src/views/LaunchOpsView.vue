@@ -19,6 +19,9 @@ const releaseCommands = [
 const exportLinks = computed(() => [
   { href: '/api/exports/news.csv', label: `${t('remaining.news')} CSV` },
   { href: '/api/exports/evidence.csv', label: `${t('remaining.evidence')} CSV` },
+  { href: '/api/exports/news-snapshots.csv', label: `${t('remaining.newsSnapshots')} CSV` },
+  { href: '/api/exports/news-change-reports.csv', label: `${t('remaining.newsChangeReports')} CSV` },
+  { href: '/api/exports/governance-events.csv', label: `${t('remaining.governanceEvents')} CSV` },
   { href: '/api/exports/donations.csv', label: `${t('common.donate')} CSV` },
   { href: '/api/exports/user-data-requests.csv', label: `${t('remaining.dataRequestTitle')} CSV` },
 ])

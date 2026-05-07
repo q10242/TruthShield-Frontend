@@ -10,6 +10,7 @@ const loading = ref(true)
 const q = ref('')
 const tag = ref('')
 const trusted = ref('')
+const sort = ref('helpful')
 const { t } = useI18n()
 
 async function load() {
@@ -19,6 +20,7 @@ async function load() {
       q: q.value,
       tag: tag.value,
       trusted: trusted.value,
+      sort: sort.value,
     })
     items.value = payload.data || []
     meta.value = payload.meta || null
@@ -33,6 +35,13 @@ function evidenceSourceLabel(item) {
   if (item.evidence_type === 'link') return t('evidence.link')
 
   return t('evidence.external')
+}
+
+function previewUrl(item) {
+  if (item.preview_url) return item.preview_url
+  if (item.evidence_type !== 'image') return ''
+
+  return item.evidence_url
 }
 
 onMounted(load)
@@ -56,7 +65,7 @@ onMounted(load)
         </RouterLink>
       </div>
 
-      <form class="mt-6 grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[1fr_160px_160px_auto]" @submit.prevent="load">
+      <form class="mt-6 grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[1fr_150px_150px_150px_auto]" @submit.prevent="load">
         <input v-model="q" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :placeholder="t('evidence.searchPlaceholder')" />
         <select v-model="tag" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
           <option value="">{{ t('evidence.allTags') }}</option>
@@ -69,6 +78,12 @@ onMounted(load)
           <option value="">{{ t('evidence.allSources') }}</option>
           <option value="1">{{ t('evidence.trustedSource') }}</option>
           <option value="0">{{ t('evidence.unverifiedSource') }}</option>
+        </select>
+        <select v-model="sort" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+          <option value="helpful">{{ t('evidence.sortHelpful') }}</option>
+          <option value="quality">{{ t('evidence.sortQuality') }}</option>
+          <option value="controversial">{{ t('evidence.sortControversial') }}</option>
+          <option value="latest">{{ t('evidence.sortLatest') }}</option>
         </select>
         <button type="submit" class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950">{{ t('evidence.filter') }}</button>
       </form>
@@ -86,14 +101,21 @@ onMounted(load)
             <span class="rounded px-2 py-1 text-xs font-semibold" :class="item.is_trusted_evidence ? 'bg-emerald-500/15 text-emerald-200' : 'bg-zinc-800 text-zinc-400'">
               {{ item.is_trusted_evidence ? t('evidence.trustedSource') : t('evidence.communityPending') }}
             </span>
+            <span class="rounded bg-cyan-300/10 px-2 py-1 text-xs font-semibold text-cyan-100">{{ t('evidence.qualityScore') }} {{ Number(item.quality_score || 0).toFixed(2) }}</span>
             <span class="ml-auto text-xs text-zinc-500">{{ t('evidence.netHelpfulWeight') }} {{ Number(item.net_helpful_weight).toFixed(2) }}</span>
           </div>
+          <img v-if="previewUrl(item)" :src="previewUrl(item)" alt="" class="mt-3 max-h-52 w-full rounded-md border border-white/10 object-cover" />
           <p class="mt-3 text-sm text-zinc-200">{{ item.evidence_note || t('evidence.noNote') }}</p>
           <div class="mt-3 rounded-md border border-white/10 bg-zinc-950/70 p-3">
             <p class="text-xs text-zinc-500">{{ evidenceSourceLabel(item) }}</p>
             <a class="mt-1 block truncate text-sm font-semibold text-cyan-200" :href="item.evidence_url" target="_blank" rel="noreferrer">{{ item.evidence_url }}</a>
+            <a v-if="item.archive_url" class="mt-1 block truncate text-xs font-semibold text-emerald-200" :href="item.archive_url" target="_blank" rel="noreferrer">{{ t('votePanel.openArchive') }}</a>
           </div>
-          <p class="mt-3 truncate text-xs text-zinc-500">{{ item.news_url?.title_snapshot || item.news_url?.normalized_url }}</p>
+          <div class="mt-3 rounded-md border border-white/10 bg-white/[0.02] p-3">
+            <p class="text-xs font-semibold text-zinc-400">{{ t('evidence.relatedNews') }}</p>
+            <p class="mt-1 truncate text-xs text-zinc-500">{{ item.news_url?.title_snapshot || item.news_url?.normalized_url }}</p>
+            <p v-if="item.news_url?.media_outlet" class="mt-1 text-xs text-zinc-600">{{ item.news_url.media_outlet.name }}</p>
+          </div>
         </article>
       </div>
     </section>

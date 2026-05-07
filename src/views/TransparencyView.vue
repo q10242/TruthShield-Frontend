@@ -12,12 +12,12 @@ const sections = [
   {
     titleKey: 'transparency.systemScale',
     descriptionKey: 'transparency.systemScaleDesc',
-    keys: ['users', 'news_urls', 'votes', 'read_sessions', 'trusted_evidence', 'finalized_news'],
+    keys: ['users', 'news_urls', 'votes', 'read_sessions', 'trusted_evidence', 'finalized_news', 'news_snapshots', 'changed_news_snapshots', 'unavailable_news'],
   },
   {
     titleKey: 'transparency.governanceStatus',
     descriptionKey: 'transparency.governanceStatusDesc',
-    keys: ['pending_domain_reports', 'pending_evidence_reports', 'open_abuse_events', 'pending_appeals', 'pending_user_data_requests', 'moderation_events_24h', 'audit_events_24h'],
+    keys: ['pending_domain_reports', 'pending_news_change_reports', 'reviewed_news_change_reports', 'pending_evidence_reports', 'open_abuse_events', 'pending_appeals', 'pending_user_data_requests', 'moderation_events_24h', 'audit_events_24h', 'governance_distribution'],
   },
   {
     titleKey: 'transparency.riskMonitoring',

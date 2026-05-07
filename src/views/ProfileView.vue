@@ -128,18 +128,31 @@ onMounted(async () => {
           </div>
 
           <div class="mt-4 grid gap-3 sm:grid-cols-2">
-            <div v-for="achievement in profile.achievements" :key="achievement.slug" class="rounded-md border p-4" :class="achievement.unlocked ? 'border-cyan-300/30 bg-cyan-300/10' : 'border-white/10 bg-zinc-950/70 opacity-75'">
+            <div
+              v-for="achievement in profile.achievements"
+              :key="achievement.slug"
+              class="rounded-md border p-4"
+              :class="achievement.unlocked ? 'bg-white/[0.045]' : 'border-white/10 bg-zinc-950/70 opacity-75'"
+              :style="achievement.unlocked ? { borderColor: `${achievement.color}66` } : {}"
+            >
               <div class="flex items-start justify-between gap-3">
                 <div>
-                  <p class="text-sm font-semibold" :class="achievement.unlocked ? 'text-cyan-100' : 'text-zinc-300'">{{ achievement.name }}</p>
+                  <div class="flex items-center gap-2">
+                    <span class="h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: achievement.color || '#67e8f9' }"></span>
+                    <p class="text-sm font-semibold" :class="achievement.unlocked ? 'text-white' : 'text-zinc-300'">{{ achievement.name }}</p>
+                  </div>
                   <p class="mt-1 text-xs leading-5 text-zinc-500">{{ achievement.description }}</p>
                 </div>
-                <span class="rounded-full px-2 py-1 text-[11px] font-semibold" :class="achievement.unlocked ? 'bg-cyan-300 text-zinc-950' : 'bg-white/10 text-zinc-400'">
+                <span
+                  class="rounded-full px-2 py-1 text-[11px] font-semibold"
+                  :class="achievement.unlocked ? 'text-zinc-950' : 'bg-white/10 text-zinc-400'"
+                  :style="achievement.unlocked ? { backgroundColor: achievement.color || '#67e8f9' } : {}"
+                >
                   {{ achievement.unlocked ? t('profile.unlocked') : `${achievement.current}/${achievement.target}` }}
                 </span>
               </div>
               <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-                <div class="h-full rounded-full bg-cyan-300" :style="{ width: `${achievement.percentage}%` }"></div>
+                <div class="h-full rounded-full" :style="{ width: `${achievement.percentage}%`, backgroundColor: achievement.color || '#67e8f9' }"></div>
               </div>
             </div>
           </div>
@@ -152,6 +165,9 @@ onMounted(async () => {
               <p class="text-sm font-semibold text-white">{{ achievement.name }}</p>
               <p class="mt-1 text-xs leading-5 text-zinc-500">{{ achievement.description }}</p>
               <p class="mt-3 text-xs text-cyan-200">{{ achievement.current }} / {{ achievement.target }}</p>
+              <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div class="h-full rounded-full" :style="{ width: `${achievement.percentage}%`, backgroundColor: achievement.color || '#67e8f9' }"></div>
+              </div>
             </div>
           </div>
         </section>

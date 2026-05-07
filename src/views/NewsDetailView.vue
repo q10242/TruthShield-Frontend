@@ -45,14 +45,25 @@ onMounted(async () => {
           <a v-if="payload.status.snapshot?.archive_url" :href="payload.status.snapshot.archive_url" target="_blank" rel="noreferrer" class="mt-2 inline-block text-sm font-semibold text-cyan-200">
             {{ t('votePanel.openArchive') }}
           </a>
-          <div class="mt-4 space-y-2">
-            <article v-for="snapshot in payload.news.snapshots || []" :key="snapshot.id" class="rounded-md border border-white/10 bg-zinc-900 p-3">
+          <div class="mt-4 border-l border-cyan-300/30 pl-4">
+            <article v-for="snapshot in payload.news.snapshots || []" :key="snapshot.id" class="relative mb-3 rounded-md border border-white/10 bg-zinc-900 p-3">
+              <span class="absolute -left-[22px] top-4 h-3 w-3 rounded-full border border-cyan-300 bg-zinc-950"></span>
               <div class="flex flex-wrap items-center justify-between gap-2">
-                <span class="rounded bg-cyan-300/10 px-2 py-1 text-xs font-semibold text-cyan-100">{{ snapshot.snapshot_type }}</span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="rounded bg-cyan-300/10 px-2 py-1 text-xs font-semibold text-cyan-100">{{ snapshot.snapshot_type }}</span>
+                  <span class="rounded bg-white/10 px-2 py-1 text-xs text-zinc-400">{{ snapshot.availability_status }}</span>
+                </div>
                 <span class="text-xs text-zinc-500">{{ snapshot.captured_at }}</span>
               </div>
               <p class="mt-2 text-sm text-zinc-200">{{ snapshot.title || t('remaining.unnamedNews') }}</p>
-              <p v-if="snapshot.change_summary?.length" class="mt-1 text-xs text-orange-200">{{ t('remaining.detectedChanges') }} {{ snapshot.change_summary.length }}</p>
+              <div v-if="snapshot.change_summary?.length" class="mt-2 space-y-1">
+                <p class="text-xs font-semibold text-orange-200">{{ t('remaining.detectedChanges') }} {{ snapshot.change_summary.length }}</p>
+                <div v-for="change in snapshot.change_summary" :key="`${snapshot.id}-${change.type}`" class="rounded border border-orange-300/20 bg-orange-500/10 p-2 text-xs text-orange-100">
+                  <p class="font-semibold">{{ change.type }}</p>
+                  <p class="mt-1 truncate opacity-75">{{ change.from }}</p>
+                  <p class="mt-1 truncate">{{ change.to }}</p>
+                </div>
+              </div>
             </article>
           </div>
         </div>
