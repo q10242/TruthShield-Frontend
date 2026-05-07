@@ -19,6 +19,12 @@ const secondaryLinks = [
   { to: '/algorithm', label: '演算法' },
   { to: '/api-docs', label: 'API 文件' },
 ]
+
+const navGroups = [
+  { title: '一般使用者', links: secondaryLinks.slice(0, 3) },
+  { title: '查證者', links: secondaryLinks.slice(3, 6) },
+  { title: '營運與開發', links: secondaryLinks.slice(6) },
+]
 </script>
 
 <template>
@@ -95,16 +101,19 @@ const secondaryLinks = [
         </aside>
       </div>
 
-      <section class="border-t border-white/10 py-6">
-        <div class="flex flex-wrap gap-2">
-          <RouterLink
-            v-for="link in secondaryLinks.slice(5)"
-            :key="link.to"
-            class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-400 hover:border-cyan-300/60 hover:text-cyan-100"
-            :to="link.to"
-          >
-            {{ link.label }}
-          </RouterLink>
+      <section class="grid gap-3 border-t border-white/10 py-6 md:grid-cols-3">
+        <div v-for="group in navGroups" :key="group.title" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <h2 class="text-sm font-semibold text-white">{{ group.title }}</h2>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <RouterLink
+              v-for="link in group.links"
+              :key="link.to"
+              class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-400 hover:border-cyan-300/60 hover:text-cyan-100"
+              :to="link.to"
+            >
+              {{ link.label }}
+            </RouterLink>
+          </div>
         </div>
       </section>
     </section>

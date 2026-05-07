@@ -516,7 +516,7 @@ function ensureArticleBanner() {
   articleBanner.style.right = '0'
   articleBanner.style.zIndex = '2147483646'
   articleBanner.style.boxSizing = 'border-box'
-  articleBanner.style.padding = '10px 16px'
+  articleBanner.style.padding = '8px 14px'
   articleBanner.style.borderBottom = '1px solid rgba(255, 255, 255, 0.16)'
   articleBanner.style.background = 'rgba(9, 9, 11, 0.96)'
   articleBanner.style.color = '#f4f4f5'
@@ -585,10 +585,13 @@ function renderArticleBanner(payload, loading = false, failed = false) {
       : '閱讀後可補充證據'
 
   articleBanner.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:center;gap:12px;max-width:1180px;margin:0 auto;">
+    <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;max-width:1180px;margin:0 auto;">
       <strong style="color:${tone.accent};white-space:nowrap;font-size:12px;letter-spacing:0;">TruthShield</strong>
-      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.4;">${escapeHtml(displayText)}</span>
-      <span style="color:#a1a1aa;white-space:nowrap;font-size:12px;">${escapeHtml(statusText)}</span>
+      <div style="min-width:0;">
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.35;">${escapeHtml(displayText)}</div>
+        <div style="margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;">${escapeHtml(statusText)}</div>
+      </div>
+      <span style="border:1px solid ${tone.border};border-radius:6px;color:${tone.accent};background:rgba(255,255,255,.04);padding:5px 8px;font:700 12px system-ui;white-space:nowrap;">開啟</span>
       <button data-truthshield-close-banner type="button" aria-label="關閉 TruthShield 橫幅" style="border:1px solid rgba(255,255,255,.16);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 9px;font:700 12px system-ui;cursor:pointer;">×</button>
     </div>
   `

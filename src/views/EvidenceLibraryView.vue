@@ -25,6 +25,14 @@ async function load() {
   }
 }
 
+function evidenceSourceLabel(item) {
+  if (item.evidence_type === 'cloud_drive') return '雲端硬碟'
+  if (item.evidence_type === 'image') return '圖片證據'
+  if (item.evidence_type === 'link') return '相關連結'
+
+  return '外部證據'
+}
+
 onMounted(load)
 </script>
 
@@ -71,15 +79,19 @@ onMounted(load)
           目前沒有符合條件的證據。調整篩選條件，或在新聞頁面閱讀後提交第一筆證據。
         </div>
         <article v-for="item in items" :key="item.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-          <div class="flex items-center justify-between gap-4">
+          <div class="flex flex-wrap items-center gap-2">
             <span class="rounded bg-white/10 px-2 py-1 text-xs font-semibold">{{ item.tag.name }}</span>
-            <span class="text-xs" :class="item.is_trusted_evidence ? 'text-emerald-300' : 'text-zinc-500'">
-              {{ item.is_trusted_evidence ? '可信來源' : '未驗證來源' }} · 淨權重 {{ Number(item.net_helpful_weight).toFixed(2) }}
+            <span class="rounded px-2 py-1 text-xs font-semibold" :class="item.is_trusted_evidence ? 'bg-emerald-500/15 text-emerald-200' : 'bg-zinc-800 text-zinc-400'">
+              {{ item.is_trusted_evidence ? '可信來源' : '待社群驗證' }}
             </span>
+            <span class="ml-auto text-xs text-zinc-500">淨有用權重 {{ Number(item.net_helpful_weight).toFixed(2) }}</span>
           </div>
           <p class="mt-3 text-sm text-zinc-200">{{ item.evidence_note || '未提供說明' }}</p>
-          <a class="mt-2 block truncate text-sm font-semibold text-cyan-200" :href="item.evidence_url" target="_blank" rel="noreferrer">{{ item.evidence_url }}</a>
-          <p class="mt-2 truncate text-xs text-zinc-500">{{ item.news_url?.title_snapshot || item.news_url?.normalized_url }}</p>
+          <div class="mt-3 rounded-md border border-white/10 bg-zinc-950/70 p-3">
+            <p class="text-xs text-zinc-500">{{ evidenceSourceLabel(item) }}</p>
+            <a class="mt-1 block truncate text-sm font-semibold text-cyan-200" :href="item.evidence_url" target="_blank" rel="noreferrer">{{ item.evidence_url }}</a>
+          </div>
+          <p class="mt-3 truncate text-xs text-zinc-500">{{ item.news_url?.title_snapshot || item.news_url?.normalized_url }}</p>
         </article>
       </div>
     </section>

@@ -44,6 +44,11 @@ const readSeconds = ref(0)
 const readMinimum = ref(15)
 const readSynced = ref(false)
 const readTimer = ref(null)
+const tabSteps = [
+  { key: 'results', number: 1, label: '看結果' },
+  { key: 'vote', number: 2, label: '投票' },
+  { key: 'evidence', number: 3, label: '查證據' },
+]
 
 const newsUrl = computed(() => route.query.news_url || '')
 const selectedTag = computed(() => tags.value.find((tag) => tag.id === selectedTagId.value))
@@ -94,6 +99,7 @@ const statusBadgeText = computed(() => {
 
   return '開放中'
 })
+const activeStepNumber = computed(() => tabSteps.find((step) => step.key === activeTab.value)?.number || 1)
 
 const toneClass = computed(() => {
   const tone = status.value?.tone
@@ -400,6 +406,18 @@ function evidencePreviewUrl(item) {
   return item.evidence_url
 }
 
+function evidenceTypeLabel(item) {
+  if (item.evidence_type === 'cloud_drive') return '雲端硬碟'
+  if (item.evidence_type === 'image') return '圖片證據'
+  if (item.evidence_type === 'link') return '相關連結'
+
+  return '外部證據'
+}
+
+function evidenceTrustLabel(item) {
+  return item.is_trusted_evidence ? '可信來源' : '待社群驗證'
+}
+
 watch([collapsed, activeTab, selectedTagId, evidenceUrl, evidenceNote, voteError, voteMessage, evidenceError, reportMessage, readSeconds], notifyHeight)
 
 onMounted(async () => {
@@ -451,8 +469,15 @@ onMounted(async () => {
       </div>
 
       <div class="grid grid-cols-3 rounded-md border border-white/10 bg-white/[0.03] p-1 text-xs font-semibold">
-        <button v-for="tab in ['results', 'vote', 'evidence']" :key="tab" class="rounded px-2 py-2" :class="activeTab === tab ? 'bg-cyan-300 text-zinc-950' : 'text-zinc-400'" @click="activeTab = tab">
-          {{ tab === 'results' ? '結果' : tab === 'vote' ? '投票' : '證據' }}
+        <button
+          v-for="step in tabSteps"
+          :key="step.key"
+          class="rounded px-2 py-2"
+          :class="activeTab === step.key ? 'bg-cyan-300 text-zinc-950' : step.number < activeStepNumber ? 'text-cyan-200' : 'text-zinc-400'"
+          @click="activeTab = step.key"
+        >
+          <span class="mr-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-current text-[10px]">{{ step.number }}</span>
+          {{ step.label }}
         </button>
       </div>
 
@@ -599,21 +624,25 @@ onMounted(async () => {
           尚無證據。負面投票會要求提供截圖、雲端硬碟圖片或澄清連結。
         </div>
 
-        <article v-for="item in evidence" :key="item.id" class="space-y-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
-          <div class="flex items-center justify-between gap-2">
+        <article v-for="item in evidence" :key="item.id" class="space-y-3 rounded-md border border-white/10 bg-zinc-900/80 p-3">
+          <div class="flex flex-wrap items-center gap-2">
             <span class="rounded bg-white/10 px-2 py-1 text-[11px] font-semibold text-zinc-200">{{ item.tag.name }}</span>
-            <span class="text-[11px]" :class="item.is_trusted_evidence ? 'text-emerald-300' : 'text-zinc-500'">
-              {{ item.evidence_type === 'cloud_drive' ? '雲端硬碟' : item.is_trusted_evidence ? '可信來源' : '未驗證來源' }} · 淨權重 {{ Number(item.net_helpful_weight).toFixed(2) }}
+            <span class="rounded px-2 py-1 text-[11px] font-semibold" :class="item.is_trusted_evidence ? 'bg-emerald-500/15 text-emerald-200' : 'bg-zinc-800 text-zinc-400'">
+              {{ evidenceTrustLabel(item) }}
             </span>
+            <span class="ml-auto text-[11px] text-zinc-500">淨有用權重 {{ Number(item.net_helpful_weight).toFixed(2) }}</span>
           </div>
 
           <img v-if="evidencePreviewUrl(item)" :src="evidencePreviewUrl(item)" alt="" class="max-h-36 w-full rounded-md border border-white/10 object-cover" />
 
           <p class="text-sm leading-5 text-zinc-200">{{ item.evidence_note || '未提供說明' }}</p>
 
-          <a :href="item.evidence_url" target="_blank" rel="noreferrer" class="block truncate text-xs font-semibold text-cyan-200">
-            {{ item.evidence_host || item.evidence_url }}
-          </a>
+          <div class="rounded-md border border-white/10 bg-white/[0.03] p-2">
+            <p class="text-[11px] text-zinc-500">{{ evidenceTypeLabel(item) }}</p>
+            <a :href="item.evidence_url" target="_blank" rel="noreferrer" class="mt-1 block truncate text-xs font-semibold text-cyan-200">
+              {{ item.evidence_host || item.evidence_url }}
+            </a>
+          </div>
 
           <div class="flex items-center gap-2">
             <button class="rounded-md border border-emerald-300/30 px-2 py-1 text-xs text-emerald-100 disabled:cursor-not-allowed disabled:opacity-50" :disabled="reactingId === item.id || !isVotingOpen || (isLoggedIn && !canReactToEvidence)" @click="react(item, true)">

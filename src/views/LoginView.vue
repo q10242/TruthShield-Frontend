@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { beginOauth, devLogin, oauthCallback } from '../lib/api'
 
 const TOKEN_KEY = 'truthshield_api_token'
@@ -16,6 +16,22 @@ const done = ref(false)
 
 const redirectPath = computed(() => route.query.redirect || '/')
 
+async function persistLogin(payload) {
+  localStorage.setItem(TOKEN_KEY, payload.token)
+  localStorage.setItem(USER_KEY, JSON.stringify(payload.user))
+  window.opener?.postMessage({ type: 'TRUTH_SHIELD_AUTH_UPDATED' }, window.location.origin)
+  done.value = true
+
+  window.setTimeout(() => {
+    if (window.opener) {
+      window.close()
+      return
+    }
+
+    window.location.assign(String(redirectPath.value))
+  }, 600)
+}
+
 async function submit() {
   loading.value = true
   error.value = ''
@@ -26,20 +42,7 @@ async function submit() {
       email: email.value,
       fb_id: fbId.value || undefined,
     })
-
-    localStorage.setItem(TOKEN_KEY, payload.token)
-    localStorage.setItem(USER_KEY, JSON.stringify(payload.user))
-    window.opener?.postMessage({ type: 'TRUTH_SHIELD_AUTH_UPDATED' }, window.location.origin)
-    done.value = true
-
-    window.setTimeout(() => {
-      if (window.opener) {
-        window.close()
-        return
-      }
-
-      window.location.assign(String(redirectPath.value))
-    }, 600)
+    await persistLogin(payload)
   } catch (err) {
     error.value = err.message || '登入失敗'
   } finally {
@@ -57,20 +60,7 @@ async function providerLogin(provider) {
       name: name.value,
       email: email.value,
     })
-
-    localStorage.setItem(TOKEN_KEY, payload.token)
-    localStorage.setItem(USER_KEY, JSON.stringify(payload.user))
-    window.opener?.postMessage({ type: 'TRUTH_SHIELD_AUTH_UPDATED' }, window.location.origin)
-    done.value = true
-
-    window.setTimeout(() => {
-      if (window.opener) {
-        window.close()
-        return
-      }
-
-      window.location.assign(String(redirectPath.value))
-    }, 600)
+    await persistLogin(payload)
   } catch (err) {
     error.value = err.message || '登入失敗'
   } finally {
@@ -88,7 +78,7 @@ async function realProviderLogin(provider) {
     })
     window.location.assign(payload.auth_url)
   } catch (err) {
-    error.value = err.message || '無法啟動正式 OAuth'
+    error.value = err.message || '目前本機尚未設定正式 OAuth，請使用本機測試登入。'
     loading.value = false
   }
 }
@@ -96,43 +86,68 @@ async function realProviderLogin(provider) {
 
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
-    <section class="mx-auto max-w-md rounded-lg border border-white/10 bg-zinc-900 p-6">
-      <div class="mb-6">
-        <p class="text-sm font-semibold text-cyan-300">TruthShield</p>
-        <h1 class="mt-2 text-2xl font-semibold text-white">開發期登入</h1>
-        <p class="mt-2 text-sm leading-6 text-zinc-400">
-          正式登入入口已保留 Facebook、Google、GitHub 身份信號；目前本機環境使用 mock callback 完成 token flow。
+    <section class="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_420px]">
+      <div class="rounded-lg border border-white/10 bg-white/[0.03] p-6">
+        <RouterLink class="text-sm font-semibold text-white" to="/">TruthShield</RouterLink>
+        <h1 class="mt-8 text-3xl font-semibold text-white">登入後參與加權查證</h1>
+        <p class="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
+          登入後可以投票、提交證據、評分證據有用程度，這些互動會影響你的信用權重與社群排序。
         </p>
+
+        <div class="mt-6 grid gap-3 sm:grid-cols-3">
+          <div class="rounded-md border border-white/10 bg-zinc-900 p-4">
+            <p class="text-sm font-semibold text-white">投票</p>
+            <p class="mt-2 text-xs leading-5 text-zinc-500">閱讀新聞後選擇最符合的標籤。</p>
+          </div>
+          <div class="rounded-md border border-white/10 bg-zinc-900 p-4">
+            <p class="text-sm font-semibold text-white">證據</p>
+            <p class="mt-2 text-xs leading-5 text-zinc-500">提供外部圖床、雲端硬碟或澄清連結。</p>
+          </div>
+          <div class="rounded-md border border-white/10 bg-zinc-900 p-4">
+            <p class="text-sm font-semibold text-white">信用</p>
+            <p class="mt-2 text-xs leading-5 text-zinc-500">高品質參與會提高後續權重。</p>
+          </div>
+        </div>
       </div>
 
-      <div class="mb-5 grid gap-2">
-        <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('facebook')">Facebook OAuth</button>
-        <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('google')">Google OAuth</button>
-        <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('github')">GitHub OAuth</button>
-        <button class="rounded-md border border-white/10 px-4 py-2 text-xs font-semibold text-zinc-300 hover:border-cyan-300/50" :disabled="loading" @click="providerLogin('google')">本機 OAuth stub</button>
-      </div>
+      <section class="rounded-lg border border-white/10 bg-zinc-900 p-6">
+        <div class="mb-6">
+          <p class="text-sm font-semibold text-cyan-300">身份入口</p>
+          <h2 class="mt-2 text-2xl font-semibold text-white">選擇登入方式</h2>
+          <p class="mt-2 text-sm leading-6 text-zinc-400">
+            本機環境可使用測試登入。正式 OAuth 會在 production 設定完成後啟用。
+          </p>
+        </div>
 
-      <form class="space-y-4" @submit.prevent="submit">
-        <label class="block text-sm">
-          <span class="text-zinc-300">名稱</span>
-          <input v-model="name" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" />
-        </label>
-        <label class="block text-sm">
-          <span class="text-zinc-300">Email</span>
-          <input v-model="email" type="email" required class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" />
-        </label>
-        <label class="block text-sm">
-          <span class="text-zinc-300">FB ID placeholder</span>
-          <input v-model="fbId" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" />
-        </label>
+        <div class="mb-5 grid gap-2">
+          <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('facebook')">Facebook</button>
+          <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('google')">Google</button>
+          <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('github')">GitHub</button>
+          <button class="rounded-md border border-white/10 px-4 py-2 text-xs font-semibold text-zinc-300 hover:border-cyan-300/50" :disabled="loading" @click="providerLogin('google')">本機 OAuth stub</button>
+        </div>
 
-        <p v-if="error" class="rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{{ error }}</p>
-        <p v-if="done" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm text-emerald-100">已登入，正在返回插件。</p>
+        <form class="space-y-4 border-t border-white/10 pt-5" @submit.prevent="submit">
+          <label class="block text-sm">
+            <span class="text-zinc-300">測試名稱</span>
+            <input v-model="name" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" />
+          </label>
+          <label class="block text-sm">
+            <span class="text-zinc-300">測試 Email</span>
+            <input v-model="email" type="email" required class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" />
+          </label>
+          <label class="block text-sm">
+            <span class="text-zinc-300">FB ID placeholder</span>
+            <input v-model="fbId" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" />
+          </label>
 
-        <button class="w-full rounded-md bg-cyan-300 px-4 py-2 font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-60" :disabled="loading">
-          {{ loading ? '登入中...' : '登入並簽發 Token' }}
-        </button>
-      </form>
+          <p v-if="error" class="rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{{ error }}</p>
+          <p v-if="done" class="rounded-md border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm text-emerald-100">已登入，正在返回。</p>
+
+          <button class="w-full rounded-md bg-cyan-300 px-4 py-2 font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-60" :disabled="loading">
+            {{ loading ? '登入中...' : '使用本機測試帳號登入' }}
+          </button>
+        </form>
+      </section>
     </section>
   </main>
 </template>
