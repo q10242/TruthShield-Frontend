@@ -48,6 +48,19 @@ function openWindow(url, width = 460, height = 720) {
   chrome.windows.create({ url, type: 'popup', width, height, focused: true })
 }
 
+async function currentPageContext() {
+  if (!state.tab?.id) {
+    return {}
+  }
+
+  try {
+    const response = await chrome.tabs.sendMessage(state.tab.id, { type: 'TRUTH_SHIELD_GET_PAGE_CONTEXT' })
+    return response?.ok ? response : {}
+  } catch {
+    return {}
+  }
+}
+
 async function loadSummary() {
   byId('version').textContent = chrome.runtime.getManifest().version
   try {
@@ -79,7 +92,14 @@ function bindActions() {
   byId('openDemo').addEventListener('click', () => openTab(truthUrl('/local-news-demo')))
   byId('openStatus').addEventListener('click', () => openWindow(truthUrl('/iframe-tooltip', { news_url: currentUrl() }), 420, 260))
   byId('openVote').addEventListener('click', () => openWindow(truthUrl('/iframe-vote-panel', { news_url: currentUrl(), expanded: '1' }), 460, 720))
-  byId('openReport').addEventListener('click', () => openWindow(truthUrl('/report-domain', { url: currentUrl(), page_title: currentTitle() }), 540, 760))
+  byId('openReport').addEventListener('click', async () => {
+    const context = await currentPageContext()
+    openWindow(truthUrl('/report-domain', {
+      url: currentUrl(),
+      page_title: currentTitle(),
+      youtube_channel_url: context.youtubeChannelUrl,
+    }), 540, 760)
+  })
   byId('openReadiness').addEventListener('click', () => openTab(truthUrl('/vision-readiness')))
   byId('openHealth').addEventListener('click', () => openTab(truthUrl('/health')))
   byId('openBugReport').addEventListener('click', () => openWindow(truthUrl('/bug-report', {

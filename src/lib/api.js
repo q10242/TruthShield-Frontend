@@ -489,6 +489,30 @@ export async function suggestTrustedSource(payload) {
   })
 }
 
+export async function reportYoutubeChannel(payload) {
+  const token = localStorage.getItem('truthshield_api_token')
+
+  return request('/api/youtube-channel-reports', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: JSON.stringify(withChallengePayload(payload)),
+  })
+}
+
+export async function fetchYoutubeChannelReportStatus(channelUrl) {
+  return request(`/api/youtube-channel-reports/status?channel_url=${encodeURIComponent(channelUrl)}`, {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
+export async function fetchYoutubeChannels() {
+  const payload = await request('/api/youtube-channels', {
+    headers: { 'Content-Type': undefined },
+  })
+
+  return payload.data || []
+}
+
 export async function fetchNewsDomainReportStatus(domainOrUrl) {
   const query = domainOrUrl.startsWith?.('http') ? `url=${encodeURIComponent(domainOrUrl)}` : `domain=${encodeURIComponent(domainOrUrl)}`
   return request(`/api/news-domain-reports/status?${query}`, {

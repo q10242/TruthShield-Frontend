@@ -376,6 +376,28 @@ function isYouTubeVideoPage() {
     || path.startsWith('/live/')
 }
 
+function currentYoutubeChannelUrl() {
+  const host = window.location.hostname.toLowerCase()
+  const path = window.location.pathname
+
+  if (['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(host)) {
+    const channelPath = path.match(/^\/(?:channel\/[^/?#]+|@[^/?#]+|c\/[^/?#]+|user\/[^/?#]+)/)?.[0]
+    if (channelPath) {
+      return new URL(channelPath, 'https://www.youtube.com').toString()
+    }
+
+    const ownerAnchor = document.querySelector(
+      'ytd-video-owner-renderer a[href^="/@"], ytd-video-owner-renderer a[href^="/channel/"], #owner a[href^="/@"], #owner a[href^="/channel/"], a.yt-simple-endpoint[href^="/@"], a.yt-simple-endpoint[href^="/channel/"]',
+    )
+    const href = ownerAnchor?.getAttribute('href')
+    if (href) {
+      return new URL(href, 'https://www.youtube.com').toString()
+    }
+  }
+
+  return ''
+}
+
 function isLocalTruthShieldDemoPage() {
   return (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') &&
     window.location.pathname.includes('/local-news-demo')
@@ -973,6 +995,10 @@ function ensureReportButton() {
     const reportUrl = new URL('/report-domain', TOOLTIP_ORIGIN)
     reportUrl.searchParams.set('url', window.location.href)
     reportUrl.searchParams.set('page_title', document.title || '')
+    const youtubeChannelUrl = currentYoutubeChannelUrl()
+    if (youtubeChannelUrl) {
+      reportUrl.searchParams.set('youtube_channel_url', youtubeChannelUrl)
+    }
     window.open(reportUrl.toString(), 'truthshield-report-domain', 'width=520,height=720')
   })
   document.body.appendChild(reportButton)
@@ -1071,6 +1097,7 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
       title: document.title || '',
       isTrackedNews: isCurrentNewsPage(),
       isLikelyArticle: isLikelyArticlePage(),
+      youtubeChannelUrl: currentYoutubeChannelUrl(),
     })
     return true
   }
