@@ -14,7 +14,9 @@ const categoriesByKey = computed(() => Object.fromEntries((payload.value?.catego
 const filteredPoints = computed(() => {
   const points = activeMode.value === 'next'
     ? payload.value?.local_next_points || []
-    : payload.value?.feature_points || []
+    : activeMode.value === 'polish'
+      ? payload.value?.local_completed_polish_points || []
+      : payload.value?.feature_points || []
   if (!activeCategory.value) return points
 
   return points.filter((item) => item.category === activeCategory.value)
@@ -77,6 +79,10 @@ onMounted(async () => {
                 <p class="mt-1 text-3xl font-semibold text-white">{{ payload.summary.local_next_points }}</p>
               </div>
               <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+                <p class="text-xs text-zinc-500">{{ t('vision.polishPoints') }}</p>
+                <p class="mt-1 text-3xl font-semibold text-white">{{ payload.summary.local_completed_polish_points }}</p>
+              </div>
+              <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
                 <p class="text-xs text-zinc-500">{{ t('vision.externalDeps') }}</p>
                 <p class="mt-1 text-3xl font-semibold text-white">{{ payload.summary.external_launch_dependencies }}</p>
               </div>
@@ -104,9 +110,10 @@ onMounted(async () => {
 
         <section class="mt-8 rounded-lg border border-white/10 bg-white/[0.03] p-5">
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-xl font-semibold text-white">{{ activeMode === 'next' ? t('vision.nextFeaturePoints') : t('vision.featurePoints') }}</h2>
+            <h2 class="text-xl font-semibold text-white">{{ activeMode === 'next' ? t('vision.nextFeaturePoints') : activeMode === 'polish' ? t('vision.polishFeaturePoints') : t('vision.featurePoints') }}</h2>
             <div class="flex flex-wrap gap-2">
               <button type="button" class="rounded-md border px-3 py-2 text-xs font-semibold" :class="activeMode === 'next' ? 'border-cyan-300 bg-cyan-300 text-zinc-950' : 'border-white/10 text-zinc-300'" @click="activeMode = 'next'">{{ t('vision.nextMode') }}</button>
+              <button type="button" class="rounded-md border px-3 py-2 text-xs font-semibold" :class="activeMode === 'polish' ? 'border-cyan-300 bg-cyan-300 text-zinc-950' : 'border-white/10 text-zinc-300'" @click="activeMode = 'polish'">{{ t('vision.polishMode') }}</button>
               <button type="button" class="rounded-md border px-3 py-2 text-xs font-semibold" :class="activeMode === 'completed' ? 'border-cyan-300 bg-cyan-300 text-zinc-950' : 'border-white/10 text-zinc-300'" @click="activeMode = 'completed'">{{ t('vision.completedMode') }}</button>
               <button type="button" class="rounded-md border px-3 py-2 text-xs font-semibold" :class="activeMode === 'external' ? 'border-cyan-300 bg-cyan-300 text-zinc-950' : 'border-white/10 text-zinc-300'" @click="activeMode = 'external'">{{ t('vision.externalMode') }}</button>
             </div>

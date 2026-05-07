@@ -9,14 +9,7 @@ const policies = ref([])
 const checks = ref(null)
 const readiness = ref(null)
 const { t } = useI18n()
-const releaseCommands = [
-  'php artisan truthshield:check-production-env',
-  'php artisan migrate --force',
-  'php artisan truthshield:ensure-algorithm-version',
-  'php artisan truthshield:seed-launch-policies',
-  'php artisan truthshield:warm-cache',
-  'php artisan truthshield:expire-pending-donations --hours=24',
-]
+const releaseCommands = computed(() => readiness.value?.production_checklist?.map((item) => item.command) || [])
 const exportLinks = computed(() => [
   { href: '/api/exports/news.csv', label: `${t('remaining.news')} CSV` },
   { href: '/api/exports/evidence.csv', label: `${t('remaining.evidence')} CSV` },

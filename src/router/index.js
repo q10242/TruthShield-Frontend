@@ -29,6 +29,7 @@ import TermsView from '../views/TermsView.vue'
 import GovernanceView from '../views/GovernanceView.vue'
 import DataRequestView from '../views/DataRequestView.vue'
 import VisionReadinessView from '../views/VisionReadinessView.vue'
+import LocalQaChecklistView from '../views/LocalQaChecklistView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -53,6 +54,7 @@ const router = createRouter({
     { path: '/api-clients', name: 'api-clients', component: ApiClientsView },
     { path: '/launch-ops', name: 'launch-ops', component: LaunchOpsView },
     { path: '/local-news-demo', name: 'local-news-demo', component: LocalNewsDemoView },
+    { path: '/local-qa-checklist', name: 'local-qa-checklist', component: LocalQaChecklistView },
     { path: '/donate', name: 'donate', component: DonateView },
     { path: '/donate/return', name: 'donate-return', component: DonateView },
     { path: '/privacy', name: 'privacy', component: PrivacyView },

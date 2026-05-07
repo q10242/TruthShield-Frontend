@@ -47,7 +47,7 @@
         color: #09090b;
       }
       button:disabled { cursor: not-allowed; opacity: .48; }
-      a { display: block; margin-top: 10px; color: #67e8f9; text-decoration: none; font-weight: 700; }
+      .link-button { width:auto; margin-top:10px; border:0; background:transparent; color:#67e8f9; padding:0; text-decoration:none; font-weight:700; }
       #status { min-height: 18px; margin-top: 10px; color: #86efac; }
     </style>
   </head>
@@ -76,8 +76,8 @@
       <button id="openReadiness" data-i18n="openReadiness">開啟願景準備中心</button>
       <button id="openHealth" data-i18n="openHealth">開啟系統健康狀態</button>
 
-      <a id="openHub" href="#" data-i18n="openHub">開啟真相總部</a>
-      <a id="openOptions" href="#" data-i18n="settings">設定</a>
+      <button id="openHub" class="link-button" type="button" data-i18n="openHub">開啟真相總部</button>
+      <button id="openOptions" class="link-button" type="button" data-i18n="settings">設定</button>
       <div id="status"></div>
     </main>
     <script src="extension-i18n.js"></script>

@@ -62,11 +62,9 @@ async function loadSummary() {
 
 function bindActions() {
   byId('openHub').addEventListener('click', (event) => {
-    event.preventDefault()
     openTab(state.settings.tooltipOrigin)
   })
   byId('openOptions').addEventListener('click', (event) => {
-    event.preventDefault()
     chrome.runtime.openOptionsPage()
   })
   byId('openDemo').addEventListener('click', () => openTab(truthUrl('/local-news-demo')))

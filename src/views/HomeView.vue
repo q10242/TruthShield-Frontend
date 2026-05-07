@@ -11,10 +11,10 @@ const { t } = useI18n()
 
 const primaryLinks = computed(() => [
   { to: '/local-news-demo', label: t('common.localNewsDemo'), description: t('home.localNewsDemoDesc'), mark: '01' },
-  { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc'), mark: '02' },
-  { to: '/ranking', label: t('common.ranking'), description: t('home.rankingDesc'), mark: '03' },
-  { to: '/transparency', label: t('common.transparency'), description: t('home.transparencyDesc'), mark: '04' },
-  { to: '/donate', label: t('common.donate'), description: t('home.donateDesc'), mark: '05' },
+  { to: '/local-qa-checklist', label: t('common.localQaChecklist'), description: t('home.localQaChecklistDesc'), mark: '02' },
+  { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc'), mark: '03' },
+  { to: '/ranking', label: t('common.ranking'), description: t('home.rankingDesc'), mark: '04' },
+  { to: '/transparency', label: t('common.transparency'), description: t('home.transparencyDesc'), mark: '05' },
 ])
 
 const authLabel = computed(() => token.value ? (user.value?.name || t('common.profile')) : t('common.signIn'))
