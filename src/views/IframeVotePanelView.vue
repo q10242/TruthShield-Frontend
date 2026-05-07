@@ -79,6 +79,21 @@ const statusNote = computed(() => {
 
   return '每人限一則，可在截止前修改'
 })
+const nextActionText = computed(() => {
+  if (!isVotingOpen.value) return '結果已定案'
+  if (!isLoggedIn.value) return '登入後可投票與評分證據'
+  if (!hasReadEnough.value) return `再閱讀 ${Math.max(0, readMinimum.value - readSeconds.value)} 秒即可投票`
+  if (myVote.value) return '可更新你的投票與證據'
+
+  return '可送出你的第一筆投票'
+})
+const statusBadgeText = computed(() => {
+  if (status.value?.finalized_at) return '已定案'
+  if (!isVotingOpen.value) return '已截止'
+  if (isClosingSoon.value) return '即將截止'
+
+  return '開放中'
+})
 
 const toneClass = computed(() => {
   const tone = status.value?.tone
@@ -424,8 +439,11 @@ onMounted(async () => {
     <section v-else class="rounded-lg border border-white/10 bg-zinc-950 p-4 shadow-xl shadow-black/30">
       <div class="mb-3 flex items-center justify-between gap-4">
         <div>
-          <p class="text-xs font-semibold text-cyan-300">TruthShield</p>
-          <p class="mt-1 text-[11px] text-zinc-500">閱讀後投票；也可以只看加權結果</p>
+          <div class="flex items-center gap-2">
+            <p class="text-xs font-semibold text-cyan-300">TruthShield</p>
+            <span class="rounded bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-zinc-300">{{ statusBadgeText }}</span>
+          </div>
+          <p class="mt-1 text-[11px] text-zinc-500">{{ nextActionText }}</p>
         </div>
         <button class="rounded-md border border-white/10 px-2 py-1 text-xs text-zinc-400 hover:border-cyan-300/50 hover:text-cyan-100" @click="collapsed = true">
           收合
@@ -448,6 +466,16 @@ onMounted(async () => {
         </div>
       </div>
 
+      <div v-if="isVotingOpen" class="mt-3 grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3 text-xs text-zinc-300">
+        <div class="flex items-center justify-between gap-3">
+          <span>閱讀門檻</span>
+          <span :class="hasReadEnough ? 'text-emerald-300' : 'text-orange-300'">{{ Math.min(readSeconds, readMinimum) }} / {{ readMinimum }} 秒</span>
+        </div>
+        <div class="h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div class="h-full rounded-full bg-cyan-300" :style="{ width: `${readProgress}%` }"></div>
+        </div>
+      </div>
+
       <section v-if="activeTab === 'results'" class="mt-4 space-y-3">
         <div v-if="distribution.length === 0" class="rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm text-zinc-400">
           尚無投票。你可以先閱讀本文，再選擇是否投票或提供證據。
@@ -464,11 +492,17 @@ onMounted(async () => {
         </div>
 
         <button
-          class="w-full rounded-md border border-cyan-300/40 px-3 py-2 text-sm font-semibold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+          class="w-full rounded-md bg-cyan-300 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="!isVotingOpen"
           @click="activeTab = 'vote'"
         >
-          我已閱讀，前往投票
+          {{ isLoggedIn ? '前往投票' : '登入後投票' }}
+        </button>
+        <button
+          class="w-full rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-zinc-300 hover:border-cyan-300/50 hover:text-cyan-100"
+          @click="activeTab = 'evidence'"
+        >
+          查看社群證據
         </button>
       </section>
 

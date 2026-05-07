@@ -36,8 +36,15 @@ onMounted(load)
         <RouterLink class="text-sm text-zinc-400" to="/ranking">媒體排行</RouterLink>
       </nav>
 
-      <h1 class="text-3xl font-semibold text-white">Evidence Library</h1>
-      <p class="mt-2 text-sm text-zinc-400">依社群淨有用權重排序的新聞證據。</p>
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-semibold text-white">證據庫</h1>
+          <p class="mt-2 text-sm text-zinc-400">依社群淨有用權重排序，保留截圖、雲端硬碟圖片與澄清連結。</p>
+        </div>
+        <RouterLink class="rounded-md border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100" to="/local-news-demo">
+          提交測試證據
+        </RouterLink>
+      </div>
 
       <form class="mt-6 grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[1fr_160px_160px_auto]" @submit.prevent="load">
         <input v-model="q" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" placeholder="搜尋證據、URL、新聞標題" />
@@ -60,6 +67,9 @@ onMounted(load)
 
       <div class="mt-6 grid gap-3">
         <div v-if="loading" class="rounded-lg border border-white/10 p-4 text-zinc-400">讀取中...</div>
+        <div v-else-if="items.length === 0" class="rounded-lg border border-white/10 bg-white/[0.03] p-5 text-sm text-zinc-400">
+          目前沒有符合條件的證據。調整篩選條件，或在新聞頁面閱讀後提交第一筆證據。
+        </div>
         <article v-for="item in items" :key="item.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <div class="flex items-center justify-between gap-4">
             <span class="rounded bg-white/10 px-2 py-1 text-xs font-semibold">{{ item.tag.name }}</span>

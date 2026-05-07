@@ -74,8 +74,14 @@ onMounted(async () => {
         <RouterLink class="text-sm text-zinc-400" to="/evidence-library">證據庫</RouterLink>
       </nav>
 
-      <h1 class="text-3xl font-semibold text-white">透明儀表板</h1>
+      <div>
+        <h1 class="text-3xl font-semibold text-white">透明儀表板</h1>
+        <p class="mt-2 text-sm text-zinc-400">公開系統規模、審核狀態、插件錯誤與權重分布。</p>
+      </div>
       <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div v-if="!stats" class="rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-zinc-400">
+          讀取中...
+        </div>
         <div v-for="(value, key) in stats || {}" :key="key" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <p class="text-xs font-semibold text-zinc-500">{{ labelFor(key) }}</p>
 
