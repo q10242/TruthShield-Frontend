@@ -86,6 +86,27 @@ VITE_API_BASE_URL=http://127.0.0.1:18080 npm run dev
 npm run build
 ```
 
+## Cloud Run Container
+
+The Dockerfile builds the Vue site, repackages the extension zip, and serves static files through nginx on Cloud Run's default port `8080`.
+
+```bash
+docker build -t truthshield-web \
+  --build-arg VITE_API_BASE_URL=https://api.truthshield.example \
+  --build-arg VITE_WEB_ORIGIN=https://truthshield.example \
+  --build-arg TRUTHSHIELD_EXTENSION_WEB_ORIGIN=https://truthshield.example \
+  --build-arg TRUTHSHIELD_EXTENSION_API_ORIGIN=https://api.truthshield.example \
+  .
+
+docker run --rm -p 8080:8080 truthshield-web
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8080/healthz
+```
+
 ## Chrome Extension
 
 During local testing, load the unpacked extension from:
