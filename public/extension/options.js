@@ -4,6 +4,7 @@ const defaults = {
   enableTooltip: true,
   enablePanel: true,
   enableReportButton: true,
+  locale: 'auto',
 }
 
 const fields = {
@@ -12,8 +13,15 @@ const fields = {
   enableTooltip: document.getElementById('enableTooltip'),
   enablePanel: document.getElementById('enablePanel'),
   enableReportButton: document.getElementById('enableReportButton'),
+  locale: document.getElementById('locale'),
 }
 const t = window.truthShieldT || ((key) => key)
+
+function resolveSelectedLocale(value) {
+  return value === 'zh-TW' || value === 'en'
+    ? value
+    : (navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en')
+}
 
 function currentSettings() {
   return {
@@ -22,6 +30,7 @@ function currentSettings() {
     enableTooltip: fields.enableTooltip.checked,
     enablePanel: fields.enablePanel.checked,
     enableReportButton: fields.enableReportButton.checked,
+    locale: fields.locale.value || defaults.locale,
   }
 }
 
@@ -31,23 +40,34 @@ function applySettings(values) {
   fields.enableTooltip.checked = values.enableTooltip !== false
   fields.enablePanel.checked = values.enablePanel !== false
   fields.enableReportButton.checked = values.enableReportButton !== false
+  fields.locale.value = values.locale || defaults.locale
 }
 
-chrome.storage.sync.get(defaults, (values) => {
-  applySettings(values)
-  document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
-})
+async function initOptions() {
+  await window.truthShieldI18nReady
+  chrome.storage.sync.get(defaults, (values) => {
+    applySettings(values)
+    document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
+  })
+}
+
+initOptions()
 
 document.getElementById('save').addEventListener('click', () => {
-  chrome.storage.sync.set(currentSettings(), () => {
+  const next = currentSettings()
+  chrome.storage.sync.set(next, () => {
+    window.truthShieldApplyI18n?.(resolveSelectedLocale(next.locale))
     document.getElementById('status').textContent = t('saved')
+    document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
   })
 })
 
 document.getElementById('resetDefaults').addEventListener('click', () => {
   chrome.storage.sync.set(defaults, () => {
     applySettings(defaults)
+    window.truthShieldApplyI18n?.(resolveSelectedLocale(defaults.locale))
     document.getElementById('status').textContent = t('resetDone')
+    document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
   })
 })
 
@@ -65,10 +85,13 @@ document.getElementById('importSettings').addEventListener('click', () => {
       enableTooltip: parsed.enableTooltip !== false,
       enablePanel: parsed.enablePanel !== false,
       enableReportButton: parsed.enableReportButton !== false,
+      locale: ['auto', 'zh-TW', 'en'].includes(parsed.locale) ? parsed.locale : defaults.locale,
     }
     chrome.storage.sync.set(next, () => {
       applySettings(next)
+      window.truthShieldApplyI18n?.(resolveSelectedLocale(next.locale))
       document.getElementById('status').textContent = t('settingsImported')
+      document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
     })
   } catch {
     document.getElementById('status').textContent = t('settingsImportFailed')

@@ -8,7 +8,7 @@
       main { max-width: 680px; margin: 0 auto; padding: 28px; }
       p { color: #a1a1aa; line-height: 1.6; }
       label { display: block; margin: 18px 0; color: #a1a1aa; }
-      input, textarea { width: 100%; box-sizing: border-box; margin-top: 8px; border: 1px solid #27272a; border-radius: 8px; background: #18181b; color: #fff; padding: 10px; }
+      input, textarea, select { width: 100%; box-sizing: border-box; margin-top: 8px; border: 1px solid #27272a; border-radius: 8px; background: #18181b; color: #fff; padding: 10px; }
       textarea { min-height: 120px; resize: vertical; }
       button { border: 0; border-radius: 8px; background: #67e8f9; color: #09090b; padding: 10px 14px; font-weight: 700; cursor: pointer; }
       .brand { display: flex; align-items: center; gap: 12px; }
@@ -34,6 +34,14 @@
       </section>
       <section class="panel">
         <h2 data-i18n="displayPrefs">顯示偏好</h2>
+        <label>
+          <span data-i18n="languageSetting">語言</span>
+          <select id="locale">
+            <option value="auto" data-i18n="languageAuto">跟隨瀏覽器</option>
+            <option value="zh-TW" data-i18n="languageZh">繁體中文</option>
+            <option value="en" data-i18n="languageEn">English</option>
+          </select>
+        </label>
         <label class="row"><input id="enableTooltip" type="checkbox" /> <span data-i18n="enableTooltip">啟用滑過標籤提示</span></label>
         <label class="row"><input id="enablePanel" type="checkbox" /> <span data-i18n="enablePanel">進入新聞頁時顯示頂部 TruthShield 橫幅</span></label>
         <label class="row"><input id="enableReportButton" type="checkbox" /> <span data-i18n="enableReportButton">顯示未收錄新聞站回報按鈕</span></label>

@@ -4,6 +4,7 @@ const defaults = {
   enableTooltip: true,
   enablePanel: true,
   enableReportButton: true,
+  locale: 'auto',
 }
 
 const t = window.truthShieldT || ((key) => key)
@@ -53,5 +54,10 @@ async function runDiagnostics() {
   })
 }
 
-document.getElementById('runDiagnostics').addEventListener('click', runDiagnostics)
-runDiagnostics()
+async function initDiagnostics() {
+  await window.truthShieldI18nReady
+  document.getElementById('runDiagnostics').addEventListener('click', runDiagnostics)
+  runDiagnostics()
+}
+
+initDiagnostics()

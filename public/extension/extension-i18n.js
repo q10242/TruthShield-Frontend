@@ -23,6 +23,10 @@ const dictionaries = {
     webOrigin: '官網 / 內嵌頁來源',
     apiOrigin: 'API 來源',
     displayPrefs: '顯示偏好',
+    languageSetting: '語言',
+    languageAuto: '跟隨瀏覽器',
+    languageZh: '繁體中文',
+    languageEn: 'English',
     enableTooltip: '啟用滑過標籤提示',
     enablePanel: '進入新聞頁時顯示頂部 TruthShield 橫幅',
     enableReportButton: '顯示未收錄新聞站回報按鈕',
@@ -80,6 +84,10 @@ const dictionaries = {
     webOrigin: 'Website / iframe origin',
     apiOrigin: 'API origin',
     displayPrefs: 'Display preferences',
+    languageSetting: 'Language',
+    languageAuto: 'Follow browser',
+    languageZh: 'Traditional Chinese',
+    languageEn: 'English',
     enableTooltip: 'Enable hover label hints',
     enablePanel: 'Show the TruthShield top banner on news pages',
     enableReportButton: 'Show missing news-site report button',
@@ -115,8 +123,17 @@ const dictionaries = {
   },
 }
 
-const locale = navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en'
-const dictionary = dictionaries[locale] || dictionaries['zh-TW']
+function browserLocale() {
+  return navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en'
+}
+
+function resolveLocale(setting = 'auto') {
+  return setting === 'zh-TW' || setting === 'en' ? setting : browserLocale()
+}
+
+let currentLocale = browserLocale()
+let dictionary = dictionaries[currentLocale] || dictionaries['zh-TW']
+
 window.truthShieldT = (key, params = {}) => {
   let value = dictionary[key] || key
   Object.entries(params).forEach(([name, replacement]) => {
@@ -125,19 +142,37 @@ window.truthShieldT = (key, params = {}) => {
   return value
 }
 
-document.documentElement.lang = locale === 'zh-TW' ? 'zh-Hant' : 'en'
+function applyI18n(locale = currentLocale) {
+  currentLocale = locale
+  dictionary = dictionaries[currentLocale] || dictionaries['zh-TW']
+  document.documentElement.lang = currentLocale === 'zh-TW' ? 'zh-Hant' : 'en'
 
-document.querySelectorAll('[data-i18n]').forEach((element) => {
-  const key = element.getAttribute('data-i18n')
-  if (dictionary[key]) element.textContent = window.truthShieldT(key)
-})
+  document.querySelectorAll('[data-i18n]').forEach((element) => {
+    const key = element.getAttribute('data-i18n')
+    if (dictionary[key]) element.textContent = window.truthShieldT(key)
+  })
 
-document.querySelectorAll('[data-i18n-title]').forEach((element) => {
-  const key = element.getAttribute('data-i18n-title')
-  if (dictionary[key]) document.title = dictionary[key]
-})
+  document.querySelectorAll('[data-i18n-title]').forEach((element) => {
+    const key = element.getAttribute('data-i18n-title')
+    if (dictionary[key]) document.title = dictionary[key]
+  })
 
-document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
-  const key = element.getAttribute('data-i18n-placeholder')
-  if (dictionary[key]) element.setAttribute('placeholder', window.truthShieldT(key))
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
+    const key = element.getAttribute('data-i18n-placeholder')
+    if (dictionary[key]) element.setAttribute('placeholder', window.truthShieldT(key))
+  })
+}
+
+window.truthShieldApplyI18n = applyI18n
+window.truthShieldI18nReady = new Promise((resolve) => {
+  if (typeof chrome === 'undefined' || !chrome.storage?.sync) {
+    applyI18n()
+    resolve(currentLocale)
+    return
+  }
+
+  chrome.storage.sync.get({ locale: 'auto' }, (settings) => {
+    applyI18n(resolveLocale(settings.locale))
+    resolve(currentLocale)
+  })
 })

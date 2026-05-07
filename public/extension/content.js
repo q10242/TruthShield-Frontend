@@ -10,6 +10,7 @@ const TELEMETRY_FLUSH_DELAY_MS = 5000
 let enableTooltip = true
 let enablePanel = true
 let enableReportButton = true
+let contentLocale = navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en'
 const FALLBACK_NEWS_DOMAINS = [
   '127.0.0.1',
   'localhost',
@@ -55,7 +56,6 @@ let hideTimer = null
 let hoverTimer = null
 let articleReadSeconds = 0
 let articleReadTimer = null
-const contentLocale = navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en'
 const contentMessages = {
   'zh-TW': {
     checkingLink: '正在查核此連結...',
@@ -283,6 +283,7 @@ async function loadSettings() {
     enableTooltip: true,
     enablePanel: true,
     enableReportButton: true,
+    locale: 'auto',
   })
 
   TOOLTIP_ORIGIN = settings.tooltipOrigin
@@ -290,6 +291,9 @@ async function loadSettings() {
   enableTooltip = settings.enableTooltip
   enablePanel = settings.enablePanel
   enableReportButton = settings.enableReportButton
+  contentLocale = settings.locale === 'zh-TW' || settings.locale === 'en'
+    ? settings.locale
+    : (navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en')
 }
 
 function isNewsLink(anchor) {

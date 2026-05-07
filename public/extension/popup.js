@@ -1,6 +1,7 @@
 const defaults = {
   tooltipOrigin: 'http://127.0.0.1:15173',
   apiOrigin: 'http://127.0.0.1:18080',
+  locale: 'auto',
 }
 
 const state = {
@@ -128,18 +129,24 @@ function bindActions() {
   byId('openInstall').addEventListener('click', () => openTab(truthUrl('/extension-install')))
 }
 
-chrome.storage.sync.get(defaults, async (settings) => {
-  state.settings = settings
-  state.tab = await activeTab()
+async function initPopup() {
+  await window.truthShieldI18nReady
 
-  const url = currentUrl()
-  byId('currentUrl').textContent = url || t('unavailableTab')
-  const disabled = !url || url.startsWith('chrome://') || url.startsWith('chrome-extension://')
-  byId('openStatus').disabled = disabled
-  byId('openVote').disabled = disabled
-  byId('openReport').disabled = disabled
-  setStatus(disabled ? t('unsupportedTab') : t('readyStatus'))
+  chrome.storage.sync.get(defaults, async (settings) => {
+    state.settings = settings
+    state.tab = await activeTab()
 
-  bindActions()
-  await loadSummary()
-})
+    const url = currentUrl()
+    byId('currentUrl').textContent = url || t('unavailableTab')
+    const disabled = !url || url.startsWith('chrome://') || url.startsWith('chrome-extension://')
+    byId('openStatus').disabled = disabled
+    byId('openVote').disabled = disabled
+    byId('openReport').disabled = disabled
+    setStatus(disabled ? t('unsupportedTab') : t('readyStatus'))
+
+    bindActions()
+    await loadSummary()
+  })
+}
+
+initPopup()

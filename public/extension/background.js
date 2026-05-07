@@ -1,39 +1,47 @@
 const defaults = {
   tooltipOrigin: 'http://127.0.0.1:15173',
   apiOrigin: 'http://127.0.0.1:18080',
+  locale: 'auto',
 }
 
-const menuItems = [
-  {
-    id: 'truthshield-link-status',
-    title: chrome.i18n.getMessage('linkStatus'),
-    contexts: ['link'],
+const menuDictionaries = {
+  'zh-TW': {
+    linkStatus: 'TruthShield：查看連結標籤',
+    linkVote: 'TruthShield：我已閱讀此連結，提交評分',
+    pageStatus: 'TruthShield：查看此頁評分',
+    pageVote: 'TruthShield：我已閱讀此頁，提交評分',
+    reportDomain: 'TruthShield：回報未收錄新聞站',
   },
-  {
-    id: 'truthshield-link-vote',
-    title: chrome.i18n.getMessage('linkVote'),
-    contexts: ['link'],
+  en: {
+    linkStatus: 'TruthShield: View link label',
+    linkVote: 'TruthShield: I read this link, submit rating',
+    pageStatus: 'TruthShield: View this page rating',
+    pageVote: 'TruthShield: I read this page, submit rating',
+    reportDomain: 'TruthShield: Report missing news site',
   },
-  {
-    id: 'truthshield-page-status',
-    title: chrome.i18n.getMessage('pageStatus'),
-    contexts: ['page'],
-  },
-  {
-    id: 'truthshield-page-vote',
-    title: chrome.i18n.getMessage('pageVote'),
-    contexts: ['page'],
-  },
-  {
-    id: 'truthshield-report-domain',
-    title: chrome.i18n.getMessage('reportDomain'),
-    contexts: ['page', 'link'],
-  },
-]
+}
+
+function browserLocale() {
+  return chrome.i18n.getUILanguage?.().toLowerCase().startsWith('zh') ? 'zh-TW' : 'en'
+}
+
+function resolveLocale(setting = 'auto') {
+  return setting === 'zh-TW' || setting === 'en' ? setting : browserLocale()
+}
 
 const nonceCache = new Map()
 
-function createMenus() {
+async function createMenus() {
+  const settings = await getSettings()
+  const dictionary = menuDictionaries[resolveLocale(settings.locale)] || menuDictionaries['zh-TW']
+  const menuItems = [
+    { id: 'truthshield-link-status', title: dictionary.linkStatus, contexts: ['link'] },
+    { id: 'truthshield-link-vote', title: dictionary.linkVote, contexts: ['link'] },
+    { id: 'truthshield-page-status', title: dictionary.pageStatus, contexts: ['page'] },
+    { id: 'truthshield-page-vote', title: dictionary.pageVote, contexts: ['page'] },
+    { id: 'truthshield-report-domain', title: dictionary.reportDomain, contexts: ['page', 'link'] },
+  ]
+
   chrome.contextMenus.removeAll(() => {
     menuItems.forEach((item) => chrome.contextMenus.create(item))
   })
@@ -127,6 +135,11 @@ async function openReport(url, title = '') {
 
 chrome.runtime.onInstalled.addListener(createMenus)
 chrome.runtime.onStartup.addListener(createMenus)
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'sync' && changes.locale) {
+    createMenus()
+  }
+})
 createMenus()
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
