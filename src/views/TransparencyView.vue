@@ -28,6 +28,9 @@ const labels = {
   selector_failures_24h: '24 小時 selector 失敗',
   active_trusted_evidence_sources: '啟用可信證據來源',
   active_rate_limit_policies: '啟用限流政策',
+  donation_total_amount: '累積捐款',
+  donation_paid_count: '完成捐款筆數',
+  donation_month_amount: '本月捐款',
   weight_distribution: '權重狀態分布',
 }
 
@@ -51,6 +54,11 @@ const sections = [
     title: '政策與權重',
     description: '目前啟用的政策、來源與帳號權重狀態。',
     keys: ['active_api_clients', 'active_trusted_evidence_sources', 'active_rate_limit_policies', 'unread_notifications', 'weight_distribution'],
+  },
+  {
+    title: '營運資金',
+    description: '公開捐款累積概況，正式上線後會搭配支出摘要。',
+    keys: ['donation_total_amount', 'donation_paid_count', 'donation_month_amount'],
   },
 ]
 
