@@ -8,7 +8,8 @@
       main { max-width: 680px; margin: 0 auto; padding: 28px; }
       p { color: #a1a1aa; line-height: 1.6; }
       label { display: block; margin: 18px 0; color: #a1a1aa; }
-      input { width: 100%; box-sizing: border-box; margin-top: 8px; border: 1px solid #27272a; border-radius: 8px; background: #18181b; color: #fff; padding: 10px; }
+      input, textarea { width: 100%; box-sizing: border-box; margin-top: 8px; border: 1px solid #27272a; border-radius: 8px; background: #18181b; color: #fff; padding: 10px; }
+      textarea { min-height: 120px; resize: vertical; }
       button { border: 0; border-radius: 8px; background: #67e8f9; color: #09090b; padding: 10px 14px; font-weight: 700; cursor: pointer; }
       .brand { display: flex; align-items: center; gap: 12px; }
       .brand img { width: 44px; height: 44px; }
@@ -41,6 +42,14 @@
       <button id="resetDefaults" type="button" data-i18n="resetDefaults">恢復本地預設</button>
       <button id="checkHealth" type="button" data-i18n="checkHealth">檢查 API 健康狀態</button>
       <button id="checkWeb" type="button" data-i18n="checkWeb">檢查官網連線</button>
+      <button id="openDiagnostics" type="button" data-i18n="openDiagnostics">開啟診斷頁</button>
+      <section class="panel">
+        <h2 data-i18n="settingsBackup">設定備份</h2>
+        <p data-i18n="settingsBackupIntro">匯出目前設定，或貼上 JSON 匯入到這個瀏覽器。</p>
+        <textarea id="settingsJson" data-i18n-placeholder="settingsJsonPlaceholder" placeholder="Settings JSON"></textarea>
+        <button id="exportSettings" type="button" data-i18n="exportSettings">匯出設定</button>
+        <button id="importSettings" type="button" data-i18n="importSettings">匯入設定</button>
+      </section>
       <div id="status"></div>
       <div id="health"></div>
       <div id="webHealth"></div>

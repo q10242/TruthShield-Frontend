@@ -29,6 +29,21 @@ const dictionaries = {
     resetDefaults: '恢復本地預設',
     checkHealth: '檢查 API 健康狀態',
     checkWeb: '檢查官網連線',
+    openDiagnostics: '開啟診斷頁',
+    settingsBackup: '設定備份',
+    settingsBackupIntro: '匯出目前設定，或貼上 JSON 匯入到這個瀏覽器。',
+    settingsJsonPlaceholder: '貼上或匯出 TruthShield 設定 JSON',
+    exportSettings: '匯出設定',
+    importSettings: '匯入設定',
+    settingsExported: '設定已匯出到文字框',
+    settingsImported: '設定已匯入',
+    settingsImportFailed: '設定 JSON 格式錯誤',
+    diagnosticsTitle: 'TruthShield 診斷',
+    diagnosticsIntro: '確認插件設定、API 健康、後端摘要與目前儲存狀態。',
+    runDiagnostics: '重新檢查',
+    storageSnapshot: '儲存設定',
+    backendSummary: '後端摘要',
+    manifestInfo: 'Manifest',
     extensionVersion: '插件版本',
     saved: '已儲存',
     checking: '檢查中...',
@@ -70,6 +85,21 @@ const dictionaries = {
     resetDefaults: 'Restore local defaults',
     checkHealth: 'Check API health',
     checkWeb: 'Check website connection',
+    openDiagnostics: 'Open diagnostics',
+    settingsBackup: 'Settings backup',
+    settingsBackupIntro: 'Export current settings, or paste JSON to import into this browser.',
+    settingsJsonPlaceholder: 'Paste or export TruthShield settings JSON',
+    exportSettings: 'Export settings',
+    importSettings: 'Import settings',
+    settingsExported: 'Settings exported to the text area',
+    settingsImported: 'Settings imported',
+    settingsImportFailed: 'Invalid settings JSON',
+    diagnosticsTitle: 'TruthShield Diagnostics',
+    diagnosticsIntro: 'Verify extension settings, API health, backend summary, and stored state.',
+    runDiagnostics: 'Run diagnostics again',
+    storageSnapshot: 'Stored settings',
+    backendSummary: 'Backend summary',
+    manifestInfo: 'Manifest',
     extensionVersion: 'Extension version',
     saved: 'Saved',
     checking: 'Checking...',
@@ -103,4 +133,9 @@ document.querySelectorAll('[data-i18n]').forEach((element) => {
 document.querySelectorAll('[data-i18n-title]').forEach((element) => {
   const key = element.getAttribute('data-i18n-title')
   if (dictionary[key]) document.title = dictionary[key]
+})
+
+document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
+  const key = element.getAttribute('data-i18n-placeholder')
+  if (dictionary[key]) element.setAttribute('placeholder', window.truthShieldT(key))
 })

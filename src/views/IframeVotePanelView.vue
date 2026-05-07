@@ -50,6 +50,7 @@ const officialResponseError = ref('')
 const profile = ref(null)
 const reportReasons = ref([])
 const selectedTagId = ref('')
+const selectedSecondaryTagIds = ref([])
 const evidenceUrl = ref('')
 const evidenceNote = ref('')
 const submitting = ref(false)
@@ -80,6 +81,7 @@ const selectedTag = computed(() => tags.value.find((tag) => tag.id === selectedT
 const isLoggedIn = computed(() => Boolean(token.value && user.value))
 const totalWeight = computed(() => Number(status.value?.total_weight || 0))
 const distribution = computed(() => status.value?.distribution || [])
+const secondaryDistribution = computed(() => status.value?.secondary_distribution || [])
 const evidenceReactionMinTrustScore = computed(() => Number(user.value?.evidence_reaction_min_trust_score ?? 0.5))
 const canReactToEvidence = computed(() => {
   if (!isLoggedIn.value) return true
@@ -299,10 +301,12 @@ async function loadData() {
 
     if (myVote.value) {
       selectedTagId.value = myVote.value.tag_id
+      selectedSecondaryTagIds.value = Array.isArray(myVote.value.secondary_tag_ids) ? myVote.value.secondary_tag_ids : []
       evidenceUrl.value = myVote.value.evidence_url || ''
       evidenceNote.value = myVote.value.evidence_note || ''
     } else {
       selectedTagId.value ||= statusPayload.top_tag?.id || tagPayload[0]?.id || ''
+      selectedSecondaryTagIds.value = []
     }
   } catch (err) {
     error.value = err.message || t('votePanel.unavailable')
@@ -433,6 +437,7 @@ async function submitVote() {
     await createVote(token.value, {
       url: newsUrl.value,
       tag_id: selectedTagId.value,
+      secondary_tag_ids: selectedSecondaryTagIds.value,
       evidence_url: evidenceUrl.value.trim() || undefined,
       evidence_note: evidenceNote.value.trim() || undefined,
     })
@@ -452,6 +457,26 @@ async function submitVote() {
     submitting.value = false
     notifyHeight()
   }
+}
+
+function toggleSecondaryTag(tagId) {
+  if (tagId === selectedTagId.value) {
+    selectedSecondaryTagIds.value = selectedSecondaryTagIds.value.filter((id) => id !== tagId)
+    return
+  }
+
+  if (selectedSecondaryTagIds.value.includes(tagId)) {
+    selectedSecondaryTagIds.value = selectedSecondaryTagIds.value.filter((id) => id !== tagId)
+    return
+  }
+
+  if (selectedSecondaryTagIds.value.length >= 4) {
+    voteError.value = t('votePanel.secondaryLimit')
+    notifyHeight()
+    return
+  }
+
+  selectedSecondaryTagIds.value = [...selectedSecondaryTagIds.value, tagId]
 }
 
 async function reportItem(item) {
@@ -565,7 +590,11 @@ function evidenceTrustLabel(item) {
   return item.is_trusted_evidence ? t('evidence.trustedSource') : t('evidence.communityPending')
 }
 
-watch([collapsed, activeTab, selectedTagId, evidenceUrl, evidenceNote, voteError, voteMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, readSeconds], notifyHeight)
+watch(selectedTagId, (tagId) => {
+  selectedSecondaryTagIds.value = selectedSecondaryTagIds.value.filter((id) => id !== tagId)
+})
+
+watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, voteError, voteMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, readSeconds], notifyHeight)
 
 onMounted(async () => {
   await loadAuth()
@@ -679,6 +708,16 @@ onMounted(async () => {
           </div>
         </div>
 
+        <div v-if="secondaryDistribution.length" class="rounded-md border border-white/10 bg-white/[0.02] p-3">
+          <p class="text-xs font-semibold text-zinc-300">{{ t('votePanel.secondaryDistribution') }}</p>
+          <div class="mt-3 space-y-2">
+            <div v-for="row in secondaryDistribution" :key="row.tag.id" class="flex items-center justify-between gap-3 text-xs">
+              <span class="text-zinc-300">{{ row.tag.name }}</span>
+              <span class="text-zinc-500">{{ t('votePanel.weightedLine', { percentage: row.percentage, weight: Number(row.weight).toFixed(2) }) }}</span>
+            </div>
+          </div>
+        </div>
+
         <button
           class="w-full rounded-md bg-cyan-300 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="!isVotingOpen"
@@ -747,6 +786,27 @@ onMounted(async () => {
           >
             {{ tag.name }}
           </button>
+        </div>
+        <div class="rounded-md border border-white/10 bg-white/[0.03] p-3">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold text-zinc-200">{{ t('votePanel.secondaryLabels') }}</p>
+              <p class="mt-1 text-[11px] text-zinc-500">{{ t('votePanel.secondaryHelp') }}</p>
+            </div>
+            <span class="text-[11px] text-zinc-500">{{ selectedSecondaryTagIds.length }} / 4</span>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <button
+              v-for="tag in tags"
+              :key="`secondary-${tag.id}`"
+              class="rounded-md border px-3 py-2 text-left text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+              :class="selectedSecondaryTagIds.includes(tag.id) ? 'border-cyan-300 bg-cyan-300/10 text-cyan-100' : 'border-white/10 bg-zinc-950/70 text-zinc-400'"
+              :disabled="!isVotingOpen || selectedTagId === tag.id"
+              @click="toggleSecondaryTag(tag.id)"
+            >
+              {{ tag.name }}
+            </button>
+          </div>
         </div>
         <details class="rounded-md border border-white/10 bg-zinc-950/70 p-3 text-xs text-zinc-400">
           <summary class="cursor-pointer font-semibold text-cyan-100">{{ t('votePanel.tagCriteria') }}</summary>

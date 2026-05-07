@@ -1,10 +1,11 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { createAppeal, fetchMyAppeals } from '../lib/api'
 import { useI18n } from '../i18n'
 
 const TOKEN_KEY = 'truthshield_api_token'
+const route = useRoute()
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const rows = ref([])
 const form = ref({ subject_type: 'trust', subject_id: 1, reason: '', statement: '' })
@@ -31,7 +32,12 @@ async function submit() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  if (route.query.subject_type) form.value.subject_type = String(route.query.subject_type)
+  if (route.query.subject_id) form.value.subject_id = Number(route.query.subject_id)
+  if (route.query.reason) form.value.reason = String(route.query.reason)
+  load()
+})
 </script>
 
 <template>
@@ -52,6 +58,8 @@ onMounted(load)
           <option value="trust">{{ t('remaining.trustScore') }}</option>
           <option value="evidence">{{ t('remaining.evidenceReview') }}</option>
           <option value="user_restriction">{{ t('remaining.userRestriction') }}</option>
+          <option value="verified_claimant">{{ t('profile.claimantVerification') }}</option>
+          <option value="official_response">{{ t('votePanel.officialResponses') }}</option>
         </select>
         <input v-model.number="form.subject_id" type="number" min="1" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white" :placeholder="t('remaining.relatedId')" />
         <input v-model="form.reason" required class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white" :placeholder="t('remaining.appealReason')" />

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { fetchNewsDetail } from '../lib/api'
 import { useI18n } from '../i18n'
@@ -7,6 +7,9 @@ import { useI18n } from '../i18n'
 const route = useRoute()
 const payload = ref(null)
 const { t } = useI18n()
+const primaryDistribution = computed(() => payload.value?.status?.distribution || [])
+const secondaryDistribution = computed(() => payload.value?.status?.secondary_distribution || [])
+const voteHistory = computed(() => payload.value?.vote_history || [])
 
 onMounted(async () => {
   payload.value = await fetchNewsDetail(route.params.id)
@@ -28,6 +31,33 @@ onMounted(async () => {
         <div class="mt-5 rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <p class="font-semibold text-white">{{ payload.status.display_text }}</p>
           <p class="mt-1 text-sm text-zinc-400">{{ t('remaining.totalWeight') }} {{ Number(payload.status.total_weight).toFixed(2) }}</p>
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
+            <div>
+              <h2 class="text-sm font-semibold text-zinc-200">{{ t('remaining.primaryDistribution') }}</h2>
+              <div v-if="primaryDistribution.length" class="mt-3 space-y-2">
+                <div v-for="row in primaryDistribution" :key="row.tag.id" class="space-y-1">
+                  <div class="flex items-center justify-between gap-3 text-xs">
+                    <span class="text-zinc-300">{{ row.tag.name }}</span>
+                    <span class="text-zinc-500">{{ row.percentage }}%</span>
+                  </div>
+                  <div class="h-2 overflow-hidden rounded-full bg-white/10">
+                    <div class="h-full rounded-full bg-cyan-300" :style="{ width: `${row.percentage}%` }"></div>
+                  </div>
+                </div>
+              </div>
+              <p v-else class="mt-2 text-xs text-zinc-500">{{ t('votePanel.noVotes') }}</p>
+            </div>
+            <div>
+              <h2 class="text-sm font-semibold text-zinc-200">{{ t('remaining.secondaryDistribution') }}</h2>
+              <div v-if="secondaryDistribution.length" class="mt-3 space-y-2">
+                <div v-for="row in secondaryDistribution" :key="row.tag.id" class="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-zinc-950/70 px-3 py-2 text-xs">
+                  <span class="text-zinc-300">{{ row.tag.name }}</span>
+                  <span class="text-zinc-500">{{ row.percentage }}%</span>
+                </div>
+              </div>
+              <p v-else class="mt-2 text-xs text-zinc-500">{{ t('remaining.noSecondaryLabels') }}</p>
+            </div>
+          </div>
         </div>
 
         <div class="mt-5 rounded-lg border border-white/10 bg-white/[0.03] p-4">
@@ -88,6 +118,23 @@ onMounted(async () => {
           <p class="mt-3 text-sm text-zinc-300">{{ item.evidence_note }}</p>
           <a :href="item.evidence_url" target="_blank" rel="noreferrer" class="mt-2 block truncate text-sm text-cyan-200">{{ item.evidence_url }}</a>
         </article>
+
+        <h2 class="mt-8 text-xl font-semibold text-white">{{ t('remaining.voteHistory') }}</h2>
+        <div v-if="!voteHistory.length" class="mt-3 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-zinc-500">
+          {{ t('remaining.noVoteHistory') }}
+        </div>
+        <div v-else class="mt-3 grid gap-3">
+          <article v-for="vote in voteHistory" :key="vote.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded bg-cyan-300/10 px-2 py-1 text-xs font-semibold text-cyan-100">{{ vote.tag?.name || '-' }}</span>
+              <span v-if="vote.secondary_tag_ids?.length" class="rounded bg-white/10 px-2 py-1 text-xs text-zinc-300">+{{ vote.secondary_tag_ids.length }}</span>
+              <span class="ml-auto text-xs text-zinc-500">{{ t('remaining.totalWeight') }} {{ Number(vote.weight_score || 0).toFixed(2) }}</span>
+            </div>
+            <p class="mt-2 text-xs text-zinc-500">{{ vote.author?.display_name || vote.author?.email || t('remaining.unknown') }} · {{ vote.updated_at }}</p>
+            <p v-if="vote.evidence_note" class="mt-2 text-sm leading-6 text-zinc-300">{{ vote.evidence_note }}</p>
+            <p v-else-if="vote.has_evidence" class="mt-2 text-xs text-zinc-500">{{ t('remaining.hasEvidence') }}</p>
+          </article>
+        </div>
       </template>
     </section>
   </main>

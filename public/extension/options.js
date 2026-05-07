@@ -15,36 +15,68 @@ const fields = {
 }
 const t = window.truthShieldT || ((key) => key)
 
-chrome.storage.sync.get(defaults, (values) => {
-  fields.tooltipOrigin.value = values.tooltipOrigin
-  fields.apiOrigin.value = values.apiOrigin
-  fields.enableTooltip.checked = values.enableTooltip
-  fields.enablePanel.checked = values.enablePanel
-  fields.enableReportButton.checked = values.enableReportButton
-  document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
-})
-
-document.getElementById('save').addEventListener('click', () => {
-  chrome.storage.sync.set({
+function currentSettings() {
+  return {
     tooltipOrigin: fields.tooltipOrigin.value || defaults.tooltipOrigin,
     apiOrigin: fields.apiOrigin.value || defaults.apiOrigin,
     enableTooltip: fields.enableTooltip.checked,
     enablePanel: fields.enablePanel.checked,
     enableReportButton: fields.enableReportButton.checked,
-  }, () => {
+  }
+}
+
+function applySettings(values) {
+  fields.tooltipOrigin.value = values.tooltipOrigin || defaults.tooltipOrigin
+  fields.apiOrigin.value = values.apiOrigin || defaults.apiOrigin
+  fields.enableTooltip.checked = values.enableTooltip !== false
+  fields.enablePanel.checked = values.enablePanel !== false
+  fields.enableReportButton.checked = values.enableReportButton !== false
+}
+
+chrome.storage.sync.get(defaults, (values) => {
+  applySettings(values)
+  document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
+})
+
+document.getElementById('save').addEventListener('click', () => {
+  chrome.storage.sync.set(currentSettings(), () => {
     document.getElementById('status').textContent = t('saved')
   })
 })
 
 document.getElementById('resetDefaults').addEventListener('click', () => {
   chrome.storage.sync.set(defaults, () => {
-    fields.tooltipOrigin.value = defaults.tooltipOrigin
-    fields.apiOrigin.value = defaults.apiOrigin
-    fields.enableTooltip.checked = defaults.enableTooltip
-    fields.enablePanel.checked = defaults.enablePanel
-    fields.enableReportButton.checked = defaults.enableReportButton
+    applySettings(defaults)
     document.getElementById('status').textContent = t('resetDone')
   })
+})
+
+document.getElementById('exportSettings').addEventListener('click', () => {
+  document.getElementById('settingsJson').value = JSON.stringify(currentSettings(), null, 2)
+  document.getElementById('status').textContent = t('settingsExported')
+})
+
+document.getElementById('importSettings').addEventListener('click', () => {
+  try {
+    const parsed = JSON.parse(document.getElementById('settingsJson').value)
+    const next = {
+      tooltipOrigin: parsed.tooltipOrigin || defaults.tooltipOrigin,
+      apiOrigin: parsed.apiOrigin || defaults.apiOrigin,
+      enableTooltip: parsed.enableTooltip !== false,
+      enablePanel: parsed.enablePanel !== false,
+      enableReportButton: parsed.enableReportButton !== false,
+    }
+    chrome.storage.sync.set(next, () => {
+      applySettings(next)
+      document.getElementById('status').textContent = t('settingsImported')
+    })
+  } catch {
+    document.getElementById('status').textContent = t('settingsImportFailed')
+  }
+})
+
+document.getElementById('openDiagnostics').addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('diagnostics.html') })
 })
 
 document.getElementById('checkHealth').addEventListener('click', async () => {

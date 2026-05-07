@@ -212,7 +212,13 @@ onMounted(async () => {
               <span class="rounded px-2 py-1 text-xs font-semibold" :class="statusClass(claim.status)">{{ claimantStatusLabel(claim.status) }}</span>
               <span class="ml-2 text-zinc-200">{{ claim.claim_type }} · {{ claim.domain || claim.organization_name || '-' }}</span>
               <p v-if="claim.review_note" class="mt-2 text-xs leading-5 text-zinc-500">{{ claim.review_note }}</p>
-              <RouterLink v-if="claim.status === 'rejected'" class="mt-2 inline-flex text-xs font-semibold text-cyan-200 underline" to="/appeals">{{ t('profile.appealRejectedClaim') }}</RouterLink>
+              <RouterLink
+                v-if="claim.status === 'rejected'"
+                class="mt-2 inline-flex text-xs font-semibold text-cyan-200 underline"
+                :to="{ path: '/appeals', query: { subject_type: 'verified_claimant', subject_id: claim.id, reason: t('profile.appealRejectedClaim') } }"
+              >
+                {{ t('profile.appealRejectedClaim') }}
+              </RouterLink>
             </div>
           </div>
         </section>
@@ -226,7 +232,13 @@ onMounted(async () => {
                 <RouterLink v-if="response.news_url" class="text-xs text-cyan-200 underline" :to="`/news/${response.news_url.id}`">{{ response.news_url.title_snapshot || response.news_url.normalized_url }}</RouterLink>
               </div>
               <p class="mt-2 line-clamp-3 text-xs leading-5 text-zinc-400">{{ response.response_text }}</p>
-              <RouterLink v-if="['hidden', 'rejected'].includes(response.status)" class="mt-2 inline-flex text-xs font-semibold text-cyan-200 underline" to="/appeals">{{ t('profile.appealRejectedResponse') }}</RouterLink>
+              <RouterLink
+                v-if="['hidden', 'rejected'].includes(response.status)"
+                class="mt-2 inline-flex text-xs font-semibold text-cyan-200 underline"
+                :to="{ path: '/appeals', query: { subject_type: 'official_response', subject_id: response.id, reason: t('profile.appealRejectedResponse') } }"
+              >
+                {{ t('profile.appealRejectedResponse') }}
+              </RouterLink>
             </article>
           </div>
         </section>

@@ -40,10 +40,15 @@ function evidenceSourceLabel(item) {
 }
 
 function previewUrl(item) {
+  if (item.type === 'official_response') return ''
   if (item.preview_url) return item.preview_url
   if (item.evidence_type !== 'image') return ''
 
   return item.evidence_url
+}
+
+function isOfficialResponse(item) {
+  return item.type === 'official_response'
 }
 
 onMounted(load)
@@ -104,16 +109,33 @@ onMounted(load)
 
       <div class="mt-6 grid gap-3">
         <div v-if="loading" class="rounded-lg border border-white/10 p-4 text-zinc-400">{{ t('common.loading') }}</div>
-        <div v-else-if="focus === 'official'" class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5 text-sm leading-6 text-cyan-100">
-          {{ t('evidence.officialClarificationNote') }}
-          <RouterLink class="ml-2 font-semibold underline" to="/news-search">{{ t('common.newsSearch') }}</RouterLink>
-        </div>
         <div v-else-if="items.length === 0" class="rounded-lg border border-white/10 bg-white/[0.03] p-5 text-sm text-zinc-400">
           {{ t('evidence.empty') }}
+          <RouterLink v-if="focus === 'official'" class="ml-2 font-semibold text-cyan-200 underline" to="/news-search">{{ t('common.newsSearch') }}</RouterLink>
         </div>
-        <article v-for="item in items" :key="item.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+        <article v-for="item in items" :key="`${item.type || 'evidence'}-${item.id}`" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <template v-if="isOfficialResponse(item)">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded bg-cyan-300/15 px-2 py-1 text-xs font-semibold text-cyan-100">{{ item.claimant?.claim_type || item.response_type }}</span>
+              <span class="rounded bg-white/10 px-2 py-1 text-xs text-zinc-300">{{ t('evidence.officialClarifications') }}</span>
+              <span class="ml-auto text-xs text-zinc-500">{{ t('evidence.netHelpfulWeight') }} {{ Number(item.net_helpful_weight || 0).toFixed(2) }}</span>
+            </div>
+            <p class="mt-3 text-sm leading-6 text-zinc-100">{{ item.response_text }}</p>
+            <p class="mt-2 text-xs text-zinc-500">{{ item.author?.display_name || '-' }}</p>
+            <a v-if="item.evidence_url" class="mt-2 block truncate text-sm font-semibold text-cyan-200" :href="item.evidence_url" target="_blank" rel="noreferrer">{{ item.evidence_url }}</a>
+            <div class="mt-3 rounded-md border border-white/10 bg-white/[0.02] p-3">
+              <p class="text-xs font-semibold text-zinc-400">{{ t('evidence.relatedNews') }}</p>
+              <p class="mt-1 truncate text-xs text-zinc-500">{{ item.news_url?.title_snapshot || item.news_url?.normalized_url }}</p>
+              <RouterLink v-if="item.news_url?.id" class="mt-2 inline-flex text-xs font-semibold text-cyan-200 underline" :to="`/news/${item.news_url.id}`">{{ t('remaining.news') }}</RouterLink>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2 text-xs text-zinc-400">
+              <span class="rounded bg-emerald-500/10 px-2 py-1 text-emerald-100">{{ t('votePanel.helpful') }} {{ Number(item.helpful_weight || 0).toFixed(1) }}</span>
+              <span class="rounded bg-red-500/10 px-2 py-1 text-red-100">{{ t('votePanel.unhelpful') }} {{ Number(item.unhelpful_weight || 0).toFixed(1) }}</span>
+            </div>
+          </template>
+          <template v-else>
           <div class="flex flex-wrap items-center gap-2">
-            <span class="rounded bg-white/10 px-2 py-1 text-xs font-semibold">{{ item.tag.name }}</span>
+            <span class="rounded bg-white/10 px-2 py-1 text-xs font-semibold">{{ item.tag?.name || '-' }}</span>
             <span class="rounded px-2 py-1 text-xs font-semibold" :class="item.is_trusted_evidence ? 'bg-emerald-500/15 text-emerald-200' : 'bg-zinc-800 text-zinc-400'">
               {{ item.is_trusted_evidence ? t('evidence.trustedSource') : t('evidence.communityPending') }}
             </span>
@@ -132,6 +154,7 @@ onMounted(load)
             <p class="mt-1 truncate text-xs text-zinc-500">{{ item.news_url?.title_snapshot || item.news_url?.normalized_url }}</p>
             <p v-if="item.news_url?.media_outlet" class="mt-1 text-xs text-zinc-600">{{ item.news_url.media_outlet.name }}</p>
           </div>
+          </template>
         </article>
       </div>
     </section>

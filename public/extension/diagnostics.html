@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>TruthShield 診斷</title>
+    <style>
+      body { margin: 0; background: #09090b; color: #f4f4f5; font: 14px system-ui, sans-serif; }
+      main { max-width: 900px; margin: 0 auto; padding: 28px; }
+      p { color: #a1a1aa; line-height: 1.6; }
+      button { border: 0; border-radius: 8px; background: #67e8f9; color: #09090b; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+      .brand { display: flex; align-items: center; gap: 12px; }
+      .brand img { width: 44px; height: 44px; }
+      .brand h1 { margin: 0; }
+      .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+      .panel { border: 1px solid #27272a; border-radius: 10px; background: #111113; padding: 16px; margin-top: 16px; }
+      pre { overflow: auto; border: 1px solid #27272a; border-radius: 8px; background: #18181b; color: #cffafe; padding: 12px; white-space: pre-wrap; }
+      .ok { color: #86efac; }
+      .bad { color: #fca5a5; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand">
+        <img src="icons/icon-48.png" alt="" />
+        <h1 data-i18n="diagnosticsTitle" data-i18n-title="diagnosticsTitle">TruthShield 診斷</h1>
+      </div>
+      <p data-i18n="diagnosticsIntro">確認插件設定、API 健康、後端摘要與目前儲存狀態。</p>
+      <button id="runDiagnostics" data-i18n="runDiagnostics">重新檢查</button>
+      <div class="grid">
+        <section class="panel">
+          <h2 data-i18n="manifestInfo">Manifest</h2>
+          <pre id="manifest"></pre>
+        </section>
+        <section class="panel">
+          <h2 data-i18n="apiStatus">API 狀態</h2>
+          <pre id="health"></pre>
+        </section>
+        <section class="panel">
+          <h2 data-i18n="backendSummary">後端摘要</h2>
+          <pre id="summary"></pre>
+        </section>
+        <section class="panel">
+          <h2 data-i18n="storageSnapshot">儲存設定</h2>
+          <pre id="storage"></pre>
+        </section>
+      </div>
+    </main>
+    <script src="extension-i18n.js"></script>
+    <script src="diagnostics.js"></script>
+  </body>
+</html>
