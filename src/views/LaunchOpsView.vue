@@ -12,6 +12,7 @@ const releaseCommands = [
   'php artisan truthshield:ensure-algorithm-version',
   'php artisan truthshield:seed-launch-policies',
   'php artisan truthshield:warm-cache',
+  'php artisan truthshield:expire-pending-donations --hours=24',
 ]
 
 onMounted(async () => {
