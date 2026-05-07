@@ -34,6 +34,24 @@ async function request(path, options = {}) {
   return data
 }
 
+export function botChallengeToken() {
+  return localStorage.getItem('truthshield_challenge_token') || undefined
+}
+
+function withChallengePayload(payload = {}) {
+  const challengeToken = botChallengeToken()
+
+  return challengeToken
+    ? { ...payload, challenge_token: challengeToken }
+    : payload
+}
+
+export async function fetchBotProtectionConfig() {
+  return request('/api/bot/config', {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
 export async function fetchNewsStatus(url) {
   return request(`/api/news/status?url=${encodeURIComponent(url)}`, {
     headers: { 'Content-Type': undefined },
@@ -113,14 +131,14 @@ export async function logout(token) {
 export async function devLogin(payload) {
   return request('/api/auth/dev-login', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(withChallengePayload(payload)),
   })
 }
 
 export async function oauthCallback(provider, payload) {
   return request(`/api/auth/${encodeURIComponent(provider)}/callback`, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(withChallengePayload(payload)),
   })
 }
 
@@ -130,7 +148,7 @@ export async function createVote(token, payload) {
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(withChallengePayload(payload)),
   })
 }
 
@@ -167,7 +185,7 @@ export async function reactToEvidence(token, voteId, helpful) {
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ helpful }),
+    body: JSON.stringify(withChallengePayload({ helpful })),
   })
 }
 
@@ -186,7 +204,7 @@ export async function reportEvidence(token, voteId, payload) {
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(withChallengePayload(payload)),
   })
 }
 
@@ -261,7 +279,7 @@ export async function sendCommunityTaskSignal(token, id, payload) {
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(withChallengePayload(payload)),
   })
 }
 
@@ -399,7 +417,7 @@ export async function fetchEvidenceReportReasons() {
 export async function reportNewsDomain(payload) {
   return request('/api/news-domain-reports', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(withChallengePayload(payload)),
   })
 }
 
@@ -409,7 +427,7 @@ export async function reportUrlClassification(payload) {
   return request('/api/url-classification-reports', {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    body: JSON.stringify(payload),
+    body: JSON.stringify(withChallengePayload(payload)),
   })
 }
 
@@ -419,7 +437,7 @@ export async function suggestTrustedSource(payload) {
   return request('/api/trusted-source-suggestions', {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    body: JSON.stringify(payload),
+    body: JSON.stringify(withChallengePayload(payload)),
   })
 }
 
@@ -535,6 +553,6 @@ export async function createUserDataRequest(payload) {
   return request('/api/user-data-requests', {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    body: JSON.stringify(payload),
+    body: JSON.stringify(withChallengePayload(payload)),
   })
 }

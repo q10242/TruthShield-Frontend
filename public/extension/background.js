@@ -31,6 +31,8 @@ const menuItems = [
   },
 ]
 
+const nonceCache = new Map()
+
 function createMenus() {
   chrome.contextMenus.removeAll(() => {
     menuItems.forEach((item) => chrome.contextMenus.create(item))
@@ -39,6 +41,40 @@ function createMenus() {
 
 function getSettings() {
   return chrome.storage.sync.get(defaults)
+}
+
+async function extensionRequestHeaders(settings, headers = {}) {
+  const nonce = await extensionNonce(settings.apiOrigin)
+
+  if (!nonce?.nonce || !nonce?.signature) {
+    return headers
+  }
+
+  return {
+    ...headers,
+    'X-TruthShield-Extension-Nonce': nonce.nonce,
+    'X-TruthShield-Extension-Signature': nonce.signature,
+  }
+}
+
+async function extensionNonce(apiOrigin) {
+  const cached = nonceCache.get(apiOrigin)
+  if (cached?.expires_at && Date.parse(cached.expires_at) > Date.now() + 30000) {
+    return cached
+  }
+
+  try {
+    const response = await fetch(`${apiOrigin}/api/extension/nonce`, {
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) return null
+
+    const payload = await response.json()
+    nonceCache.set(apiOrigin, payload)
+    return payload
+  } catch {
+    return null
+  }
 }
 
 function targetUrl(info, tab) {
@@ -106,8 +142,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   getSettings()
-    .then((settings) => fetch(`${settings.apiOrigin}/api/news/status?url=${encodeURIComponent(message.url)}`, {
-      headers: { Accept: 'application/json' },
+    .then(async (settings) => fetch(`${settings.apiOrigin}/api/news/status?url=${encodeURIComponent(message.url)}`, {
+      headers: await extensionRequestHeaders(settings, { Accept: 'application/json' }),
     }))
     .then(async (response) => {
       const payload = await response.json().catch(() => null)

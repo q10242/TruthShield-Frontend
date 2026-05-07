@@ -28,6 +28,7 @@ const FALLBACK_NEWS_DOMAINS = [
 
 let newsDomains = [...FALLBACK_NEWS_DOMAINS]
 let domainConfigs = []
+let extensionNonce = null
 let tooltipBox = null
 const tooltipStatusCache = new Map()
 const tooltipStatusRequests = new Map()
@@ -106,6 +107,33 @@ function extensionVersion() {
   }
 }
 
+async function loadExtensionNonce() {
+  try {
+    const response = await fetch(`${API_ORIGIN}/api/extension/nonce`, {
+      headers: { Accept: 'application/json' },
+    })
+
+    if (!response.ok) {
+      extensionNonce = null
+      return
+    }
+
+    extensionNonce = await response.json()
+  } catch {
+    extensionNonce = null
+  }
+}
+
+function extensionRequestHeaders(headers = {}) {
+  const requestHeaders = { ...headers }
+  if (extensionNonce?.nonce && extensionNonce?.signature) {
+    requestHeaders['X-TruthShield-Extension-Nonce'] = extensionNonce.nonce
+    requestHeaders['X-TruthShield-Extension-Signature'] = extensionNonce.signature
+  }
+
+  return requestHeaders
+}
+
 function reportExtensionEvent(eventType, success = true, metadata = {}) {
   try {
     if (shouldSkipTelemetry(eventType, success, metadata)) {
@@ -152,7 +180,7 @@ function flushExtensionTelemetry() {
   const url = `${API_ORIGIN}/api/extension/events/batch`
 
   try {
-    if (navigator.sendBeacon) {
+    if (navigator.sendBeacon && !extensionNonce?.nonce) {
       const blob = new Blob([payload], { type: 'application/json' })
       if (navigator.sendBeacon(url, blob)) {
         return
@@ -161,7 +189,7 @@ function flushExtensionTelemetry() {
 
     fetch(url, {
       method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      headers: extensionRequestHeaders({ Accept: 'application/json', 'Content-Type': 'application/json' }),
       body: payload,
       keepalive: true,
     }).catch(() => null)
@@ -202,7 +230,7 @@ function reportSelectorCheck(checkType, success, selector = null, metadata = {})
   try {
     fetch(`${API_ORIGIN}/api/extension/selector-checks`, {
       method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      headers: extensionRequestHeaders({ Accept: 'application/json', 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         domain: window.location.hostname,
         check_type: checkType,
@@ -219,7 +247,7 @@ function reportSelectorCheck(checkType, success, selector = null, metadata = {})
 async function loadNewsDomains() {
   try {
     const response = await fetch(`${API_ORIGIN}/api/news-domains`, {
-      headers: { Accept: 'application/json' },
+      headers: extensionRequestHeaders({ Accept: 'application/json' }),
     })
 
     if (!response.ok) {
@@ -535,7 +563,7 @@ async function fetchStatus(url) {
   }
 
   const response = await fetch(`${API_ORIGIN}/api/news/status?url=${encodeURIComponent(url)}`, {
-    headers: { Accept: 'application/json' },
+    headers: extensionRequestHeaders({ Accept: 'application/json' }),
   })
 
   if (!response.ok) throw new Error(`status ${response.status}`)
@@ -979,7 +1007,7 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
   return false
 })
 
-loadSettings().then(loadNewsDomains).finally(() => {
+loadSettings().then(loadExtensionNonce).then(loadNewsDomains).finally(() => {
   if (enablePanel) maybeInjectVotePanel()
   maybeInjectDomainReportButton()
   observeArticleChanges()
