@@ -95,6 +95,7 @@ onMounted(async () => {
             <div class="flex flex-wrap gap-2">
               <button class="rounded-md border border-cyan-300/30 px-3 py-1.5 text-xs font-semibold text-cyan-100" @click="exportMyData">匯出我的資料</button>
               <RouterLink class="rounded-md border border-cyan-300/30 px-3 py-1.5 text-xs font-semibold text-cyan-100" to="/appeals">提出申訴</RouterLink>
+              <RouterLink class="rounded-md bg-cyan-300 px-3 py-1.5 text-xs font-semibold text-zinc-950" to="/donate">支持專案</RouterLink>
             </div>
           </div>
           <div class="mt-4 grid gap-3 sm:grid-cols-3">
