@@ -78,6 +78,16 @@ const pageSnapshot = computed(() => ({
   availability_status: 'available',
 }))
 const selectedTag = computed(() => tags.value.find((tag) => tag.id === selectedTagId.value))
+const selectedTagCriteria = computed(() => {
+  if (!selectedTag.value?.slug) return t('votePanel.tagCriteriaFallback')
+
+  const path = `labelGuide.criteria.${selectedTag.value.slug}`
+  const localized = t(path)
+
+  return localized === path
+    ? selectedTag.value.description || t('votePanel.tagCriteriaFallback')
+    : localized
+})
 const isLoggedIn = computed(() => Boolean(token.value && user.value))
 const totalWeight = computed(() => Number(status.value?.total_weight || 0))
 const distribution = computed(() => status.value?.distribution || [])
@@ -813,7 +823,7 @@ onMounted(async () => {
         </div>
         <details class="rounded-md border border-white/10 bg-zinc-950/70 p-3 text-xs text-zinc-400">
           <summary class="cursor-pointer font-semibold text-cyan-100">{{ t('votePanel.tagCriteria') }}</summary>
-          <p class="mt-2 leading-5">{{ selectedTag?.description || t('votePanel.tagCriteriaFallback') }}</p>
+          <p class="mt-2 leading-5">{{ selectedTagCriteria }}</p>
           <p class="mt-2 leading-5">{{ selectedTag?.requires_evidence ? t('votePanel.negativeCriteria') : t('votePanel.positiveCriteria') }}</p>
         </details>
 
