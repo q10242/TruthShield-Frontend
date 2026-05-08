@@ -59,6 +59,30 @@ const antiManipulationPoints = computed(() => [
   { title: t('algorithmDefense.transparentReviewTitle'), description: t('algorithmDefense.transparentReviewDesc') },
 ])
 
+const publicAntiAbuseRules = computed(() => [
+  { title: t('algorithmTransparency.public.weightedVotesTitle'), description: t('algorithmTransparency.public.weightedVotesDesc') },
+  { title: t('algorithmTransparency.public.readingGateTitle'), description: t('algorithmTransparency.public.readingGateDesc') },
+  { title: t('algorithmTransparency.public.evidenceRequiredTitle'), description: t('algorithmTransparency.public.evidenceRequiredDesc') },
+  { title: t('algorithmTransparency.public.oneEntryTitle'), description: t('algorithmTransparency.public.oneEntryDesc') },
+  { title: t('algorithmTransparency.public.lowTrustLimitsTitle'), description: t('algorithmTransparency.public.lowTrustLimitsDesc') },
+  { title: t('algorithmTransparency.public.reviewFirstTitle'), description: t('algorithmTransparency.public.reviewFirstDesc') },
+])
+
+const protectedAntiAbuseDetails = computed(() => [
+  t('algorithmTransparency.protected.botRiskWeights'),
+  t('algorithmTransparency.protected.challengeThresholds'),
+  t('algorithmTransparency.protected.uaPatterns'),
+  t('algorithmTransparency.protected.nonceDetails'),
+  t('algorithmTransparency.protected.burstThresholds'),
+])
+
+const userProtections = computed(() => [
+  t('algorithmTransparency.protections.reviewBeforePenalty'),
+  t('algorithmTransparency.protections.canStillParticipate'),
+  t('algorithmTransparency.protections.governanceRecords'),
+  t('algorithmTransparency.protections.appeals'),
+])
+
 onMounted(async () => {
   payload.value = await fetchAlgorithm()
 })
@@ -112,6 +136,39 @@ onMounted(async () => {
               <h3 class="text-sm font-semibold text-white">{{ point.title }}</h3>
               <p class="mt-2 text-xs leading-5 text-zinc-400">{{ point.description }}</p>
             </article>
+          </div>
+        </section>
+
+        <section class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">{{ t('algorithmTransparency.eyebrow') }}</p>
+          <h2 class="mt-2 text-xl font-semibold text-white">{{ t('algorithmTransparency.title') }}</h2>
+          <p class="mt-2 text-sm leading-6 text-zinc-300">{{ t('algorithmTransparency.intro') }}</p>
+
+          <div class="mt-4 grid gap-3 lg:grid-cols-3">
+            <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+              <h3 class="text-sm font-semibold text-white">{{ t('algorithmTransparency.publicTitle') }}</h3>
+              <div class="mt-3 space-y-3">
+                <article v-for="rule in publicAntiAbuseRules" :key="rule.title">
+                  <p class="text-xs font-semibold text-cyan-100">{{ rule.title }}</p>
+                  <p class="mt-1 text-xs leading-5 text-zinc-400">{{ rule.description }}</p>
+                </article>
+              </div>
+            </div>
+
+            <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+              <h3 class="text-sm font-semibold text-white">{{ t('algorithmTransparency.protectedTitle') }}</h3>
+              <p class="mt-2 text-xs leading-5 text-zinc-500">{{ t('algorithmTransparency.protectedIntro') }}</p>
+              <ul class="mt-3 space-y-2 text-xs leading-5 text-zinc-400">
+                <li v-for="item in protectedAntiAbuseDetails" :key="item">{{ item }}</li>
+              </ul>
+            </div>
+
+            <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+              <h3 class="text-sm font-semibold text-white">{{ t('algorithmTransparency.protectionsTitle') }}</h3>
+              <ul class="mt-3 space-y-2 text-xs leading-5 text-zinc-400">
+                <li v-for="item in userProtections" :key="item">{{ item }}</li>
+              </ul>
+            </div>
           </div>
         </section>
 
