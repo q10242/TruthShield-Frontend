@@ -20,6 +20,15 @@ rmSync(packageDir, { recursive: true, force: true })
 rmSync(outputFile, { force: true })
 rmSync(publicOutputFile, { force: true })
 rmSync(publicVersionedOutputFile, { force: true })
+
+for (const dir of [outputDir, resolve(root, 'public')]) {
+  for (const entry of readdirSync(dir)) {
+    if (/^truthshield-extension-v.+\.zip$/.test(entry)) {
+      rmSync(resolve(dir, entry), { force: true })
+    }
+  }
+}
+
 cpSync(extensionDir, packageDir, { recursive: true })
 
 function removeMetadataFiles(dir) {

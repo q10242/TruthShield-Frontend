@@ -31,14 +31,11 @@ const FALLBACK_NEWS_DOMAINS = [
   'www.setn.com',
   'news.ltn.com.tw',
   'tw.news.yahoo.com',
-  'youtube.com',
-  'www.youtube.com',
-  'm.youtube.com',
-  'youtu.be',
 ]
 
 let newsDomains = [...FALLBACK_NEWS_DOMAINS]
 let domainConfigs = []
+let youtubeChannels = []
 let extensionNonce = null
 let tooltipBox = null
 const tooltipStatusCache = new Map()
@@ -485,6 +482,25 @@ async function loadNewsDomains() {
   }
 }
 
+async function loadYoutubeChannels() {
+  try {
+    const response = await fetch(`${API_ORIGIN}/api/youtube-channels`, {
+      headers: extensionRequestHeaders({ Accept: 'application/json' }),
+    })
+
+    if (!response.ok) {
+      return
+    }
+
+    const payload = await response.json()
+    youtubeChannels = Array.isArray(payload.data)
+      ? payload.data.map(normalizeYoutubeChannelRecord).filter(Boolean)
+      : []
+  } catch {
+    youtubeChannels = []
+  }
+}
+
 async function loadSettings() {
   if (typeof chrome === 'undefined' || !chrome.storage?.sync) {
     return
@@ -512,6 +528,10 @@ async function loadSettings() {
 function isNewsLink(anchor) {
   try {
     const url = new URL(anchor.href)
+    if (isYouTubeHostname(url.hostname)) {
+      return isActiveYoutubeChannelUrl(url.toString())
+    }
+
     return isNewsHostname(url.hostname)
   } catch {
     return false
@@ -519,6 +539,10 @@ function isNewsLink(anchor) {
 }
 
 function isNewsHostname(hostname) {
+  if (isYouTubeHostname(hostname)) {
+    return isCurrentYouTubeNewsPage()
+  }
+
   return newsDomains.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`))
 }
 
@@ -528,7 +552,7 @@ function isCurrentNewsPage() {
 
 function isLikelyArticlePage() {
   if (isYouTubeVideoPage()) {
-    return true
+    return isCurrentYouTubeNewsPage()
   }
 
   const matchedConfig = domainConfigs.find((config) => window.location.hostname === config.domain || window.location.hostname.endsWith(`.${config.domain}`))
@@ -589,6 +613,82 @@ function isYouTubeVideoPage() {
     || path.startsWith('/live/')
 }
 
+function isYouTubeHostname(hostname) {
+  const host = String(hostname || '').toLowerCase()
+
+  return ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'].includes(host)
+}
+
+function normalizeYoutubeHandle(handle) {
+  return String(handle || '').trim().replace(/^@/, '').toLowerCase()
+}
+
+function normalizeYoutubeChannelRecord(channel) {
+  const handle = normalizeYoutubeHandle(channel?.handle)
+  const channelId = String(channel?.channel_id || '').trim()
+  const channelUrl = channel?.channel_url ? canonicalYoutubeChannelUrl(channel.channel_url) : ''
+
+  if (!handle && !channelId && !channelUrl) {
+    return null
+  }
+
+  return { handle, channelId, channelUrl }
+}
+
+function canonicalYoutubeChannelUrl(url) {
+  try {
+    const parsed = new URL(url, 'https://www.youtube.com')
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, '')
+    if (host !== 'youtube.com' && host !== 'm.youtube.com') {
+      return ''
+    }
+
+    const match = parsed.pathname.match(/^\/(?:channel\/[^/?#]+|@[^/?#]+|c\/[^/?#]+|user\/[^/?#]+)/)
+    return match ? new URL(match[0], 'https://www.youtube.com').toString().replace(/\/$/, '') : ''
+  } catch {
+    return ''
+  }
+}
+
+function youtubeChannelInfoFromUrl(url) {
+  try {
+    const parsed = new URL(url, 'https://www.youtube.com')
+    const path = parsed.pathname
+    const channelId = path.match(/^\/channel\/([^/?#]+)/)?.[1] || ''
+    const handleMatch = path.match(/^\/(?:@|c\/|user\/)([^/?#]+)/)
+
+    return {
+      channelId,
+      handle: normalizeYoutubeHandle(handleMatch?.[1] || ''),
+      channelUrl: canonicalYoutubeChannelUrl(parsed.toString()),
+    }
+  } catch {
+    return { channelId: '', handle: '', channelUrl: '' }
+  }
+}
+
+function isActiveYoutubeChannelUrl(url) {
+  const info = youtubeChannelInfoFromUrl(url)
+  if (!info.channelId && !info.handle && !info.channelUrl) {
+    return false
+  }
+
+  return youtubeChannels.some((channel) => (
+    (info.channelId && channel.channelId && info.channelId === channel.channelId)
+    || (info.handle && channel.handle && info.handle === channel.handle)
+    || (info.channelUrl && channel.channelUrl && info.channelUrl === channel.channelUrl)
+  ))
+}
+
+function isCurrentYouTubeNewsPage() {
+  if (!isYouTubeVideoPage()) {
+    return false
+  }
+
+  const channelUrl = currentYoutubeChannelUrl()
+  return channelUrl ? isActiveYoutubeChannelUrl(channelUrl) : false
+}
+
 function currentYoutubeChannelUrl() {
   const host = window.location.hostname.toLowerCase()
   const path = window.location.pathname
@@ -600,7 +700,7 @@ function currentYoutubeChannelUrl() {
     }
 
     const ownerAnchor = document.querySelector(
-      'ytd-video-owner-renderer a[href^="/@"], ytd-video-owner-renderer a[href^="/channel/"], #owner a[href^="/@"], #owner a[href^="/channel/"], a.yt-simple-endpoint[href^="/@"], a.yt-simple-endpoint[href^="/channel/"]',
+      'ytd-watch-metadata ytd-video-owner-renderer a[href^="/@"], ytd-watch-metadata ytd-video-owner-renderer a[href^="/channel/"], ytd-watch-metadata #owner a[href^="/@"], ytd-watch-metadata #owner a[href^="/channel/"], #owner ytd-channel-name a[href^="/@"], #owner ytd-channel-name a[href^="/channel/"]',
     )
     const href = ownerAnchor?.getAttribute('href')
     if (href) {
@@ -1626,7 +1726,9 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
   return false
 })
 
-loadSettings().then(loadExtensionNonce).then(loadNewsDomains).finally(async () => {
+loadSettings().then(loadExtensionNonce).then(async () => {
+  await Promise.all([loadNewsDomains(), loadYoutubeChannels()])
+}).finally(async () => {
   installPageAuthBridge()
   requestPageAuthState()
   await syncWebAuthToExtensionStorage()
