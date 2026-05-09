@@ -104,6 +104,58 @@ const manualAntiAbuse = computed(() => [
   { title: t('home.manualAntiAbuseAppealTitle'), description: t('home.manualAntiAbuseAppealDesc') },
 ])
 
+const manualScreenshotCards = computed(() => [
+  {
+    title: t('home.manualScreenshotBannerTitle'),
+    description: t('home.manualScreenshotBannerDesc'),
+    image: '/brand/export/chrome-store-screenshots/store-screenshot-01-news-banner-1280x800.png',
+    alt: t('home.manualScreenshotBannerAlt'),
+  },
+  {
+    title: t('home.manualScreenshotVoteTitle'),
+    description: t('home.manualScreenshotVoteDesc'),
+    image: '/brand/export/chrome-store-screenshots/store-screenshot-02-vote-panel-1280x800.png',
+    alt: t('home.manualScreenshotVoteAlt'),
+  },
+  {
+    title: t('home.manualScreenshotSearchTitle'),
+    description: t('home.manualScreenshotSearchDesc'),
+    image: '/brand/export/manual-screenshots/manual-news-search.png',
+    alt: t('home.manualScreenshotSearchAlt'),
+  },
+  {
+    title: t('home.manualScreenshotEvidenceTitle'),
+    description: t('home.manualScreenshotEvidenceDesc'),
+    image: '/brand/export/chrome-store-screenshots/store-screenshot-04-evidence-library-1280x800.png',
+    alt: t('home.manualScreenshotEvidenceAlt'),
+  },
+  {
+    title: t('home.manualScreenshotOfficialTitle'),
+    description: t('home.manualScreenshotOfficialDesc'),
+    image: '/brand/export/manual-screenshots/manual-official-response-policy.png',
+    alt: t('home.manualScreenshotOfficialAlt'),
+  },
+  {
+    title: t('home.manualScreenshotAchievementTitle'),
+    description: t('home.manualScreenshotAchievementDesc'),
+    image: '/brand/export/manual-screenshots/manual-profile-achievements.png',
+    alt: t('home.manualScreenshotAchievementAlt'),
+  },
+])
+
+const trustFormulaParts = computed(() => [
+  { label: t('home.trustFormulaBase'), value: t('home.trustFormulaBaseValue') },
+  { label: t('home.trustFormulaIdentity'), value: t('home.trustFormulaIdentityValue') },
+  { label: t('home.trustFormulaAbuse'), value: t('home.trustFormulaAbuseValue') },
+])
+
+const officialResponseFlow = computed(() => [
+  { title: t('home.officialFlowProfileTitle'), description: t('home.officialFlowProfileDesc') },
+  { title: t('home.officialFlowReviewTitle'), description: t('home.officialFlowReviewDesc') },
+  { title: t('home.officialFlowSubmitTitle'), description: t('home.officialFlowSubmitDesc') },
+  { title: t('home.officialFlowPublishTitle'), description: t('home.officialFlowPublishDesc') },
+])
+
 const pledges = computed(() => [
   { title: t('home.pledgeNoCensorshipTitle'), description: t('home.pledgeNoCensorshipDesc') },
   { title: t('home.pledgeTransparentTitle'), description: t('home.pledgeTransparentDesc') },
@@ -349,6 +401,65 @@ onMounted(async () => {
               </div>
             </article>
           </div>
+        </div>
+
+        <div class="mt-6 rounded-lg border border-white/10 bg-zinc-950 p-5">
+          <div class="max-w-3xl">
+            <p class="text-sm font-semibold text-cyan-300">{{ t('home.manualScreenshotEyebrow') }}</p>
+            <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.manualScreenshotTitle') }}</h3>
+            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('home.manualScreenshotIntro') }}</p>
+          </div>
+          <div class="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <article v-for="card in manualScreenshotCards" :key="card.title" class="overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]">
+              <img class="aspect-[16/10] w-full object-cover object-top" :src="card.image" :alt="card.alt" loading="lazy" />
+              <div class="p-4">
+                <h4 class="text-sm font-semibold text-white">{{ card.title }}</h4>
+                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ card.description }}</p>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+          <section class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5">
+            <p class="text-sm font-semibold text-cyan-300">{{ t('home.trustFormulaEyebrow') }}</p>
+            <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.trustFormulaTitle') }}</h3>
+            <p class="mt-3 text-sm leading-6 text-zinc-300">{{ t('home.trustFormulaIntro') }}</p>
+            <div class="mt-5 rounded-lg border border-cyan-300/20 bg-zinc-950 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">{{ t('home.trustFormulaLabel') }}</p>
+              <p class="mt-3 break-words font-mono text-sm leading-7 text-white">{{ t('home.trustFormulaEquation') }}</p>
+            </div>
+            <div class="mt-4 grid gap-3 sm:grid-cols-3">
+              <article v-for="part in trustFormulaParts" :key="part.label" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+                <p class="text-xs font-semibold text-cyan-100">{{ part.label }}</p>
+                <p class="mt-2 text-xs leading-5 text-zinc-400">{{ part.value }}</p>
+              </article>
+            </div>
+            <p class="mt-4 text-xs leading-5 text-zinc-500">{{ t('home.trustFormulaNote') }}</p>
+          </section>
+
+          <section class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+            <p class="text-sm font-semibold text-cyan-300">{{ t('home.officialFlowEyebrow') }}</p>
+            <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.officialFlowTitle') }}</h3>
+            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('home.officialFlowIntro') }}</p>
+            <div class="mt-5 space-y-3">
+              <article v-for="(item, index) in officialResponseFlow" :key="item.title" class="flex gap-3 rounded-md border border-white/10 bg-zinc-950/70 p-4">
+                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-cyan-300 text-xs font-semibold text-zinc-950">{{ index + 1 }}</span>
+                <div>
+                  <h4 class="text-sm font-semibold text-white">{{ item.title }}</h4>
+                  <p class="mt-1 text-sm leading-6 text-zinc-400">{{ item.description }}</p>
+                </div>
+              </article>
+            </div>
+            <div class="mt-5 flex flex-wrap gap-3">
+              <RouterLink class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/official-response-policy">
+                {{ t('home.officialFlowPolicyCta') }}
+              </RouterLink>
+              <RouterLink class="rounded-md border border-white/15 px-4 py-2 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" to="/news-search">
+                {{ t('home.officialFlowSearchCta') }}
+              </RouterLink>
+            </div>
+          </section>
         </div>
 
         <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
