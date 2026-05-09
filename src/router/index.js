@@ -65,6 +65,7 @@ const router = createRouter({
     { path: '/extension-coverage', name: 'extension-coverage', component: ExtensionCoverageView },
     { path: '/extension-install', name: 'extension-install', component: ExtensionInstallView },
     { path: '/user-guide', name: 'user-guide', component: () => import('../views/UserGuideView.vue') },
+    { path: '/demo-news', name: 'demo-news', component: () => import('../views/DemoNewsView.vue') },
     { path: '/account-graph', name: 'account-graph', component: AccountGraphView },
     { path: '/api-clients', name: 'api-clients', component: ApiClientsView },
     { path: '/launch-ops', name: 'launch-ops', component: LaunchOpsView },

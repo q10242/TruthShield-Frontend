@@ -13,12 +13,13 @@ const communityStats = ref(null)
 const { t } = useI18n()
 
 const primaryLinks = computed(() => [
-  { to: '/user-guide', label: t('common.userGuide'), description: t('home.userGuideDesc'), mark: '00' },
-  { to: '/extension-install', label: t('common.extensionInstall'), description: t('home.extensionInstallDesc'), mark: '01' },
-  { to: '/news-search', label: t('common.newsSearch'), description: t('home.newsSearchDesc'), mark: '02' },
-  { to: '/community-tasks', label: t('common.communityTasks'), description: t('home.communityTasksDesc'), mark: '03' },
-  { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc'), mark: '04' },
-  { to: '/transparency', label: t('common.transparency'), description: t('home.transparencyDesc'), mark: '05' },
+  { to: '/demo-news', label: t('common.demoNews'), description: t('home.demoNewsDesc'), mark: '00' },
+  { to: '/user-guide', label: t('common.userGuide'), description: t('home.userGuideDesc'), mark: '01' },
+  { to: '/extension-install', label: t('common.extensionInstall'), description: t('home.extensionInstallDesc'), mark: '02' },
+  { to: '/news-search', label: t('common.newsSearch'), description: t('home.newsSearchDesc'), mark: '03' },
+  { to: '/community-tasks', label: t('common.communityTasks'), description: t('home.communityTasksDesc'), mark: '04' },
+  { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc'), mark: '05' },
+  { to: '/transparency', label: t('common.transparency'), description: t('home.transparencyDesc'), mark: '06' },
 ])
 
 const authLabel = computed(() => token.value ? (user.value?.name || t('common.profile')) : t('common.signIn'))
@@ -31,6 +32,7 @@ function signOut() {
 }
 
 const secondaryLinks = computed(() => [
+  { to: '/demo-news', label: t('common.demoNews') },
   { to: '/user-guide', label: t('common.userGuide') },
   { to: '/extension-install', label: t('common.extensionInstall') },
   { to: '/news-search', label: t('common.newsSearch') },
@@ -70,134 +72,6 @@ const missionSteps = computed(() => [
   { number: '02', title: t('home.stepEvidenceTitle'), description: t('home.stepEvidenceDesc') },
   { number: '03', title: t('home.stepWeightTitle'), description: t('home.stepWeightDesc') },
   { number: '04', title: t('home.stepPublicTitle'), description: t('home.stepPublicDesc') },
-])
-
-const userManualSteps = computed(() => [
-  { number: '01', title: t('home.manualInstallTitle'), description: t('home.manualInstallDesc'), badge: t('home.manualInstallBadge'), tone: 'cyan' },
-  { number: '02', title: t('home.manualReadTitle'), description: t('home.manualReadDesc'), badge: t('home.manualReadBadge'), tone: 'red' },
-  { number: '03', title: t('home.manualVoteTitle'), description: t('home.manualVoteDesc'), badge: t('home.manualVoteBadge'), tone: 'orange' },
-  { number: '04', title: t('home.manualEvidenceTitle'), description: t('home.manualEvidenceDesc'), badge: t('home.manualEvidenceBadge'), tone: 'emerald' },
-])
-
-const manualReasons = computed(() => [
-  t('home.manualReasonFast'),
-  t('home.manualReasonEvidence'),
-  t('home.manualReasonAntiAbuse'),
-  t('home.manualReasonOpen'),
-])
-
-const manualChapters = computed(() => [
-  { title: t('home.manualChapterExtensionTitle'), description: t('home.manualChapterExtensionDesc'), to: '/extension-install', label: t('common.extensionInstall'), accent: 'cyan' },
-  { title: t('home.manualChapterVotingTitle'), description: t('home.manualChapterVotingDesc'), to: '/label-guide', label: t('common.labelGuide'), accent: 'orange' },
-  { title: t('home.manualChapterEvidenceTitle'), description: t('home.manualChapterEvidenceDesc'), to: '/evidence-library', label: t('common.evidenceLibrary'), accent: 'emerald' },
-  { title: t('home.manualChapterAchievementsTitle'), description: t('home.manualChapterAchievementsDesc'), to: '/profile', label: t('common.profile'), accent: 'violet' },
-  { title: t('home.manualChapterCommunityTitle'), description: t('home.manualChapterCommunityDesc'), to: '/community-tasks', label: t('common.communityTasks'), accent: 'cyan' },
-  { title: t('home.manualChapterReportsTitle'), description: t('home.manualChapterReportsDesc'), to: '/bug-report', label: t('common.bugReport'), accent: 'red' },
-  { title: t('home.manualChapterRulesTitle'), description: t('home.manualChapterRulesDesc'), to: '/platform-rules', label: t('common.platformRules'), accent: 'zinc' },
-  { title: t('home.manualChapterTransparencyTitle'), description: t('home.manualChapterTransparencyDesc'), to: '/transparency', label: t('common.transparency'), accent: 'cyan' },
-])
-
-const manualAntiAbuse = computed(() => [
-  { title: t('home.manualAntiAbuseIdentityTitle'), description: t('home.manualAntiAbuseIdentityDesc') },
-  { title: t('home.manualAntiAbuseReadingTitle'), description: t('home.manualAntiAbuseReadingDesc') },
-  { title: t('home.manualAntiAbuseEvidenceTitle'), description: t('home.manualAntiAbuseEvidenceDesc') },
-  { title: t('home.manualAntiAbuseVelocityTitle'), description: t('home.manualAntiAbuseVelocityDesc') },
-  { title: t('home.manualAntiAbuseFreezeTitle'), description: t('home.manualAntiAbuseFreezeDesc') },
-  { title: t('home.manualAntiAbuseAppealTitle'), description: t('home.manualAntiAbuseAppealDesc') },
-])
-
-const manualScreenshotCards = computed(() => [
-  {
-    title: t('home.manualScreenshotBannerTitle'),
-    description: t('home.manualScreenshotBannerDesc'),
-    image: '/brand/export/chrome-store-screenshots/store-screenshot-01-news-banner-1280x800.png',
-    alt: t('home.manualScreenshotBannerAlt'),
-  },
-  {
-    title: t('home.manualScreenshotVoteTitle'),
-    description: t('home.manualScreenshotVoteDesc'),
-    image: '/brand/export/chrome-store-screenshots/store-screenshot-02-vote-panel-1280x800.png',
-    alt: t('home.manualScreenshotVoteAlt'),
-  },
-  {
-    title: t('home.manualScreenshotSearchTitle'),
-    description: t('home.manualScreenshotSearchDesc'),
-    image: '/brand/export/manual-screenshots/manual-news-search.png',
-    alt: t('home.manualScreenshotSearchAlt'),
-  },
-  {
-    title: t('home.manualScreenshotEvidenceTitle'),
-    description: t('home.manualScreenshotEvidenceDesc'),
-    image: '/brand/export/chrome-store-screenshots/store-screenshot-04-evidence-library-1280x800.png',
-    alt: t('home.manualScreenshotEvidenceAlt'),
-  },
-  {
-    title: t('home.manualScreenshotOfficialTitle'),
-    description: t('home.manualScreenshotOfficialDesc'),
-    image: '/brand/export/manual-screenshots/manual-official-response-policy.png',
-    alt: t('home.manualScreenshotOfficialAlt'),
-  },
-  {
-    title: t('home.manualScreenshotAchievementTitle'),
-    description: t('home.manualScreenshotAchievementDesc'),
-    image: '/brand/export/manual-screenshots/manual-profile-achievements.png',
-    alt: t('home.manualScreenshotAchievementAlt'),
-  },
-])
-
-const extensionInterfaceCards = computed(() => [
-  {
-    title: t('home.extensionInterfaceContextTitle'),
-    description: t('home.extensionInterfaceContextDesc'),
-    badge: t('home.extensionInterfaceContextBadge'),
-    kind: 'context',
-  },
-  {
-    title: t('home.extensionInterfaceTooltipTitle'),
-    description: t('home.extensionInterfaceTooltipDesc'),
-    badge: t('home.extensionInterfaceTooltipBadge'),
-    kind: 'tooltip',
-  },
-  {
-    title: t('home.extensionInterfaceBannerTitle'),
-    description: t('home.extensionInterfaceBannerDesc'),
-    badge: t('home.extensionInterfaceBannerBadge'),
-    image: '/brand/export/chrome-store-screenshots/store-screenshot-01-news-banner-1280x800.png',
-    alt: t('home.manualScreenshotBannerAlt'),
-  },
-  {
-    title: t('home.extensionInterfacePanelTitle'),
-    description: t('home.extensionInterfacePanelDesc'),
-    badge: t('home.extensionInterfacePanelBadge'),
-    image: '/brand/export/chrome-store-screenshots/store-screenshot-02-vote-panel-1280x800.png',
-    alt: t('home.manualScreenshotVoteAlt'),
-  },
-  {
-    title: t('home.extensionInterfaceYoutubeTitle'),
-    description: t('home.extensionInterfaceYoutubeDesc'),
-    badge: t('home.extensionInterfaceYoutubeBadge'),
-    image: '/brand/export/chrome-store-screenshots/store-screenshot-03-youtube-badge-1280x800.png',
-    alt: t('home.extensionInterfaceYoutubeAlt'),
-  },
-  {
-    title: t('home.extensionInterfacePopupTitle'),
-    description: t('home.extensionInterfacePopupDesc'),
-    badge: t('home.extensionInterfacePopupBadge'),
-    kind: 'popup',
-  },
-])
-
-const trustFormulaParts = computed(() => [
-  { label: t('home.trustFormulaBase'), value: t('home.trustFormulaBaseValue') },
-  { label: t('home.trustFormulaIdentity'), value: t('home.trustFormulaIdentityValue') },
-  { label: t('home.trustFormulaAbuse'), value: t('home.trustFormulaAbuseValue') },
-])
-
-const officialResponseFlow = computed(() => [
-  { title: t('home.officialFlowProfileTitle'), description: t('home.officialFlowProfileDesc') },
-  { title: t('home.officialFlowReviewTitle'), description: t('home.officialFlowReviewDesc') },
-  { title: t('home.officialFlowSubmitTitle'), description: t('home.officialFlowSubmitDesc') },
-  { title: t('home.officialFlowPublishTitle'), description: t('home.officialFlowPublishDesc') },
 ])
 
 const pledges = computed(() => [
@@ -271,6 +145,9 @@ onMounted(async () => {
           <div class="flex flex-wrap gap-3">
             <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/extension-install">
               {{ t('home.installExtensionCta') }}
+            </RouterLink>
+            <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/demo-news">
+              {{ t('home.demoNewsCta') }}
             </RouterLink>
             <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/news-search">
               {{ t('home.primaryCta') }}
@@ -373,255 +250,42 @@ onMounted(async () => {
       </section>
 
       <section class="border-t border-white/10 py-8">
-        <div class="grid gap-6 rounded-lg border border-white/10 bg-white/[0.03] p-5 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)]">
+        <div class="grid gap-6 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
           <div>
-            <p class="text-sm font-semibold text-cyan-300">{{ t('home.manualEyebrow') }}</p>
-            <h2 class="mt-2 text-3xl font-semibold text-white">{{ t('home.manualTitle') }}</h2>
-            <p class="mt-4 text-sm leading-7 text-zinc-300">{{ t('home.manualIntro') }}</p>
-            <div class="mt-5 overflow-hidden rounded-lg border border-cyan-300/20 bg-zinc-950">
-              <img class="w-full border-b border-white/10" src="/brand/export/social-preview-1200x630.png" :alt="t('home.manualImageAlt')" />
-              <div class="grid gap-2 p-4 text-sm text-zinc-300">
-                <div v-for="reason in manualReasons" :key="reason" class="flex gap-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
-                  <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-300"></span>
-                  <span class="leading-6">{{ reason }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="mt-4 flex flex-wrap gap-3">
-              <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/extension-install">
-                {{ t('home.manualInstallCta') }}
+            <p class="text-sm font-semibold text-cyan-300">{{ t('home.demoEyebrow') }}</p>
+            <h2 class="mt-2 text-3xl font-semibold text-white">{{ t('home.demoTitle') }}</h2>
+            <p class="mt-4 text-sm leading-7 text-zinc-300">{{ t('home.demoIntro') }}</p>
+            <div class="mt-5 flex flex-wrap gap-3">
+              <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/demo-news">
+                {{ t('home.demoNewsCta') }}
               </RouterLink>
               <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" to="/user-guide">
                 {{ t('home.manualGuideCta') }}
               </RouterLink>
             </div>
           </div>
-
-          <div class="grid gap-3 md:grid-cols-2">
-            <article
-              v-for="step in userManualSteps"
-              :key="step.number"
-              class="overflow-hidden rounded-lg border border-white/10 bg-zinc-950"
-            >
-              <div class="relative min-h-36 border-b border-white/10 bg-zinc-900 p-4">
-                <div class="flex items-center justify-between gap-3">
-                  <span class="text-sm font-semibold text-zinc-500">{{ step.number }}</span>
-                  <span
-                    class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                    :class="{
-                      'bg-cyan-300/15 text-cyan-100': step.tone === 'cyan',
-                      'bg-red-500/15 text-red-100': step.tone === 'red',
-                      'bg-orange-400/15 text-orange-100': step.tone === 'orange',
-                      'bg-emerald-400/15 text-emerald-100': step.tone === 'emerald',
-                    }"
-                  >
-                    {{ step.badge }}
-                  </span>
-                </div>
-                <div class="mt-5 rounded-md border border-white/10 bg-black/40 p-3">
-                  <div class="mb-3 flex items-center gap-2">
-                    <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
-                    <span class="h-2.5 w-2.5 rounded-full bg-orange-300"></span>
-                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-300"></span>
-                  </div>
-                  <div class="space-y-2">
-                    <div class="h-2 rounded-full bg-white/20"></div>
-                    <div class="h-2 w-3/4 rounded-full bg-white/10"></div>
-                    <div
-                      class="mt-3 h-7 rounded-md"
-                      :class="{
-                        'bg-cyan-300/50': step.tone === 'cyan',
-                        'bg-red-500/50': step.tone === 'red',
-                        'bg-orange-400/50': step.tone === 'orange',
-                        'bg-emerald-400/50': step.tone === 'emerald',
-                      }"
-                    ></div>
-                  </div>
-                </div>
+          <div class="relative rounded-lg border border-white/10 bg-zinc-950 p-4">
+            <div class="rounded-md border border-white/10 bg-zinc-900 p-4">
+              <div class="mb-3 flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+                <span class="text-sm font-semibold text-cyan-200">TruthShield</span>
+                <span class="rounded bg-red-500/20 px-2 py-1 text-xs font-semibold text-red-100">{{ t('home.tagExample') }}</span>
               </div>
-              <div class="p-4">
-                <h3 class="text-base font-semibold text-white">{{ step.title }}</h3>
-                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ step.description }}</p>
-              </div>
-            </article>
-          </div>
-        </div>
-
-        <div class="mt-6 rounded-lg border border-white/10 bg-zinc-950 p-5">
-          <div class="max-w-3xl">
-            <p class="text-sm font-semibold text-cyan-300">{{ t('home.manualScreenshotEyebrow') }}</p>
-            <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.manualScreenshotTitle') }}</h3>
-            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('home.manualScreenshotIntro') }}</p>
-          </div>
-          <div class="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <article v-for="card in manualScreenshotCards" :key="card.title" class="overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]">
-              <img class="aspect-[16/10] w-full object-cover object-top" :src="card.image" :alt="card.alt" loading="lazy" />
-              <div class="p-4">
-                <h4 class="text-sm font-semibold text-white">{{ card.title }}</h4>
-                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ card.description }}</p>
-              </div>
-            </article>
-          </div>
-        </div>
-
-        <div class="mt-6 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5">
-          <div class="grid gap-4 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
-            <div>
-              <p class="text-sm font-semibold text-cyan-300">{{ t('home.extensionInterfaceEyebrow') }}</p>
-              <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.extensionInterfaceTitle') }}</h3>
-              <p class="mt-3 text-sm leading-7 text-zinc-300">{{ t('home.extensionInterfaceIntro') }}</p>
-              <div class="mt-5 rounded-lg border border-cyan-300/20 bg-zinc-950 p-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">{{ t('home.extensionInterfaceMainAction') }}</p>
-                <p class="mt-2 text-sm leading-6 text-zinc-300">{{ t('home.extensionInterfaceMainActionDesc') }}</p>
+              <p class="text-xs text-zinc-500">{{ t('home.demoArticleLabel') }}</p>
+              <h3 class="mt-2 text-xl font-semibold text-white">{{ t('home.demoArticleTitle') }}</h3>
+              <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('home.demoArticleExcerpt') }}</p>
+              <div class="mt-4 inline-flex rounded-md border border-cyan-300/40 px-3 py-2 text-sm font-semibold text-cyan-100">
+                {{ t('home.demoRightClickHint') }}
               </div>
             </div>
-
-            <div class="grid gap-3 md:grid-cols-2">
-              <article v-for="card in extensionInterfaceCards" :key="card.title" class="overflow-hidden rounded-lg border border-white/10 bg-zinc-950">
-                <div v-if="card.image" class="border-b border-white/10">
-                  <img class="aspect-[16/10] w-full object-cover object-top" :src="card.image" :alt="card.alt" loading="lazy" />
-                </div>
-                <div v-else-if="card.kind === 'context'" class="border-b border-white/10 bg-zinc-900 p-4">
-                  <div class="rounded-md border border-white/10 bg-black/50 p-3 text-sm text-zinc-200">
-                    <div class="rounded px-2 py-1 hover:bg-cyan-300/10">{{ t('home.extensionContextMenuStatus') }}</div>
-                    <div class="rounded px-2 py-1 hover:bg-cyan-300/10">{{ t('home.extensionContextMenuVote') }}</div>
-                    <div class="rounded px-2 py-1 hover:bg-cyan-300/10">{{ t('home.extensionContextMenuReport') }}</div>
-                  </div>
-                </div>
-                <div v-else-if="card.kind === 'tooltip'" class="border-b border-white/10 bg-zinc-900 p-4">
-                  <div class="rounded-lg border border-red-300/30 bg-black p-4 shadow-2xl shadow-red-950/30">
-                    <div class="flex items-center justify-between gap-3">
-                      <span class="text-sm font-semibold text-cyan-200">TruthShield</span>
-                      <span class="text-xs text-zinc-500">{{ t('home.extensionTooltipLive') }}</span>
-                    </div>
-                    <p class="mt-3 text-sm font-semibold text-white">{{ t('home.extensionTooltipExample') }}</p>
-                    <p class="mt-1 text-xs text-zinc-400">{{ t('home.extensionTooltipHint') }}</p>
-                  </div>
-                </div>
-                <div v-else class="border-b border-white/10 bg-zinc-900 p-4">
-                  <div class="rounded-lg border border-white/10 bg-black/60 p-4">
-                    <div class="flex items-center gap-3">
-                      <img class="h-8 w-8" src="/brand/truthshield-mark.svg" alt="" />
-                      <div>
-                        <p class="text-sm font-semibold text-white">TruthShield</p>
-                        <p class="text-xs text-zinc-500">{{ t('home.extensionPopupStatus') }}</p>
-                      </div>
-                    </div>
-                    <div class="mt-4 grid gap-2">
-                      <span class="rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950">{{ t('home.extensionPopupOpenPanel') }}</span>
-                      <span class="rounded-md border border-white/10 px-3 py-2 text-xs text-zinc-300">{{ t('home.extensionPopupReport') }}</span>
-                      <span class="rounded-md border border-white/10 px-3 py-2 text-xs text-zinc-300">{{ t('home.extensionPopupSettings') }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="p-4">
-                  <span class="rounded-full bg-cyan-300/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-100">{{ card.badge }}</span>
-                  <h4 class="mt-3 text-sm font-semibold text-white">{{ card.title }}</h4>
-                  <p class="mt-2 text-sm leading-6 text-zinc-400">{{ card.description }}</p>
-                </div>
-              </article>
+            <div class="absolute -right-2 top-8 hidden w-72 rounded-lg border border-red-300/30 bg-black p-4 shadow-2xl shadow-red-950/40 md:block">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-cyan-200">TruthShield</span>
+                <span class="text-xs text-zinc-500">{{ t('home.extensionTooltipLive') }}</span>
+              </div>
+              <p class="mt-3 text-sm font-semibold text-white">{{ t('home.extensionTooltipExample') }}</p>
+              <p class="mt-1 text-xs text-zinc-400">{{ t('home.extensionTooltipHint') }}</p>
             </div>
           </div>
-        </div>
-
-        <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <section class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5">
-            <p class="text-sm font-semibold text-cyan-300">{{ t('home.trustFormulaEyebrow') }}</p>
-            <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.trustFormulaTitle') }}</h3>
-            <p class="mt-3 text-sm leading-6 text-zinc-300">{{ t('home.trustFormulaIntro') }}</p>
-            <div class="mt-5 rounded-lg border border-cyan-300/20 bg-zinc-950 p-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">{{ t('home.trustFormulaLabel') }}</p>
-              <p class="mt-3 break-words font-mono text-sm leading-7 text-white">{{ t('home.trustFormulaEquation') }}</p>
-            </div>
-            <div class="mt-4 grid gap-3 sm:grid-cols-3">
-              <article v-for="part in trustFormulaParts" :key="part.label" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
-                <p class="text-xs font-semibold text-cyan-100">{{ part.label }}</p>
-                <p class="mt-2 text-xs leading-5 text-zinc-400">{{ part.value }}</p>
-              </article>
-            </div>
-            <p class="mt-4 text-xs leading-5 text-zinc-500">{{ t('home.trustFormulaNote') }}</p>
-          </section>
-
-          <section class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
-            <p class="text-sm font-semibold text-cyan-300">{{ t('home.officialFlowEyebrow') }}</p>
-            <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.officialFlowTitle') }}</h3>
-            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('home.officialFlowIntro') }}</p>
-            <div class="mt-5 space-y-3">
-              <article v-for="(item, index) in officialResponseFlow" :key="item.title" class="flex gap-3 rounded-md border border-white/10 bg-zinc-950/70 p-4">
-                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-cyan-300 text-xs font-semibold text-zinc-950">{{ index + 1 }}</span>
-                <div>
-                  <h4 class="text-sm font-semibold text-white">{{ item.title }}</h4>
-                  <p class="mt-1 text-sm leading-6 text-zinc-400">{{ item.description }}</p>
-                </div>
-              </article>
-            </div>
-            <div class="mt-5 flex flex-wrap gap-3">
-              <RouterLink class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/official-response-policy">
-                {{ t('home.officialFlowPolicyCta') }}
-              </RouterLink>
-              <RouterLink class="rounded-md border border-white/15 px-4 py-2 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" to="/news-search">
-                {{ t('home.officialFlowSearchCta') }}
-              </RouterLink>
-            </div>
-          </section>
-        </div>
-
-        <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-          <section class="rounded-lg border border-white/10 bg-zinc-950 p-5">
-            <div class="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p class="text-sm font-semibold text-cyan-300">{{ t('home.manualChapterEyebrow') }}</p>
-                <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.manualChapterTitle') }}</h3>
-              </div>
-              <RouterLink class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/10" to="/user-guide">
-                {{ t('common.userGuide') }}
-              </RouterLink>
-            </div>
-            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('home.manualChapterIntro') }}</p>
-            <div class="mt-5 grid gap-3 md:grid-cols-2">
-              <article
-                v-for="chapter in manualChapters"
-                :key="chapter.title"
-                class="rounded-lg border border-white/10 bg-white/[0.03] p-4"
-              >
-                <div class="flex items-start gap-3">
-                  <span
-                    class="mt-1 h-3 w-3 shrink-0 rounded-full"
-                    :class="{
-                      'bg-cyan-300': chapter.accent === 'cyan',
-                      'bg-orange-300': chapter.accent === 'orange',
-                      'bg-emerald-300': chapter.accent === 'emerald',
-                      'bg-violet-300': chapter.accent === 'violet',
-                      'bg-red-300': chapter.accent === 'red',
-                      'bg-zinc-400': chapter.accent === 'zinc',
-                    }"
-                  ></span>
-                  <div>
-                    <h4 class="text-sm font-semibold text-white">{{ chapter.title }}</h4>
-                    <p class="mt-2 text-sm leading-6 text-zinc-400">{{ chapter.description }}</p>
-                    <RouterLink class="mt-3 inline-flex text-xs font-semibold text-cyan-200 hover:text-cyan-100" :to="chapter.to">
-                      {{ chapter.label }} →
-                    </RouterLink>
-                  </div>
-                </div>
-              </article>
-            </div>
-          </section>
-
-          <aside class="rounded-lg border border-red-300/20 bg-red-500/[0.04] p-5">
-            <p class="text-sm font-semibold text-red-200">{{ t('home.manualAntiAbuseEyebrow') }}</p>
-            <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.manualAntiAbuseTitle') }}</h3>
-            <p class="mt-3 text-sm leading-6 text-zinc-300">{{ t('home.manualAntiAbuseIntro') }}</p>
-            <div class="mt-5 space-y-3">
-              <article v-for="item in manualAntiAbuse" :key="item.title" class="rounded-md border border-white/10 bg-zinc-950/70 p-4">
-                <h4 class="text-sm font-semibold text-white">{{ item.title }}</h4>
-                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ item.description }}</p>
-              </article>
-            </div>
-            <RouterLink class="mt-5 inline-flex rounded-md border border-red-300/40 px-4 py-2 text-sm font-semibold text-red-100 hover:bg-red-300/10" to="/algorithm">
-              {{ t('home.manualAntiAbuseCta') }}
-            </RouterLink>
-          </aside>
         </div>
       </section>
 
