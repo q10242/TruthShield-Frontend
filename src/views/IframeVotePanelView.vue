@@ -1009,6 +1009,7 @@ onMounted(async () => {
         <details class="rounded-md border border-white/10 bg-zinc-950/70 p-3 text-xs text-zinc-400">
           <summary class="cursor-pointer font-semibold text-cyan-100">{{ t('votePanel.tagCriteria') }}</summary>
           <p class="mt-2 leading-5">{{ selectedTagCriteria }}</p>
+          <p class="mt-2 leading-5 text-zinc-500">{{ t('votePanel.evidenceRuleSummary') }}</p>
           <p class="mt-2 leading-5">{{ selectedEvidenceGuidance }}</p>
         </details>
 

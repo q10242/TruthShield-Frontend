@@ -66,6 +66,13 @@ const votingSteps = computed(() => [
   { title: t('userGuide.voteStep4Title'), description: t('userGuide.voteStep4Desc') },
 ])
 
+const evidenceRequirementCards = computed(() => [
+  { title: t('userGuide.evidenceRequirementStrongTitle'), description: t('userGuide.evidenceRequirementStrongDesc') },
+  { title: t('userGuide.evidenceRequirementContextTitle'), description: t('userGuide.evidenceRequirementContextDesc') },
+  { title: t('userGuide.evidenceRequirementDisclosureTitle'), description: t('userGuide.evidenceRequirementDisclosureDesc') },
+  { title: t('userGuide.evidenceRequirementPositiveTitle'), description: t('userGuide.evidenceRequirementPositiveDesc') },
+])
+
 const trustParts = computed(() => [
   { label: t('home.trustFormulaBase'), value: t('home.trustFormulaBaseValue') },
   { label: t('home.trustFormulaIdentity'), value: t('home.trustFormulaIdentityValue') },
@@ -229,6 +236,16 @@ onMounted(() => trackPageView('user_guide'))
                 <h3 class="mt-3 text-sm font-semibold text-white">{{ step.title }}</h3>
                 <p class="mt-2 text-sm leading-6 text-zinc-400">{{ step.description }}</p>
               </article>
+            </div>
+            <div class="mt-5 rounded-lg border border-amber-300/20 bg-amber-300/[0.06] p-4">
+              <h3 class="text-sm font-semibold text-amber-100">{{ t('userGuide.evidenceRequirementTitle') }}</h3>
+              <p class="mt-2 text-sm leading-6 text-amber-50/80">{{ t('userGuide.evidenceRequirementIntro') }}</p>
+              <div class="mt-4 grid gap-3 md:grid-cols-2">
+                <article v-for="item in evidenceRequirementCards" :key="item.title" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+                  <h4 class="text-sm font-semibold text-white">{{ item.title }}</h4>
+                  <p class="mt-2 text-sm leading-6 text-zinc-400">{{ item.description }}</p>
+                </article>
+              </div>
             </div>
           </section>
 

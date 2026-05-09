@@ -49,6 +49,10 @@ onMounted(async () => {
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">{{ t('labelGuide.eyebrow') }}</p>
       <h1 class="mt-3 text-3xl font-semibold text-white">{{ t('labelGuide.title') }}</h1>
       <p class="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">{{ t('labelGuide.intro') }}</p>
+      <div class="mt-5 rounded-lg border border-amber-300/20 bg-amber-300/[0.06] p-4">
+        <p class="text-sm font-semibold text-amber-100">{{ t('labelGuide.evidenceIntroTitle') }}</p>
+        <p class="mt-2 text-sm leading-6 text-amber-50/80">{{ t('labelGuide.evidenceIntro') }}</p>
+      </div>
 
       <div v-if="error" class="mt-6 rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{{ error }}</div>
       <div v-else-if="!tags.length" class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-zinc-400">{{ t('common.loading') }}</div>
