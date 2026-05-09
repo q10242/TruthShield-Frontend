@@ -693,6 +693,13 @@ onMounted(async () => {
   window.addEventListener('storage', loadAuth)
   window.addEventListener('message', async (event) => {
     if (event.data?.type === 'TRUTH_SHIELD_AUTH_UPDATED') {
+      if (event.origin === window.location.origin && event.data.token) {
+        localStorage.setItem(TOKEN_KEY, event.data.token)
+        if (event.data.user) {
+          localStorage.setItem(USER_KEY, JSON.stringify(event.data.user))
+        }
+      }
+
       await loadAuth()
       await syncReadSession()
     }

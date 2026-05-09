@@ -41,7 +41,11 @@ function useDemoAccount(account) {
 async function persistLogin(payload) {
   localStorage.setItem(TOKEN_KEY, payload.token)
   localStorage.setItem(USER_KEY, JSON.stringify(payload.user))
-  window.opener?.postMessage({ type: 'TRUTH_SHIELD_AUTH_UPDATED' }, window.location.origin)
+  window.opener?.postMessage({
+    type: 'TRUTH_SHIELD_AUTH_UPDATED',
+    token: payload.token,
+    user: payload.user,
+  }, window.location.origin)
   done.value = true
 
   window.setTimeout(() => {
