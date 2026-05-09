@@ -88,7 +88,10 @@ onMounted(async () => {
   <main class="min-w-[340px] bg-transparent p-3 text-zinc-100">
     <section class="rounded-lg border border-white/10 bg-zinc-950 p-4 shadow-xl shadow-black/30">
       <div class="mb-3 flex items-center justify-between gap-4">
-        <span class="text-xs font-semibold text-cyan-300">TruthShield</span>
+        <a class="inline-flex min-w-0 items-center gap-2 text-xs font-semibold text-cyan-300 hover:text-cyan-100" href="/" target="_blank" rel="noopener noreferrer">
+          <img class="h-5 w-5 shrink-0" src="/brand/truthshield-mark.svg" alt="" />
+          <span>TruthShield</span>
+        </a>
         <span class="text-xs text-zinc-500">{{ statusLoading ? t('remaining.tooltipChecking') : t('remaining.tooltipLive') }}</span>
       </div>
 

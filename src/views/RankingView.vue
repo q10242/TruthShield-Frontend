@@ -30,7 +30,7 @@ onMounted(async () => {
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-5xl">
       <nav class="mb-10 flex items-center justify-between border-b border-white/10 pb-5">
-        <RouterLink class="text-sm font-semibold tracking-wide text-white" to="/">TruthShield</RouterLink>
+        <BrandLink />
         <div class="flex gap-4 text-sm text-zinc-400">
           <RouterLink to="/evidence-library">{{ t('common.evidenceLibrary') }}</RouterLink>
           <RouterLink to="/transparency">{{ t('common.transparency') }}</RouterLink>

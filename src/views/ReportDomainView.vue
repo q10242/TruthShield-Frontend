@@ -195,7 +195,7 @@ onMounted(async () => {
   <main class="min-h-screen bg-zinc-950 px-5 py-8 text-zinc-100">
     <section class="mx-auto max-w-xl">
       <div class="mb-6">
-        <p class="text-sm font-semibold text-cyan-300">TruthShield</p>
+        <BrandLink />
         <h1 class="mt-2 text-2xl font-semibold text-white">{{ t('remaining.reportTitle') }}</h1>
         <p class="mt-2 text-sm leading-6 text-zinc-400">
           {{ t('remaining.reportIntro') }}

@@ -31,7 +31,7 @@ onMounted(async () => {
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-6xl">
       <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <RouterLink class="text-sm font-semibold text-white" to="/">TruthShield</RouterLink>
+        <BrandLink />
         <RouterLink class="text-sm text-cyan-200" to="/platform-rules">{{ t('common.platformRules') }}</RouterLink>
       </nav>
 

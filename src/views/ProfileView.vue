@@ -122,7 +122,7 @@ onMounted(async () => {
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-4xl">
       <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <RouterLink class="text-sm font-semibold text-white" to="/">TruthShield</RouterLink>
+        <BrandLink />
         <button v-if="token" class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300" @click="signOut">{{ t('common.signOut') }}</button>
       </nav>
 

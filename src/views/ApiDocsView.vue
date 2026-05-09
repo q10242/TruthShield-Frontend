@@ -83,7 +83,7 @@ onMounted(async () => {
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-4xl">
       <nav class="mb-8 border-b border-white/10 pb-5">
-        <RouterLink class="text-sm font-semibold text-white" to="/">TruthShield</RouterLink>
+        <BrandLink />
       </nav>
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.apiDocsTitle') }}</h1>
       <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('remaining.apiDocsIntro') }}</p>

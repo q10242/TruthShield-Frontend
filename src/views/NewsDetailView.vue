@@ -19,9 +19,12 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <RouterLink class="text-sm font-semibold text-white" to="/news-search">{{ t('remaining.newsSearchTitle') }}</RouterLink>
-        <RouterLink class="text-sm text-zinc-400" to="/evidence-library">{{ t('common.evidenceLibrary') }}</RouterLink>
+      <nav class="mb-8 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
+        <BrandLink />
+        <div class="flex flex-wrap items-center gap-4 text-sm">
+          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/news-search">{{ t('remaining.newsSearchTitle') }}</RouterLink>
+          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/evidence-library">{{ t('common.evidenceLibrary') }}</RouterLink>
+        </div>
       </nav>
 
       <template v-if="payload">

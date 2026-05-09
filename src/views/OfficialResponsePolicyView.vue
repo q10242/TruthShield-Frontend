@@ -10,7 +10,7 @@ const doc = legalDocument(locale.value, 'officialResponse')
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-4xl">
-      <RouterLink class="text-sm font-semibold text-white" to="/">TruthShield</RouterLink>
+      <BrandLink />
       <p class="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">{{ doc.subtitle }}</p>
       <h1 class="mt-3 text-3xl font-semibold text-white">{{ doc.title }}</h1>
       <p class="mt-2 text-xs text-zinc-500">{{ t('remaining.effectiveDate') }} {{ doc.effectiveDate }}</p>

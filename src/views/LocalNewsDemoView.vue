@@ -9,7 +9,8 @@ const { t } = useI18n()
 <template>
   <main class="min-h-screen bg-zinc-950 text-zinc-100">
     <article class="mx-auto max-w-3xl px-5 py-10">
-      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">TruthShield Local QA</p>
+      <BrandLink />
+      <p class="mt-4 text-xs font-semibold uppercase text-cyan-300">Local QA</p>
       <h1 class="mt-4 text-3xl font-bold leading-tight text-white">
         {{ t('remaining.localQaTitle') }}
       </h1>

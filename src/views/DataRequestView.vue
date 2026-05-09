@@ -24,7 +24,7 @@ async function submit() {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-2xl">
-      <RouterLink class="text-sm font-semibold text-white" to="/">TruthShield</RouterLink>
+      <BrandLink />
       <h1 class="mt-8 text-3xl font-semibold text-white">{{ t('remaining.dataRequestTitle') }}</h1>
       <form class="mt-6 space-y-4 rounded-lg border border-white/10 bg-white/[0.03] p-5" @submit.prevent="submit">
         <input v-model="form.email" required type="email" class="w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white" :placeholder="t('remaining.emailPlaceholder')" />

@@ -60,9 +60,12 @@ onMounted(load)
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <RouterLink class="text-sm font-semibold text-white" to="/community-tasks">{{ t('common.communityTasks') }}</RouterLink>
-        <RouterLink class="text-sm text-zinc-400 hover:text-cyan-100" to="/moderation-events">{{ t('common.moderationEvents') }}</RouterLink>
+      <nav class="mb-8 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
+        <BrandLink />
+        <div class="flex flex-wrap items-center gap-4 text-sm">
+          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/community-tasks">{{ t('common.communityTasks') }}</RouterLink>
+          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/moderation-events">{{ t('common.moderationEvents') }}</RouterLink>
+        </div>
       </nav>
 
       <div v-if="error" class="rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{{ error }}</div>

@@ -49,7 +49,7 @@ onMounted(async () => {
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-3xl">
       <nav class="mb-8 border-b border-white/10 pb-5">
-        <RouterLink class="text-sm font-semibold text-white" to="/">TruthShield</RouterLink>
+        <BrandLink />
       </nav>
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.healthTitle') }}</h1>
       <div v-if="health" class="mt-6 grid gap-3 sm:grid-cols-3">
