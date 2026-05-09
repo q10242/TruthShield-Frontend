@@ -49,7 +49,11 @@ const articleBannerReportedUrls = new Set()
 const articleBannerSkippedUrls = new Set()
 let votePanelFrame = null
 let votePanelBackdrop = null
+let votePanelShell = null
 let votePanelUrl = ''
+let votePanelPosition = null
+let votePanelCollapsed = false
+let votePanelDrag = null
 let reportButton = null
 let activeAnchor = null
 let hideTimer = null
@@ -915,6 +919,98 @@ function ensureVotePanelFrame(url = window.location.href) {
   return openVotePanelModal(url)
 }
 
+function clampVotePanelPosition(left, top, width = votePanelShell?.offsetWidth || 420, height = votePanelShell?.offsetHeight || 620) {
+  const margin = 8
+  const maxLeft = Math.max(margin, window.innerWidth - width - margin)
+  const maxTop = Math.max(margin, window.innerHeight - height - margin)
+
+  return {
+    left: Math.max(margin, Math.min(left, maxLeft)),
+    top: Math.max(margin, Math.min(top, maxTop)),
+  }
+}
+
+function applyVotePanelPosition(position = votePanelPosition) {
+  if (!votePanelBackdrop || !votePanelShell) return
+
+  const shellWidth = votePanelCollapsed ? Math.min(240, window.innerWidth - 16) : Math.min(420, window.innerWidth - 32)
+  const shellHeight = votePanelShell.offsetHeight || (votePanelCollapsed ? 56 : 620)
+  const fallback = {
+    left: window.innerWidth - shellWidth - 16,
+    top: 72,
+  }
+  const next = clampVotePanelPosition(position?.left ?? fallback.left, position?.top ?? fallback.top, shellWidth, shellHeight)
+
+  votePanelPosition = next
+  votePanelBackdrop.style.left = `${next.left}px`
+  votePanelBackdrop.style.top = `${next.top}px`
+  votePanelBackdrop.style.right = 'auto'
+  votePanelBackdrop.style.bottom = 'auto'
+  votePanelBackdrop.style.width = `${shellWidth}px`
+  votePanelBackdrop.style.height = 'auto'
+}
+
+function updateVotePanelShellSize(height, collapsed = votePanelCollapsed) {
+  if (!votePanelFrame || !votePanelShell) return
+
+  votePanelCollapsed = Boolean(collapsed)
+  const maxExpandedHeight = Math.max(300, Math.min(window.innerHeight - 88, 760))
+  const nextHeight = votePanelCollapsed ? Math.max(48, Math.min(Number(height) || 56, 96)) : Math.max(300, Math.min(Number(height) || 620, maxExpandedHeight))
+  const nextWidth = votePanelCollapsed ? 'min(240px, calc(100vw - 16px))' : 'min(420px, calc(100vw - 32px))'
+
+  votePanelFrame.style.height = `${nextHeight}px`
+  votePanelFrame.style.maxHeight = votePanelCollapsed ? '96px' : 'calc(100vh - 88px)'
+  votePanelShell.style.width = nextWidth
+  votePanelShell.style.maxHeight = votePanelCollapsed ? '96px' : 'calc(100vh - 88px)'
+
+  applyVotePanelPosition()
+}
+
+function startVotePanelDrag(event) {
+  if (!votePanelBackdrop || !votePanelShell || event.button !== 0) return
+
+  const target = event.target
+  if (target?.closest?.('button, a, input, textarea, select, label')) return
+
+  const rect = votePanelBackdrop.getBoundingClientRect()
+  votePanelDrag = {
+    pointerId: event.pointerId,
+    offsetX: event.clientX - rect.left,
+    offsetY: event.clientY - rect.top,
+    width: rect.width,
+    height: rect.height,
+  }
+
+  votePanelShell.setPointerCapture?.(event.pointerId)
+  votePanelShell.style.cursor = 'grabbing'
+  votePanelShell.style.userSelect = 'none'
+  votePanelFrame.style.pointerEvents = 'none'
+  event.preventDefault()
+}
+
+function moveVotePanelDrag(event) {
+  if (!votePanelDrag || event.pointerId !== votePanelDrag.pointerId) return
+
+  const next = clampVotePanelPosition(
+    event.clientX - votePanelDrag.offsetX,
+    event.clientY - votePanelDrag.offsetY,
+    votePanelDrag.width,
+    votePanelDrag.height,
+  )
+  applyVotePanelPosition(next)
+  event.preventDefault()
+}
+
+function stopVotePanelDrag(event) {
+  if (!votePanelDrag || event.pointerId !== votePanelDrag.pointerId) return
+
+  votePanelShell?.releasePointerCapture?.(event.pointerId)
+  votePanelShell.style.cursor = 'grab'
+  votePanelShell.style.userSelect = ''
+  if (votePanelFrame) votePanelFrame.style.pointerEvents = 'auto'
+  votePanelDrag = null
+}
+
 function openVotePanelModal(targetUrl = window.location.href) {
   if (votePanelBackdrop && document.body.contains(votePanelBackdrop) && votePanelUrl === targetUrl) {
     return votePanelFrame
@@ -926,20 +1022,19 @@ function openVotePanelModal(targetUrl = window.location.href) {
   votePanelBackdrop = document.createElement('div')
   votePanelBackdrop.style.position = 'fixed'
   votePanelBackdrop.style.top = '72px'
-  votePanelBackdrop.style.right = '16px'
-  votePanelBackdrop.style.bottom = '16px'
+  votePanelBackdrop.style.right = 'auto'
+  votePanelBackdrop.style.bottom = 'auto'
   votePanelBackdrop.style.left = 'auto'
   votePanelBackdrop.style.zIndex = '2147483647'
   votePanelBackdrop.style.background = 'transparent'
-  votePanelBackdrop.style.display = 'flex'
-  votePanelBackdrop.style.alignItems = 'flex-start'
-  votePanelBackdrop.style.justifyContent = 'flex-end'
+  votePanelBackdrop.style.display = 'block'
   votePanelBackdrop.style.padding = '0'
   votePanelBackdrop.style.boxSizing = 'border-box'
   votePanelBackdrop.style.colorScheme = 'normal'
   votePanelBackdrop.style.pointerEvents = 'none'
 
   const shell = document.createElement('div')
+  votePanelShell = shell
   shell.style.position = 'relative'
   shell.style.width = 'min(420px, calc(100vw - 32px))'
   shell.style.maxHeight = 'calc(100vh - 88px)'
@@ -949,6 +1044,29 @@ function openVotePanelModal(targetUrl = window.location.href) {
   shell.style.boxShadow = '0 28px 80px rgba(0, 0, 0, 0.48)'
   shell.style.overflow = 'hidden'
   shell.style.pointerEvents = 'auto'
+  shell.style.cursor = 'grab'
+  shell.style.touchAction = 'none'
+  shell.style.transition = 'width 160ms ease, max-height 160ms ease'
+  shell.addEventListener('pointerdown', startVotePanelDrag)
+  shell.addEventListener('pointermove', moveVotePanelDrag)
+  shell.addEventListener('pointerup', stopVotePanelDrag)
+  shell.addEventListener('pointercancel', stopVotePanelDrag)
+
+  const dragHandle = document.createElement('div')
+  dragHandle.setAttribute('aria-hidden', 'true')
+  dragHandle.style.position = 'absolute'
+  dragHandle.style.top = '6px'
+  dragHandle.style.left = '50%'
+  dragHandle.style.transform = 'translateX(-50%)'
+  dragHandle.style.zIndex = '2'
+  dragHandle.style.width = '42px'
+  dragHandle.style.height = '16px'
+  dragHandle.style.borderRadius = '999px'
+  dragHandle.style.background = 'rgba(255, 255, 255, 0.08)'
+  dragHandle.style.boxShadow = 'inset 0 0 0 1px rgba(255, 255, 255, 0.08)'
+  dragHandle.style.cursor = 'grab'
+  dragHandle.style.pointerEvents = 'auto'
+  dragHandle.innerHTML = '<span style="display:block;width:18px;height:3px;margin:6px auto 0;border-radius:999px;background:rgba(103,232,249,.72);"></span>'
 
   const closeButton = document.createElement('button')
   closeButton.type = 'button'
@@ -992,9 +1110,10 @@ function openVotePanelModal(targetUrl = window.location.href) {
   }
   votePanelFrame.src = panelUrl.toString()
 
-  shell.append(closeButton, votePanelFrame)
+  shell.append(dragHandle, closeButton, votePanelFrame)
   votePanelBackdrop.appendChild(shell)
   document.documentElement.appendChild(votePanelBackdrop)
+  updateVotePanelShellSize(620, false)
   reportExtensionEvent('vote_panel_opened', true, { mode: 'side_panel_from_banner' })
   startArticleReadTimer()
 
@@ -1008,7 +1127,10 @@ function closeVotePanelModal() {
 
   votePanelBackdrop = null
   votePanelFrame = null
+  votePanelShell = null
   votePanelUrl = ''
+  votePanelCollapsed = false
+  votePanelDrag = null
 }
 
 function maybeInjectVotePanel() {
@@ -1204,8 +1326,13 @@ window.addEventListener('message', (event) => {
   }
 
   if (event.data?.type === 'TRUTH_SHIELD_VOTE_PANEL_RESIZE' && votePanelFrame) {
-    const height = Number(event.data.height)
-    votePanelFrame.style.height = `${Math.max(300, Math.min(height, window.innerHeight - 88, 760))}px`
+    updateVotePanelShellSize(Number(event.data.height), Boolean(event.data.collapsed))
+  }
+})
+
+window.addEventListener('resize', () => {
+  if (votePanelBackdrop && votePanelShell) {
+    updateVotePanelShellSize(votePanelFrame?.offsetHeight || 620, votePanelCollapsed)
   }
 })
 

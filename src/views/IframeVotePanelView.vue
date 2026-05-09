@@ -191,10 +191,14 @@ function readStoredUser() {
 
 function notifyHeight() {
   nextTick(() => {
+    const height = collapsed.value
+      ? Math.ceil(document.body.getBoundingClientRect().height || document.documentElement.scrollHeight)
+      : document.documentElement.scrollHeight
+
     window.parent?.postMessage(
       {
         type: 'TRUTH_SHIELD_VOTE_PANEL_RESIZE',
-        height: document.documentElement.scrollHeight,
+        height,
         collapsed: collapsed.value,
       },
       '*',
@@ -707,7 +711,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="min-w-[360px] bg-transparent p-3 text-zinc-100">
+  <main class="min-w-0 bg-transparent p-3 text-zinc-100">
     <button
       v-if="collapsed"
       class="ml-auto flex items-center gap-2 rounded-full border border-cyan-300/40 bg-zinc-950 px-4 py-3 text-sm font-semibold text-cyan-100 shadow-2xl shadow-black/40"
