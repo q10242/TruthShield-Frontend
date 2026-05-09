@@ -9,18 +9,13 @@ const { t } = useI18n()
 const health = ref(null)
 const botConfig = ref(null)
 const loading = ref(true)
-const localCheckSkipped = ref(false)
 const zipGeneratedAt = new Date(import.meta.env.VITE_BUILD_TIME || document.lastModified || Date.now()).toLocaleString()
-
-function isLocalHostname(hostname) {
-  return ['localhost', '127.0.0.1', '::1'].includes(hostname) || hostname.endsWith('.localhost')
-}
 
 const installSteps = computed(() => [
   {
     title: t('extensionInstall.stepDownloadTitle'),
     description: t('extensionInstall.stepDownloadDesc'),
-    code: 'truth-shield-web/public/extension',
+    code: 'truthshield-extension.zip',
   },
   {
     title: t('extensionInstall.stepChromeTitle'),
@@ -30,12 +25,12 @@ const installSteps = computed(() => [
   {
     title: t('extensionInstall.stepLoadTitle'),
     description: t('extensionInstall.stepLoadDesc'),
-    code: 'public/extension',
+    code: 'folder containing manifest.json',
   },
   {
     title: t('extensionInstall.stepVerifyTitle'),
     description: t('extensionInstall.stepVerifyDesc'),
-    code: 'http://127.0.0.1:15173/local-news-demo',
+    code: 'https://www.cna.com.tw/',
   },
 ])
 
@@ -61,12 +56,6 @@ const updateSteps = computed(() => [
 ])
 
 onMounted(async () => {
-  if (!isLocalHostname(window.location.hostname)) {
-    localCheckSkipped.value = true
-    loading.value = false
-    return
-  }
-
   loading.value = true
   const [healthPayload, botPayload] = await Promise.all([
     fetchSystemHealth().catch(() => null),
@@ -87,9 +76,6 @@ onMounted(async () => {
           <span>TruthShield</span>
         </RouterLink>
         <div class="flex flex-wrap gap-2">
-          <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/local-qa-checklist">
-            {{ t('common.localQaChecklist') }}
-          </RouterLink>
           <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/extension-coverage">
             {{ t('common.extensionCoverage') }}
           </RouterLink>
@@ -120,9 +106,6 @@ onMounted(async () => {
             <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="chrome://extensions">
               {{ t('extensionInstall.openChromeExtensions') }}
             </a>
-            <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" to="/local-news-demo">
-              {{ t('extensionInstall.testDemo') }}
-            </RouterLink>
           </div>
           <p class="mt-3 text-xs leading-5 text-zinc-500">{{ t('extensionInstall.zipNote') }}</p>
         </div>
@@ -133,7 +116,7 @@ onMounted(async () => {
             <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
               <p class="text-xs text-zinc-500">API</p>
               <p class="mt-1 text-sm font-semibold" :class="health?.ok ? 'text-emerald-200' : 'text-amber-200'">
-                {{ loading ? t('common.loading') : localCheckSkipped ? t('extensionInstall.localCheckSkipped') : health?.ok ? t('extensionInstall.healthy') : t('extensionInstall.needsCheck') }}
+                {{ loading ? t('common.loading') : health?.ok ? t('extensionInstall.healthy') : t('extensionInstall.needsCheck') }}
               </p>
             </div>
             <div v-for="card in capabilityCards" :key="card.label" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
@@ -157,8 +140,8 @@ onMounted(async () => {
         <h2 class="text-lg font-semibold text-white">{{ t('extensionInstall.packageTitle') }}</h2>
         <p class="mt-2 text-sm leading-6 text-zinc-400">{{ t('extensionInstall.packageDesc') }}</p>
         <div class="mt-4 grid gap-3 md:grid-cols-2">
-          <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">npm run package:extension</code>
-          <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">dist/truthshield-extension.zip</code>
+          <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">/truthshield-extension.zip</code>
+          <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">manifest.json</code>
         </div>
       </section>
 

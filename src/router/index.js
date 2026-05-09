@@ -22,7 +22,6 @@ import ExtensionInstallView from '../views/ExtensionInstallView.vue'
 import AccountGraphView from '../views/AccountGraphView.vue'
 import ApiClientsView from '../views/ApiClientsView.vue'
 import LaunchOpsView from '../views/LaunchOpsView.vue'
-import LocalNewsDemoView from '../views/LocalNewsDemoView.vue'
 import DonateView from '../views/DonateView.vue'
 import PrivacyView from '../views/PrivacyView.vue'
 import SecurityView from '../views/SecurityView.vue'
@@ -30,7 +29,6 @@ import TermsView from '../views/TermsView.vue'
 import GovernanceView from '../views/GovernanceView.vue'
 import DataRequestView from '../views/DataRequestView.vue'
 import VisionReadinessView from '../views/VisionReadinessView.vue'
-import LocalQaChecklistView from '../views/LocalQaChecklistView.vue'
 import CommunityTasksView from '../views/CommunityTasksView.vue'
 import CommunityTaskDetailView from '../views/CommunityTaskDetailView.vue'
 import PlatformRulesView from '../views/PlatformRulesView.vue'
@@ -38,6 +36,13 @@ import LabelGuideView from '../views/LabelGuideView.vue'
 import DataProcessingPolicyView from '../views/DataProcessingPolicyView.vue'
 import OfficialResponsePolicyView from '../views/OfficialResponsePolicyView.vue'
 import BugReportView from '../views/BugReportView.vue'
+
+const localRoutes = import.meta.env.DEV
+  ? [
+      { path: '/local-news-demo', name: 'local-news-demo', component: () => import('../views/LocalNewsDemoView.vue') },
+      { path: '/local-qa-checklist', name: 'local-qa-checklist', component: () => import('../views/LocalQaChecklistView.vue') },
+    ]
+  : []
 
 const router = createRouter({
   history: createWebHistory(),
@@ -62,8 +67,7 @@ const router = createRouter({
     { path: '/account-graph', name: 'account-graph', component: AccountGraphView },
     { path: '/api-clients', name: 'api-clients', component: ApiClientsView },
     { path: '/launch-ops', name: 'launch-ops', component: LaunchOpsView },
-    { path: '/local-news-demo', name: 'local-news-demo', component: LocalNewsDemoView },
-    { path: '/local-qa-checklist', name: 'local-qa-checklist', component: LocalQaChecklistView },
+    ...localRoutes,
     { path: '/community-tasks', name: 'community-tasks', component: CommunityTasksView },
     { path: '/community-tasks/:id', name: 'community-task-detail', component: CommunityTaskDetailView },
     { path: '/donate', name: 'donate', component: DonateView },

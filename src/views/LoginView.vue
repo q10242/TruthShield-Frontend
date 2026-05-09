@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { beginOauth, devLogin, oauthCallback } from '../lib/api'
 import { useI18n } from '../i18n'
@@ -17,10 +17,19 @@ const error = ref('')
 const done = ref(false)
 
 const redirectPath = computed(() => route.query.redirect || '/')
+const isLocalMode = computed(() => ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname) || window.location.hostname.endsWith('.localhost'))
 const demoAccounts = computed(() => [
   { label: t('auth.normalTester'), name: t('auth.defaultName'), email: 'checker@example.com' },
   { label: t('auth.seededTester'), name: t('auth.seededName'), email: 'tester@truthshield.local' },
 ])
+
+function decodeBase64Url(value) {
+  const padded = value.padEnd(value.length + ((4 - (value.length % 4)) % 4), '=')
+  const binary = atob(padded.replace(/-/g, '+').replace(/_/g, '/'))
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+
+  return new TextDecoder().decode(bytes)
+}
 
 function useDemoAccount(account) {
   name.value = account.name
@@ -43,6 +52,35 @@ async function persistLogin(payload) {
     window.location.assign(String(redirectPath.value))
   }, 600)
 }
+
+onMounted(async () => {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+
+  if (hash.get('oauth_error')) {
+    error.value = hash.get('oauth_error')
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    return
+  }
+
+  if (hash.get('truthshield_oauth') !== '1') return
+
+  const token = hash.get('token')
+  const encodedUser = hash.get('user')
+  if (!token || !encodedUser) {
+    error.value = t('auth.loginFailed')
+    return
+  }
+
+  try {
+    await persistLogin({
+      token,
+      user: JSON.parse(decodeBase64Url(encodedUser)),
+    })
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+  } catch (err) {
+    error.value = err.message || t('auth.loginFailed')
+  }
+})
 
 async function submit() {
   loading.value = true
@@ -135,10 +173,10 @@ async function realProviderLogin(provider) {
           <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('facebook')">Facebook</button>
           <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('google')">Google</button>
           <button class="rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:border-cyan-300/70" :disabled="loading" @click="realProviderLogin('github')">GitHub</button>
-          <button class="rounded-md border border-white/10 px-4 py-2 text-xs font-semibold text-zinc-300 hover:border-cyan-300/50" :disabled="loading" @click="providerLogin('google')">{{ t('auth.localOauth') }}</button>
+          <button v-if="isLocalMode" class="rounded-md border border-white/10 px-4 py-2 text-xs font-semibold text-zinc-300 hover:border-cyan-300/50" :disabled="loading" @click="providerLogin('google')">{{ t('auth.localOauth') }}</button>
         </div>
 
-        <div class="mb-5 rounded-md border border-white/10 bg-white/[0.03] p-3">
+        <div v-if="isLocalMode" class="mb-5 rounded-md border border-white/10 bg-white/[0.03] p-3">
           <p class="text-xs font-semibold text-zinc-400">{{ t('auth.demoAccounts') }}</p>
           <div class="mt-2 flex flex-wrap gap-2">
             <button
@@ -153,7 +191,7 @@ async function realProviderLogin(provider) {
           </div>
         </div>
 
-        <form class="space-y-4 border-t border-white/10 pt-5" @submit.prevent="submit">
+        <form v-if="isLocalMode" class="space-y-4 border-t border-white/10 pt-5" @submit.prevent="submit">
           <label class="block text-sm">
             <span class="text-zinc-300">{{ t('auth.testName') }}</span>
             <input v-model="name" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-cyan-300" />
@@ -174,6 +212,7 @@ async function realProviderLogin(provider) {
             {{ loading ? t('auth.signingIn') : t('auth.localLogin') }}
           </button>
         </form>
+        <p v-else-if="error" class="rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{{ error }}</p>
       </section>
     </section>
   </main>

@@ -110,7 +110,6 @@ function bindActions() {
   byId('openOptions').addEventListener('click', (event) => {
     chrome.runtime.openOptionsPage()
   })
-  byId('openDemo').addEventListener('click', () => openTab(truthUrl('/local-news-demo')))
   byId('openStatus').addEventListener('click', () => openWindow(truthUrl('/iframe-tooltip', { news_url: currentUrl() }), 420, 260))
   byId('openVote').addEventListener('click', openVotePanel)
   byId('openReport').addEventListener('click', async () => {

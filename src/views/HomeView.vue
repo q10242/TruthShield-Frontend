@@ -13,7 +13,7 @@ const { t } = useI18n()
 
 const primaryLinks = computed(() => [
   { to: '/extension-install', label: t('common.extensionInstall'), description: t('home.extensionInstallDesc'), mark: '01' },
-  { to: '/local-news-demo', label: t('common.localNewsDemo'), description: t('home.localNewsDemoDesc'), mark: '02' },
+  { to: '/news-search', label: t('common.newsSearch'), description: t('home.newsSearchDesc'), mark: '02' },
   { to: '/community-tasks', label: t('common.communityTasks'), description: t('home.communityTasksDesc'), mark: '03' },
   { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc'), mark: '04' },
   { to: '/transparency', label: t('common.transparency'), description: t('home.transparencyDesc'), mark: '05' },
@@ -127,7 +127,7 @@ onMounted(async () => {
             <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/extension-install">
               {{ t('home.installExtensionCta') }}
             </RouterLink>
-            <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/local-news-demo">
+            <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/news-search">
               {{ t('home.primaryCta') }}
             </RouterLink>
             <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" :to="token ? '/profile' : '/login'">
@@ -158,7 +158,7 @@ onMounted(async () => {
               <p class="text-sm font-semibold text-red-100">{{ t('home.warningExample') }}</p>
               <p class="mt-2 text-xs text-red-100/75">{{ t('home.evidenceHint') }}</p>
             </div>
-            <RouterLink class="block w-full rounded-md bg-cyan-300 px-4 py-2 text-center text-sm font-semibold text-zinc-950" to="/local-news-demo">
+            <RouterLink class="block w-full rounded-md bg-cyan-300 px-4 py-2 text-center text-sm font-semibold text-zinc-950" to="/news-search">
               {{ t('home.openVotePanel') }}
             </RouterLink>
             <div class="grid grid-cols-3 gap-2 text-center text-xs">

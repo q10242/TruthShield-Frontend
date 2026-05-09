@@ -26,7 +26,7 @@ const newlyUnlocked = computed(() => {
   return (profile.value?.achievements || []).filter((achievement) => slugs.includes(achievement.slug))
 })
 const contributionSuggestions = computed(() => [
-  { to: '/local-news-demo', title: t('profile.suggestRead'), description: t('profile.suggestReadDesc') },
+  { to: '/news-search', title: t('profile.suggestRead'), description: t('profile.suggestReadDesc') },
   { to: '/community-tasks', title: t('profile.suggestCommunityTasks'), description: t('profile.suggestCommunityTasksDesc') },
   { to: '/report-domain', title: t('profile.suggestMaintain'), description: t('profile.suggestMaintainDesc') },
 ])

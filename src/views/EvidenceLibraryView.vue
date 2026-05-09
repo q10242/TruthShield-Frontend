@@ -67,7 +67,7 @@ onMounted(load)
           <h1 class="text-3xl font-semibold text-white">{{ t('evidence.title') }}</h1>
           <p class="mt-2 text-sm text-zinc-400">{{ t('evidence.intro') }}</p>
         </div>
-        <RouterLink class="rounded-md border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100" to="/local-news-demo">
+        <RouterLink class="rounded-md border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100" to="/news-search">
           {{ t('evidence.submitTest') }}
         </RouterLink>
       </div>

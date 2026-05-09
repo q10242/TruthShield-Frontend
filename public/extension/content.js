@@ -318,10 +318,6 @@ function isLikelyArticlePage() {
     return true
   }
 
-  if (isLocalTruthShieldDemoPage()) {
-    return true
-  }
-
   const matchedConfig = domainConfigs.find((config) => window.location.hostname === config.domain || window.location.hostname.endsWith(`.${config.domain}`))
   if (matchedConfig?.blocked_path_pattern) {
     try {
@@ -400,11 +396,6 @@ function currentYoutubeChannelUrl() {
   }
 
   return ''
-}
-
-function isLocalTruthShieldDemoPage() {
-  return (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') &&
-    window.location.pathname.includes('/local-news-demo')
 }
 
 function isPotentialUntrackedNewsPage() {
