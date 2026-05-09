@@ -143,6 +143,48 @@ const manualScreenshotCards = computed(() => [
   },
 ])
 
+const extensionInterfaceCards = computed(() => [
+  {
+    title: t('home.extensionInterfaceContextTitle'),
+    description: t('home.extensionInterfaceContextDesc'),
+    badge: t('home.extensionInterfaceContextBadge'),
+    kind: 'context',
+  },
+  {
+    title: t('home.extensionInterfaceTooltipTitle'),
+    description: t('home.extensionInterfaceTooltipDesc'),
+    badge: t('home.extensionInterfaceTooltipBadge'),
+    kind: 'tooltip',
+  },
+  {
+    title: t('home.extensionInterfaceBannerTitle'),
+    description: t('home.extensionInterfaceBannerDesc'),
+    badge: t('home.extensionInterfaceBannerBadge'),
+    image: '/brand/export/chrome-store-screenshots/store-screenshot-01-news-banner-1280x800.png',
+    alt: t('home.manualScreenshotBannerAlt'),
+  },
+  {
+    title: t('home.extensionInterfacePanelTitle'),
+    description: t('home.extensionInterfacePanelDesc'),
+    badge: t('home.extensionInterfacePanelBadge'),
+    image: '/brand/export/chrome-store-screenshots/store-screenshot-02-vote-panel-1280x800.png',
+    alt: t('home.manualScreenshotVoteAlt'),
+  },
+  {
+    title: t('home.extensionInterfaceYoutubeTitle'),
+    description: t('home.extensionInterfaceYoutubeDesc'),
+    badge: t('home.extensionInterfaceYoutubeBadge'),
+    image: '/brand/export/chrome-store-screenshots/store-screenshot-03-youtube-badge-1280x800.png',
+    alt: t('home.extensionInterfaceYoutubeAlt'),
+  },
+  {
+    title: t('home.extensionInterfacePopupTitle'),
+    description: t('home.extensionInterfacePopupDesc'),
+    badge: t('home.extensionInterfacePopupBadge'),
+    kind: 'popup',
+  },
+])
+
 const trustFormulaParts = computed(() => [
   { label: t('home.trustFormulaBase'), value: t('home.trustFormulaBaseValue') },
   { label: t('home.trustFormulaIdentity'), value: t('home.trustFormulaIdentityValue') },
@@ -417,6 +459,66 @@ onMounted(async () => {
                 <p class="mt-2 text-sm leading-6 text-zinc-400">{{ card.description }}</p>
               </div>
             </article>
+          </div>
+        </div>
+
+        <div class="mt-6 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5">
+          <div class="grid gap-4 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
+            <div>
+              <p class="text-sm font-semibold text-cyan-300">{{ t('home.extensionInterfaceEyebrow') }}</p>
+              <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.extensionInterfaceTitle') }}</h3>
+              <p class="mt-3 text-sm leading-7 text-zinc-300">{{ t('home.extensionInterfaceIntro') }}</p>
+              <div class="mt-5 rounded-lg border border-cyan-300/20 bg-zinc-950 p-4">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">{{ t('home.extensionInterfaceMainAction') }}</p>
+                <p class="mt-2 text-sm leading-6 text-zinc-300">{{ t('home.extensionInterfaceMainActionDesc') }}</p>
+              </div>
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+              <article v-for="card in extensionInterfaceCards" :key="card.title" class="overflow-hidden rounded-lg border border-white/10 bg-zinc-950">
+                <div v-if="card.image" class="border-b border-white/10">
+                  <img class="aspect-[16/10] w-full object-cover object-top" :src="card.image" :alt="card.alt" loading="lazy" />
+                </div>
+                <div v-else-if="card.kind === 'context'" class="border-b border-white/10 bg-zinc-900 p-4">
+                  <div class="rounded-md border border-white/10 bg-black/50 p-3 text-sm text-zinc-200">
+                    <div class="rounded px-2 py-1 hover:bg-cyan-300/10">{{ t('home.extensionContextMenuStatus') }}</div>
+                    <div class="rounded px-2 py-1 hover:bg-cyan-300/10">{{ t('home.extensionContextMenuVote') }}</div>
+                    <div class="rounded px-2 py-1 hover:bg-cyan-300/10">{{ t('home.extensionContextMenuReport') }}</div>
+                  </div>
+                </div>
+                <div v-else-if="card.kind === 'tooltip'" class="border-b border-white/10 bg-zinc-900 p-4">
+                  <div class="rounded-lg border border-red-300/30 bg-black p-4 shadow-2xl shadow-red-950/30">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="text-sm font-semibold text-cyan-200">TruthShield</span>
+                      <span class="text-xs text-zinc-500">{{ t('home.extensionTooltipLive') }}</span>
+                    </div>
+                    <p class="mt-3 text-sm font-semibold text-white">{{ t('home.extensionTooltipExample') }}</p>
+                    <p class="mt-1 text-xs text-zinc-400">{{ t('home.extensionTooltipHint') }}</p>
+                  </div>
+                </div>
+                <div v-else class="border-b border-white/10 bg-zinc-900 p-4">
+                  <div class="rounded-lg border border-white/10 bg-black/60 p-4">
+                    <div class="flex items-center gap-3">
+                      <img class="h-8 w-8" src="/brand/truthshield-mark.svg" alt="" />
+                      <div>
+                        <p class="text-sm font-semibold text-white">TruthShield</p>
+                        <p class="text-xs text-zinc-500">{{ t('home.extensionPopupStatus') }}</p>
+                      </div>
+                    </div>
+                    <div class="mt-4 grid gap-2">
+                      <span class="rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950">{{ t('home.extensionPopupOpenPanel') }}</span>
+                      <span class="rounded-md border border-white/10 px-3 py-2 text-xs text-zinc-300">{{ t('home.extensionPopupReport') }}</span>
+                      <span class="rounded-md border border-white/10 px-3 py-2 text-xs text-zinc-300">{{ t('home.extensionPopupSettings') }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-4">
+                  <span class="rounded-full bg-cyan-300/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-100">{{ card.badge }}</span>
+                  <h4 class="mt-3 text-sm font-semibold text-white">{{ card.title }}</h4>
+                  <p class="mt-2 text-sm leading-6 text-zinc-400">{{ card.description }}</p>
+                </div>
+              </article>
+            </div>
           </div>
         </div>
 
