@@ -15,8 +15,10 @@ steps:
         TRUTHSHIELD_EXTENSION_API_ORIGIN="${_API_BASE_URL}" \
         VITE_WEB_ORIGIN="${_WEB_ORIGIN}" \
         VITE_API_BASE_URL="${_API_BASE_URL}" \
-        npm run package:extension
-        ls -lh dist/truthshield-extension-v*.zip public/truthshield-extension*.zip
+        npm run build:release
+        test -f "dist/truthshield-extension.zip"
+        test -f "dist/truthshield-extension-v$(node -p "require('./public/extension/manifest.json').version").zip"
+        ls -lh dist/truthshield-extension*.zip public/truthshield-extension*.zip
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash

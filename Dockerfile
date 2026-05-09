@@ -30,7 +30,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run package:extension
+RUN npm run build:release
 
 FROM nginx:1.29-alpine
 

@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "check:extension": "node scripts/check-extension-release.mjs dist/extension-package",
-    "package:extension": "npm run build && node scripts/package-extension.mjs"
+    "package:extension": "node scripts/package-extension.mjs",
+    "build:release": "npm run package:extension && npm run build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
