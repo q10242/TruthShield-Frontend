@@ -1,10 +1,10 @@
 substitutions:
   _REGION: asia-east1
   _AR_HOSTNAME: asia-east1-docker.pkg.dev
-  _AR_REPOSITORY: truthshield
-  _SERVICE_NAME: truthshield-web
-  _WEB_ORIGIN: https://truthshield.otus.tw
-  _API_BASE_URL: https://truthshield-api.otus.tw
+  _AR_REPOSITORY: truth-shield
+  _SERVICE_NAME: truth-shield-web
+  _WEB_ORIGIN: https://truth-shield.otus.tw
+  _API_BASE_URL: https://truth-shield-api.otus.tw
 
 steps:
   - name: gcr.io/cloud-builders/docker
