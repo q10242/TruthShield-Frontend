@@ -32,10 +32,39 @@ const FALLBACK_NEWS_DOMAINS = [
   'news.ltn.com.tw',
   'tw.news.yahoo.com',
 ]
+const FALLBACK_YOUTUBE_CHANNELS = [
+  { handle: null, channelId: null, channelUrl: 'https://www.youtube.com/user/cnataiwan' },
+  { handle: 'PNNPTS' },
+  { handle: 'TVBSNEWS01' },
+  { handle: 'setnews' },
+  { handle: 'FTVCP' },
+  { handle: 'ETtoday' },
+  { handle: 'LTNNews' },
+  { handle: 'ChinaTimes' },
+  { handle: 'udnvideo' },
+  { handle: 'RTIofficial' },
+  { handle: null, channelId: 'UCpu3bemTQwAU8PqM4kJdoEQ', channelUrl: 'https://www.youtube.com/channel/UCpu3bemTQwAU8PqM4kJdoEQ' },
+  { handle: 'newsebc', channelId: 'UCR3asjvr_WAaxwJYEDV_Bfw' },
+  { handle: 'CNN' },
+  { handle: 'BBCNews' },
+  { handle: 'Reuters' },
+  { handle: 'AssociatedPress' },
+  { handle: 'aljazeeraenglish' },
+  { handle: 'dwnews' },
+  { handle: 'France24_en' },
+  { handle: 'SkyNews' },
+  { handle: 'PBSNewsHour' },
+  { handle: 'ABCNews' },
+  { handle: 'CBSNews' },
+  { handle: 'NBCNews' },
+  { handle: 'NHKWORLDJAPAN' },
+  { handle: 'channelnewsasia' },
+  { handle: 'SouthChinaMorningPost' },
+]
 
 let newsDomains = [...FALLBACK_NEWS_DOMAINS]
 let domainConfigs = []
-let youtubeChannels = []
+let youtubeChannels = FALLBACK_YOUTUBE_CHANNELS.map(normalizeYoutubeChannelRecord).filter(Boolean)
 let extensionNonce = null
 let tooltipBox = null
 const tooltipStatusCache = new Map()
@@ -493,11 +522,13 @@ async function loadYoutubeChannels() {
     }
 
     const payload = await response.json()
-    youtubeChannels = Array.isArray(payload.data)
+    const remoteChannels = Array.isArray(payload.data)
       ? payload.data.map(normalizeYoutubeChannelRecord).filter(Boolean)
       : []
+
+    youtubeChannels = mergeYoutubeChannels([...youtubeChannels, ...remoteChannels])
   } catch {
-    youtubeChannels = []
+    youtubeChannels = FALLBACK_YOUTUBE_CHANNELS.map(normalizeYoutubeChannelRecord).filter(Boolean)
   }
 }
 
@@ -635,6 +666,20 @@ function normalizeYoutubeChannelRecord(channel) {
   return { handle, channelId, channelUrl }
 }
 
+function mergeYoutubeChannels(channels) {
+  const merged = new Map()
+
+  for (const channel of channels) {
+    if (!channel) continue
+    const key = channel.channelId
+      ? `id:${channel.channelId}`
+      : (channel.handle ? `handle:${channel.handle}` : `url:${channel.channelUrl}`)
+    merged.set(key, channel)
+  }
+
+  return [...merged.values()]
+}
+
 function canonicalYoutubeChannelUrl(url) {
   try {
     const parsed = new URL(url, 'https://www.youtube.com')
@@ -700,11 +745,60 @@ function currentYoutubeChannelUrl() {
     }
 
     const ownerAnchor = document.querySelector(
-      'ytd-watch-metadata ytd-video-owner-renderer a[href^="/@"], ytd-watch-metadata ytd-video-owner-renderer a[href^="/channel/"], ytd-watch-metadata #owner a[href^="/@"], ytd-watch-metadata #owner a[href^="/channel/"], #owner ytd-channel-name a[href^="/@"], #owner ytd-channel-name a[href^="/channel/"]',
+      [
+        'ytd-watch-metadata ytd-video-owner-renderer a[href^="/@"]',
+        'ytd-watch-metadata ytd-video-owner-renderer a[href^="/channel/"]',
+        'ytd-watch-metadata #owner a[href^="/@"]',
+        'ytd-watch-metadata #owner a[href^="/channel/"]',
+        'ytd-watch-metadata ytd-channel-name a[href^="/@"]',
+        'ytd-watch-metadata ytd-channel-name a[href^="/channel/"]',
+        '#owner ytd-channel-name a[href^="/@"]',
+        '#owner ytd-channel-name a[href^="/channel/"]',
+        '#upload-info ytd-channel-name a[href^="/@"]',
+        '#upload-info ytd-channel-name a[href^="/channel/"]',
+      ].join(', '),
     )
     const href = ownerAnchor?.getAttribute('href')
     if (href) {
       return new URL(href, 'https://www.youtube.com').toString()
+    }
+
+    const itempropUrl = document.querySelector('ytd-watch-metadata link[itemprop="url"][href*="youtube.com/"], ytd-watch-metadata meta[itemprop="url"][content*="youtube.com/"]')
+    const itempropHref = itempropUrl?.getAttribute('href') || itempropUrl?.getAttribute('content')
+    const itempropChannelUrl = itempropHref ? canonicalYoutubeChannelUrl(itempropHref) : ''
+    if (itempropChannelUrl) {
+      return itempropChannelUrl
+    }
+
+    const channelIdMeta = document.querySelector('ytd-watch-metadata meta[itemprop="channelId"][content], meta[itemprop="channelId"][content]')
+    const channelId = channelIdMeta?.getAttribute('content')
+    if (channelId) {
+      return new URL(`/channel/${channelId}`, 'https://www.youtube.com').toString()
+    }
+
+    const initialDataChannelUrl = channelUrlFromYoutubeInitialData()
+    if (initialDataChannelUrl) {
+      return initialDataChannelUrl
+    }
+  }
+
+  return ''
+}
+
+function channelUrlFromYoutubeInitialData() {
+  const scripts = [...document.scripts].filter((script) => script.textContent?.includes('videoOwnerRenderer'))
+
+  for (const script of scripts) {
+    const source = script.textContent || ''
+    const ownerBlock = source.match(/"videoOwnerRenderer":\{[\s\S]{0,5000}?\}\s*,\s*"/)?.[0] || source
+    const canonicalBaseUrl = ownerBlock.match(/"canonicalBaseUrl":"(\/@[^"]+)"/)?.[1]
+    if (canonicalBaseUrl) {
+      return new URL(canonicalBaseUrl.replaceAll('\\/', '/'), 'https://www.youtube.com').toString()
+    }
+
+    const browseId = ownerBlock.match(/"browseId":"(UC[^"]+)"/)?.[1]
+    if (browseId) {
+      return new URL(`/channel/${browseId}`, 'https://www.youtube.com').toString()
     }
   }
 
