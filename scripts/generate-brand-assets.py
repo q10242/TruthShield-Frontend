@@ -63,40 +63,44 @@ def draw_mark(draw: ImageDraw.ImageDraw, box: Tuple[int, int, int, int], backgro
     w = x2 - x1
     h = y2 - y1
     base = min(w, h)
-    pad = base * 0.08
+    pad = base * 0.1
+    compact = base <= 64
 
     if background:
-        rounded_rect(draw, (int(x1), int(y1), int(x2), int(y2)), int(base * 0.23), COLORS["bg"])
+        rounded_rect(draw, (int(x1), int(y1), int(x2), int(y2)), int(base * 0.24), COLORS["bg"])
 
     cx = x1 + w / 2
     top = y1 + pad * 1.1
     size = base - pad * 2.2
     shield = shield_points(cx, top, size)
     draw.polygon(shield, fill=COLORS["panel"])
-    draw.line(shield + [shield[0]], fill=COLORS["cyan"], width=max(2, int(base * 0.047)), joint="curve")
+    draw.line(shield + [shield[0]], fill=COLORS["cyan"], width=max(2, int(base * (0.07 if compact else 0.042))), joint="curve")
 
     nodes = {
-        "center": (x1 + base * 0.50, y1 + base * 0.48),
-        "left_top": (x1 + base * 0.36, y1 + base * 0.39),
-        "right_top": (x1 + base * 0.65, y1 + base * 0.35),
-        "left_bottom": (x1 + base * 0.33, y1 + base * 0.61),
+        "center": (x1 + base * 0.50, y1 + base * 0.50),
+        "left_top": (x1 + base * 0.35, y1 + base * 0.40),
+        "right_top": (x1 + base * 0.66, y1 + base * 0.37),
+        "left_bottom": (x1 + base * 0.32, y1 + base * 0.62),
         "right_bottom": (x1 + base * 0.68, y1 + base * 0.63),
     }
-    line_width = max(2, int(base * 0.046))
+    line_width = max(2, int(base * (0.06 if compact else 0.037)))
     draw.line([nodes["left_top"], nodes["center"], nodes["right_top"]], fill=(103, 232, 249, 175), width=line_width, joint="curve")
     draw.line([nodes["left_bottom"], nodes["center"], nodes["right_bottom"]], fill=COLORS["teal"], width=line_width, joint="curve")
-    draw.line([(cx, y1 + base * 0.14), nodes["center"]], fill=(103, 232, 249, 65), width=max(1, int(base * 0.026)))
+    if not compact:
+        draw.line([(cx, y1 + base * 0.16), nodes["center"]], fill=(103, 232, 249, 65), width=max(1, int(base * 0.025)))
 
-    outer_radius = max(2, int(base * 0.06))
-    center_radius = max(3, int(base * 0.083))
+    outer_radius = max(2, int(base * (0.075 if compact else 0.049)))
+    center_radius = max(3, int(base * (0.095 if compact else 0.064)))
     for key in ("left_top", "right_top"):
         x, y = nodes[key]
-        draw.ellipse((x - outer_radius, y - outer_radius, x + outer_radius, y + outer_radius), fill=COLORS["cyan"], outline=COLORS["bg"], width=max(1, int(base * 0.023)))
+        draw.ellipse((x - outer_radius, y - outer_radius, x + outer_radius, y + outer_radius), fill=COLORS["cyan"])
     for key in ("left_bottom", "right_bottom"):
         x, y = nodes[key]
-        draw.ellipse((x - outer_radius, y - outer_radius, x + outer_radius, y + outer_radius), fill=COLORS["teal"], outline=COLORS["bg"], width=max(1, int(base * 0.023)))
+        draw.ellipse((x - outer_radius, y - outer_radius, x + outer_radius, y + outer_radius), fill=COLORS["teal"])
     x, y = nodes["center"]
-    draw.ellipse((x - center_radius, y - center_radius, x + center_radius, y + center_radius), fill=COLORS["ice"], outline=COLORS["bg"], width=max(1, int(base * 0.03)))
+    draw.ellipse((x - center_radius, y - center_radius, x + center_radius, y + center_radius), fill=COLORS["ice"])
+    if not compact:
+        draw.ellipse((x - center_radius * 1.45, y - center_radius * 1.45, x + center_radius * 1.45, y + center_radius * 1.45), outline=(103, 232, 249, 45), width=max(1, int(base * 0.012)))
 
 
 def save_png(image: Image.Image, path: Path):

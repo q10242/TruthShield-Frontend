@@ -1,4 +1,4 @@
-import { cpSync, copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
@@ -17,6 +17,21 @@ rmSync(packageDir, { recursive: true, force: true })
 rmSync(outputFile, { force: true })
 rmSync(publicOutputFile, { force: true })
 cpSync(extensionDir, packageDir, { recursive: true })
+
+function removeMetadataFiles(dir) {
+  for (const entry of readdirSync(dir)) {
+    const path = resolve(dir, entry)
+    if (entry === '.DS_Store' || entry === '__MACOSX') {
+      rmSync(path, { recursive: true, force: true })
+      continue
+    }
+    if (statSync(path).isDirectory()) {
+      removeMetadataFiles(path)
+    }
+  }
+}
+
+removeMetadataFiles(packageDir)
 
 if (webOrigin || apiOrigin) {
   const replacements = [
