@@ -7,4 +7,4 @@ coverage
 *.log
 *.local
 .DS_Store
-public/truthshield-extension.zip
+public/truthshield-extension*.zip

@@ -1,0 +1,34 @@
+substitutions:
+  _WEB_ORIGIN: https://truth-shield.otus.tw
+  _API_BASE_URL: https://truth-shield-api.otus.tw
+  _EXTENSION_ARTIFACT_BUCKET: ''
+
+steps:
+  - name: node:24-alpine
+    entrypoint: sh
+    args:
+      - -ceu
+      - |
+        apk add --no-cache zip
+        npm ci
+        TRUTHSHIELD_EXTENSION_WEB_ORIGIN="${_WEB_ORIGIN}" \
+        TRUTHSHIELD_EXTENSION_API_ORIGIN="${_API_BASE_URL}" \
+        VITE_WEB_ORIGIN="${_WEB_ORIGIN}" \
+        VITE_API_BASE_URL="${_API_BASE_URL}" \
+        npm run package:extension
+        ls -lh dist/truthshield-extension-v*.zip public/truthshield-extension*.zip
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        if [[ -z "${_EXTENSION_ARTIFACT_BUCKET}" ]]; then
+          echo "Extension artifact bucket not configured; zip was built and checked only."
+          exit 0
+        fi
+
+        gsutil cp dist/truthshield-extension-v*.zip "gs://${_EXTENSION_ARTIFACT_BUCKET}/chrome-extension/"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
