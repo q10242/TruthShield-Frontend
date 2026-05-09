@@ -224,6 +224,7 @@ def write_readme(paths: Iterable[Path]):
     uses = {
         "logo-mark-128.png": "Chrome extension icon / small upload forms",
         "logo-mark-512.png": "Large square app icon",
+        "logo-mark-1024.png": "Facebook app icon upload",
         "logo-mark-transparent-512.png": "Transparent-background mark",
         "wordmark-dark-1200x360.png": "Wide logo / brand header",
         "chrome-store-small-promo-440x280.png": "Chrome Web Store small promotional tile",
@@ -245,7 +246,7 @@ def main():
         path = EXTENSION_ICON_DIR / f"icon-{size}.png"
         save_png(icon(size), path)
 
-    for size in (128, 512):
+    for size in (128, 512, 1024):
         path = EXPORT_DIR / f"logo-mark-{size}.png"
         save_png(icon(size), path)
         outputs.append(path)
