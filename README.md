@@ -92,10 +92,10 @@ The Dockerfile builds the Vue site, repackages the extension zip, and serves sta
 
 ```bash
 docker build -t truthshield-web \
-  --build-arg VITE_API_BASE_URL=https://api.truthshield.example \
-  --build-arg VITE_WEB_ORIGIN=https://truthshield.example \
-  --build-arg TRUTHSHIELD_EXTENSION_WEB_ORIGIN=https://truthshield.example \
-  --build-arg TRUTHSHIELD_EXTENSION_API_ORIGIN=https://api.truthshield.example \
+  --build-arg VITE_API_BASE_URL=https://truthshield-api.otus.tw \
+  --build-arg VITE_WEB_ORIGIN=https://truthshield.otus.tw \
+  --build-arg TRUTHSHIELD_EXTENSION_WEB_ORIGIN=https://truthshield.otus.tw \
+  --build-arg TRUTHSHIELD_EXTENSION_API_ORIGIN=https://truthshield-api.otus.tw \
   .
 
 docker run --rm -p 8080:8080 truthshield-web
@@ -124,8 +124,8 @@ npm run package:extension
 Package with production origins:
 
 ```bash
-TRUTHSHIELD_EXTENSION_WEB_ORIGIN=https://truthshield.example \
-TRUTHSHIELD_EXTENSION_API_ORIGIN=https://api.truthshield.example \
+TRUTHSHIELD_EXTENSION_WEB_ORIGIN=https://truthshield.otus.tw \
+TRUTHSHIELD_EXTENSION_API_ORIGIN=https://truthshield-api.otus.tw \
 npm run package:extension
 ```
 
@@ -148,8 +148,6 @@ Example Imgur-style configuration:
 VITE_EVIDENCE_UPLOAD_ENDPOINT=https://api.imgur.com/3/image
 VITE_EVIDENCE_UPLOAD_FIELD=image
 VITE_EVIDENCE_UPLOAD_URL_PATH=data.link
-VITE_EVIDENCE_UPLOAD_AUTH_HEADER=Authorization
-VITE_EVIDENCE_UPLOAD_AUTH_VALUE='Client-ID your-client-id'
 VITE_EVIDENCE_UPLOAD_MAX_MB=10
 VITE_EVIDENCE_IMAGE_HOST_URL=https://imgur.com/upload
 VITE_EVIDENCE_CLOUD_DRIVE_URL=https://drive.google.com/drive/my-drive
