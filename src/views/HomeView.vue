@@ -67,11 +67,23 @@ const missionStats = computed(() => [
   { value: t('home.missionStatOpenValue'), label: t('home.missionStatOpen'), description: t('home.missionStatOpenDesc') },
 ])
 
+const whyCards = computed(() => [
+  { title: t('home.whyHeadlineTitle'), description: t('home.whyHeadlineDesc') },
+  { title: t('home.whyEvidenceTitle'), description: t('home.whyEvidenceDesc') },
+  { title: t('home.whyTimingTitle'), description: t('home.whyTimingDesc') },
+])
+
 const missionSteps = computed(() => [
   { number: '01', title: t('home.stepReadTitle'), description: t('home.stepReadDesc') },
   { number: '02', title: t('home.stepEvidenceTitle'), description: t('home.stepEvidenceDesc') },
   { number: '03', title: t('home.stepWeightTitle'), description: t('home.stepWeightDesc') },
   { number: '04', title: t('home.stepPublicTitle'), description: t('home.stepPublicDesc') },
+])
+
+const firstUseSteps = computed(() => [
+  { number: '01', title: t('home.firstUseDemoTitle'), description: t('home.firstUseDemoDesc'), to: '/demo-news', cta: t('common.demoNews') },
+  { number: '02', title: t('home.firstUseGuideTitle'), description: t('home.firstUseGuideDesc'), to: '/user-guide', cta: t('common.userGuide') },
+  { number: '03', title: t('home.firstUseInstallTitle'), description: t('home.firstUseInstallDesc'), to: '/extension-install', cta: t('common.extensionInstall') },
 ])
 
 const pledges = computed(() => [
@@ -80,10 +92,29 @@ const pledges = computed(() => [
   { title: t('home.pledgeCommunityTitle'), description: t('home.pledgeCommunityDesc') },
 ])
 
+const antiAbuseCards = computed(() => [
+  { title: t('home.antiAbuseWeightTitle'), description: t('home.antiAbuseWeightDesc') },
+  { title: t('home.antiAbuseEvidenceTitle'), description: t('home.antiAbuseEvidenceDesc') },
+  { title: t('home.antiAbuseOneVoteTitle'), description: t('home.antiAbuseOneVoteDesc') },
+  { title: t('home.antiAbuseFinalizedTitle'), description: t('home.antiAbuseFinalizedDesc') },
+])
+
+const trustFormulaCards = computed(() => [
+  { label: t('home.trustFormulaBase'), value: t('home.trustFormulaBaseValue') },
+  { label: t('home.trustFormulaIdentity'), value: t('home.trustFormulaIdentityValue') },
+  { label: t('home.trustFormulaAbuse'), value: t('home.trustFormulaAbuseValue') },
+])
+
 const communityCards = computed(() => [
   { value: communityStats.value?.open_tasks ?? 0, label: t('communityTasks.openTasks') },
   { value: communityStats.value?.escalated_tasks ?? 0, label: t('communityTasks.escalatedTasks') },
   { value: communityStats.value?.authenticated_signals ?? 0, label: t('communityTasks.authSignals') },
+])
+
+const presenterLinks = computed(() => [
+  { to: '/demo-news', label: t('common.demoNews'), description: t('home.presenterDemoDesc') },
+  { to: '/user-guide', label: t('common.userGuide'), description: t('home.presenterGuideDesc') },
+  { to: '/transparency', label: t('common.transparency'), description: t('home.presenterTransparencyDesc') },
 ])
 
 onMounted(async () => {
@@ -143,11 +174,14 @@ onMounted(async () => {
           </div>
 
           <div class="flex flex-wrap gap-3">
-            <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/extension-install">
-              {{ t('home.installExtensionCta') }}
-            </RouterLink>
             <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/demo-news">
               {{ t('home.demoNewsCta') }}
+            </RouterLink>
+            <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/user-guide">
+              {{ t('home.manualGuideCta') }}
+            </RouterLink>
+            <RouterLink class="rounded-md border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-semibold text-amber-100 hover:border-amber-200" to="/extension-install">
+              {{ t('home.installExtensionCta') }}
             </RouterLink>
             <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/news-search">
               {{ t('home.primaryCta') }}
@@ -158,6 +192,19 @@ onMounted(async () => {
             <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" to="/evidence-library">
               {{ t('home.thirdCta') }}
             </RouterLink>
+          </div>
+
+          <div class="rounded-lg border border-amber-300/30 bg-amber-300/10 p-4">
+            <p class="text-sm font-semibold text-amber-100">{{ t('home.extensionReviewTitle') }}</p>
+            <p class="mt-2 text-sm leading-6 text-amber-50/80">{{ t('home.extensionReviewDesc') }}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <RouterLink class="rounded-md bg-amber-200 px-3 py-2 text-xs font-semibold text-zinc-950" to="/demo-news">
+                {{ t('home.demoNewsCta') }}
+              </RouterLink>
+              <RouterLink class="rounded-md border border-amber-200/40 px-3 py-2 text-xs font-semibold text-amber-100" to="/extension-install">
+                {{ t('common.extensionInstall') }}
+              </RouterLink>
+            </div>
           </div>
 
           <div class="grid gap-3 md:grid-cols-3">
@@ -200,6 +247,57 @@ onMounted(async () => {
           </div>
         </aside>
       </div>
+
+      <section class="grid gap-6 border-t border-white/10 py-8 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
+        <div>
+          <p class="text-sm font-semibold text-cyan-300">{{ t('home.whyEyebrow') }}</p>
+          <h2 class="mt-2 text-3xl font-semibold text-white">{{ t('home.whyTitle') }}</h2>
+          <p class="mt-4 text-sm leading-7 text-zinc-400">{{ t('home.whyIntro') }}</p>
+        </div>
+        <div class="grid gap-3 md:grid-cols-3">
+          <article v-for="card in whyCards" :key="card.title" class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+            <h3 class="text-base font-semibold text-white">{{ card.title }}</h3>
+            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ card.description }}</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="border-t border-white/10 py-8">
+        <div class="grid gap-5 rounded-lg border border-cyan-300/20 bg-zinc-900/80 p-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+          <div>
+            <p class="text-sm font-semibold text-cyan-300">{{ t('home.antiAbuseEyebrow') }}</p>
+            <h2 class="mt-2 text-3xl font-semibold text-white">{{ t('home.antiAbuseTitle') }}</h2>
+            <p class="mt-4 text-sm leading-7 text-zinc-400">{{ t('home.antiAbuseIntro') }}</p>
+            <RouterLink class="mt-5 inline-flex rounded-md border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100" to="/algorithm">
+              {{ t('home.manualAntiAbuseCta') }}
+            </RouterLink>
+          </div>
+          <div class="grid gap-3 md:grid-cols-2">
+            <article v-for="card in antiAbuseCards" :key="card.title" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+              <h3 class="text-sm font-semibold text-white">{{ card.title }}</h3>
+              <p class="mt-2 text-sm leading-6 text-zinc-400">{{ card.description }}</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid gap-5 border-t border-white/10 py-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div>
+          <p class="text-sm font-semibold text-cyan-300">{{ t('home.trustFormulaEyebrow') }}</p>
+          <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.trustFormulaTitle') }}</h2>
+          <p class="mt-3 text-sm leading-7 text-zinc-400">{{ t('home.trustFormulaIntro') }}</p>
+          <div class="mt-4 rounded-lg border border-cyan-300/30 bg-cyan-300/[0.06] p-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">{{ t('home.trustFormulaLabel') }}</p>
+            <p class="mt-2 text-lg font-semibold text-white">{{ t('home.trustFormulaEquation') }}</p>
+          </div>
+        </div>
+        <div class="grid gap-3">
+          <article v-for="item in trustFormulaCards" :key="item.label" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+            <h3 class="text-sm font-semibold text-white">{{ item.label }}</h3>
+            <p class="mt-2 text-sm leading-6 text-zinc-400">{{ item.value }}</p>
+          </article>
+        </div>
+      </section>
 
       <section class="grid gap-5 border-t border-white/10 py-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)]">
         <div>
@@ -291,6 +389,24 @@ onMounted(async () => {
 
       <section class="border-t border-white/10 py-8">
         <div class="max-w-2xl">
+          <p class="text-sm font-semibold text-cyan-300">{{ t('home.firstUseEyebrow') }}</p>
+          <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.firstUseTitle') }}</h2>
+          <p class="mt-3 text-sm leading-7 text-zinc-400">{{ t('home.firstUseIntro') }}</p>
+        </div>
+        <div class="mt-5 grid gap-3 md:grid-cols-3">
+          <article v-for="step in firstUseSteps" :key="step.number" class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+            <div class="text-sm font-semibold text-cyan-300">{{ step.number }}</div>
+            <h3 class="mt-3 text-base font-semibold text-white">{{ step.title }}</h3>
+            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ step.description }}</p>
+            <RouterLink class="mt-4 inline-flex rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100" :to="step.to">
+              {{ step.cta }}
+            </RouterLink>
+          </article>
+        </div>
+      </section>
+
+      <section class="border-t border-white/10 py-8">
+        <div class="max-w-2xl">
           <p class="text-sm font-semibold text-cyan-300">{{ t('home.howItWorksEyebrow') }}</p>
           <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.howItWorksTitle') }}</h2>
         </div>
@@ -335,10 +451,32 @@ onMounted(async () => {
       </section>
 
       <section class="border-t border-white/10 py-8">
+        <div class="grid gap-5 rounded-lg border border-white/10 bg-white/[0.03] p-5 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+          <div>
+            <p class="text-sm font-semibold text-cyan-300">{{ t('home.presenterEyebrow') }}</p>
+            <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.presenterTitle') }}</h2>
+            <p class="mt-3 text-sm leading-7 text-zinc-400">{{ t('home.presenterIntro') }}</p>
+          </div>
+          <div class="grid gap-3 md:grid-cols-3">
+            <RouterLink
+              v-for="link in presenterLinks"
+              :key="link.to"
+              class="rounded-lg border border-white/10 bg-zinc-950/70 p-4 hover:border-cyan-300/60"
+              :to="link.to"
+            >
+              <h3 class="text-sm font-semibold text-white">{{ link.label }}</h3>
+              <p class="mt-2 text-xs leading-5 text-zinc-400">{{ link.description }}</p>
+            </RouterLink>
+          </div>
+        </div>
+      </section>
+
+      <section class="border-t border-white/10 py-8">
         <div class="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p class="text-sm font-semibold text-cyan-300">{{ t('home.toolsEyebrow') }}</p>
-            <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.toolsTitle') }}</h2>
+            <p class="text-sm font-semibold text-cyan-300">{{ t('home.exploreEyebrow') }}</p>
+            <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.exploreTitle') }}</h2>
+            <p class="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{{ t('home.exploreIntro') }}</p>
           </div>
         </div>
         <div class="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
