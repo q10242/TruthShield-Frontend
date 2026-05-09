@@ -92,10 +92,10 @@ The Dockerfile builds the Vue site, repackages the extension zip, and serves sta
 
 ```bash
 docker build -t truthshield-web \
-  --build-arg VITE_API_BASE_URL=https://truthshield-api.otus.tw \
-  --build-arg VITE_WEB_ORIGIN=https://truthshield.otus.tw \
-  --build-arg TRUTHSHIELD_EXTENSION_WEB_ORIGIN=https://truthshield.otus.tw \
-  --build-arg TRUTHSHIELD_EXTENSION_API_ORIGIN=https://truthshield-api.otus.tw \
+  --build-arg VITE_API_BASE_URL=https://truth-shield-api.otus.tw \
+  --build-arg VITE_WEB_ORIGIN=https://truth-shield.otus.tw \
+  --build-arg TRUTHSHIELD_EXTENSION_WEB_ORIGIN=https://truth-shield.otus.tw \
+  --build-arg TRUTHSHIELD_EXTENSION_API_ORIGIN=https://truth-shield-api.otus.tw \
   .
 
 docker run --rm -p 8080:8080 truthshield-web
@@ -124,8 +124,8 @@ npm run package:extension
 Package with production origins:
 
 ```bash
-TRUTHSHIELD_EXTENSION_WEB_ORIGIN=https://truthshield.otus.tw \
-TRUTHSHIELD_EXTENSION_API_ORIGIN=https://truthshield-api.otus.tw \
+TRUTHSHIELD_EXTENSION_WEB_ORIGIN=https://truth-shield.otus.tw \
+TRUTHSHIELD_EXTENSION_API_ORIGIN=https://truth-shield-api.otus.tw \
 npm run package:extension
 ```
 
