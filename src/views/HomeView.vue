@@ -70,6 +70,40 @@ const missionSteps = computed(() => [
   { number: '04', title: t('home.stepPublicTitle'), description: t('home.stepPublicDesc') },
 ])
 
+const userManualSteps = computed(() => [
+  { number: '01', title: t('home.manualInstallTitle'), description: t('home.manualInstallDesc'), badge: t('home.manualInstallBadge'), tone: 'cyan' },
+  { number: '02', title: t('home.manualReadTitle'), description: t('home.manualReadDesc'), badge: t('home.manualReadBadge'), tone: 'red' },
+  { number: '03', title: t('home.manualVoteTitle'), description: t('home.manualVoteDesc'), badge: t('home.manualVoteBadge'), tone: 'orange' },
+  { number: '04', title: t('home.manualEvidenceTitle'), description: t('home.manualEvidenceDesc'), badge: t('home.manualEvidenceBadge'), tone: 'emerald' },
+])
+
+const manualReasons = computed(() => [
+  t('home.manualReasonFast'),
+  t('home.manualReasonEvidence'),
+  t('home.manualReasonAntiAbuse'),
+  t('home.manualReasonOpen'),
+])
+
+const manualChapters = computed(() => [
+  { title: t('home.manualChapterExtensionTitle'), description: t('home.manualChapterExtensionDesc'), to: '/extension-install', label: t('common.extensionInstall'), accent: 'cyan' },
+  { title: t('home.manualChapterVotingTitle'), description: t('home.manualChapterVotingDesc'), to: '/label-guide', label: t('common.labelGuide'), accent: 'orange' },
+  { title: t('home.manualChapterEvidenceTitle'), description: t('home.manualChapterEvidenceDesc'), to: '/evidence-library', label: t('common.evidenceLibrary'), accent: 'emerald' },
+  { title: t('home.manualChapterAchievementsTitle'), description: t('home.manualChapterAchievementsDesc'), to: '/profile', label: t('common.profile'), accent: 'violet' },
+  { title: t('home.manualChapterCommunityTitle'), description: t('home.manualChapterCommunityDesc'), to: '/community-tasks', label: t('common.communityTasks'), accent: 'cyan' },
+  { title: t('home.manualChapterReportsTitle'), description: t('home.manualChapterReportsDesc'), to: '/bug-report', label: t('common.bugReport'), accent: 'red' },
+  { title: t('home.manualChapterRulesTitle'), description: t('home.manualChapterRulesDesc'), to: '/platform-rules', label: t('common.platformRules'), accent: 'zinc' },
+  { title: t('home.manualChapterTransparencyTitle'), description: t('home.manualChapterTransparencyDesc'), to: '/transparency', label: t('common.transparency'), accent: 'cyan' },
+])
+
+const manualAntiAbuse = computed(() => [
+  { title: t('home.manualAntiAbuseIdentityTitle'), description: t('home.manualAntiAbuseIdentityDesc') },
+  { title: t('home.manualAntiAbuseReadingTitle'), description: t('home.manualAntiAbuseReadingDesc') },
+  { title: t('home.manualAntiAbuseEvidenceTitle'), description: t('home.manualAntiAbuseEvidenceDesc') },
+  { title: t('home.manualAntiAbuseVelocityTitle'), description: t('home.manualAntiAbuseVelocityDesc') },
+  { title: t('home.manualAntiAbuseFreezeTitle'), description: t('home.manualAntiAbuseFreezeDesc') },
+  { title: t('home.manualAntiAbuseAppealTitle'), description: t('home.manualAntiAbuseAppealDesc') },
+])
+
 const pledges = computed(() => [
   { title: t('home.pledgeNoCensorshipTitle'), description: t('home.pledgeNoCensorshipDesc') },
   { title: t('home.pledgeTransparentTitle'), description: t('home.pledgeTransparentDesc') },
@@ -239,6 +273,140 @@ onMounted(async () => {
               <p class="mt-1 text-2xl font-semibold text-white">{{ card.value }}</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section class="border-t border-white/10 py-8">
+        <div class="grid gap-6 rounded-lg border border-white/10 bg-white/[0.03] p-5 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)]">
+          <div>
+            <p class="text-sm font-semibold text-cyan-300">{{ t('home.manualEyebrow') }}</p>
+            <h2 class="mt-2 text-3xl font-semibold text-white">{{ t('home.manualTitle') }}</h2>
+            <p class="mt-4 text-sm leading-7 text-zinc-300">{{ t('home.manualIntro') }}</p>
+            <div class="mt-5 overflow-hidden rounded-lg border border-cyan-300/20 bg-zinc-950">
+              <img class="w-full border-b border-white/10" src="/brand/export/social-preview-1200x630.png" :alt="t('home.manualImageAlt')" />
+              <div class="grid gap-2 p-4 text-sm text-zinc-300">
+                <div v-for="reason in manualReasons" :key="reason" class="flex gap-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
+                  <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-300"></span>
+                  <span class="leading-6">{{ reason }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/extension-install">
+                {{ t('home.manualInstallCta') }}
+              </RouterLink>
+              <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" to="/platform-rules">
+                {{ t('home.manualRulesCta') }}
+              </RouterLink>
+            </div>
+          </div>
+
+          <div class="grid gap-3 md:grid-cols-2">
+            <article
+              v-for="step in userManualSteps"
+              :key="step.number"
+              class="overflow-hidden rounded-lg border border-white/10 bg-zinc-950"
+            >
+              <div class="relative min-h-36 border-b border-white/10 bg-zinc-900 p-4">
+                <div class="flex items-center justify-between gap-3">
+                  <span class="text-sm font-semibold text-zinc-500">{{ step.number }}</span>
+                  <span
+                    class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                    :class="{
+                      'bg-cyan-300/15 text-cyan-100': step.tone === 'cyan',
+                      'bg-red-500/15 text-red-100': step.tone === 'red',
+                      'bg-orange-400/15 text-orange-100': step.tone === 'orange',
+                      'bg-emerald-400/15 text-emerald-100': step.tone === 'emerald',
+                    }"
+                  >
+                    {{ step.badge }}
+                  </span>
+                </div>
+                <div class="mt-5 rounded-md border border-white/10 bg-black/40 p-3">
+                  <div class="mb-3 flex items-center gap-2">
+                    <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
+                    <span class="h-2.5 w-2.5 rounded-full bg-orange-300"></span>
+                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-300"></span>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="h-2 rounded-full bg-white/20"></div>
+                    <div class="h-2 w-3/4 rounded-full bg-white/10"></div>
+                    <div
+                      class="mt-3 h-7 rounded-md"
+                      :class="{
+                        'bg-cyan-300/50': step.tone === 'cyan',
+                        'bg-red-500/50': step.tone === 'red',
+                        'bg-orange-400/50': step.tone === 'orange',
+                        'bg-emerald-400/50': step.tone === 'emerald',
+                      }"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div class="p-4">
+                <h3 class="text-base font-semibold text-white">{{ step.title }}</h3>
+                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ step.description }}</p>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <section class="rounded-lg border border-white/10 bg-zinc-950 p-5">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-cyan-300">{{ t('home.manualChapterEyebrow') }}</p>
+                <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.manualChapterTitle') }}</h3>
+              </div>
+              <RouterLink class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/10" to="/api-docs">
+                {{ t('common.apiDocs') }}
+              </RouterLink>
+            </div>
+            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('home.manualChapterIntro') }}</p>
+            <div class="mt-5 grid gap-3 md:grid-cols-2">
+              <article
+                v-for="chapter in manualChapters"
+                :key="chapter.title"
+                class="rounded-lg border border-white/10 bg-white/[0.03] p-4"
+              >
+                <div class="flex items-start gap-3">
+                  <span
+                    class="mt-1 h-3 w-3 shrink-0 rounded-full"
+                    :class="{
+                      'bg-cyan-300': chapter.accent === 'cyan',
+                      'bg-orange-300': chapter.accent === 'orange',
+                      'bg-emerald-300': chapter.accent === 'emerald',
+                      'bg-violet-300': chapter.accent === 'violet',
+                      'bg-red-300': chapter.accent === 'red',
+                      'bg-zinc-400': chapter.accent === 'zinc',
+                    }"
+                  ></span>
+                  <div>
+                    <h4 class="text-sm font-semibold text-white">{{ chapter.title }}</h4>
+                    <p class="mt-2 text-sm leading-6 text-zinc-400">{{ chapter.description }}</p>
+                    <RouterLink class="mt-3 inline-flex text-xs font-semibold text-cyan-200 hover:text-cyan-100" :to="chapter.to">
+                      {{ chapter.label }} →
+                    </RouterLink>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <aside class="rounded-lg border border-red-300/20 bg-red-500/[0.04] p-5">
+            <p class="text-sm font-semibold text-red-200">{{ t('home.manualAntiAbuseEyebrow') }}</p>
+            <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.manualAntiAbuseTitle') }}</h3>
+            <p class="mt-3 text-sm leading-6 text-zinc-300">{{ t('home.manualAntiAbuseIntro') }}</p>
+            <div class="mt-5 space-y-3">
+              <article v-for="item in manualAntiAbuse" :key="item.title" class="rounded-md border border-white/10 bg-zinc-950/70 p-4">
+                <h4 class="text-sm font-semibold text-white">{{ item.title }}</h4>
+                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ item.description }}</p>
+              </article>
+            </div>
+            <RouterLink class="mt-5 inline-flex rounded-md border border-red-300/40 px-4 py-2 text-sm font-semibold text-red-100 hover:bg-red-300/10" to="/algorithm">
+              {{ t('home.manualAntiAbuseCta') }}
+            </RouterLink>
+          </aside>
         </div>
       </section>
 
