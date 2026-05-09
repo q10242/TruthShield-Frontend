@@ -9,6 +9,7 @@ import {
   reportYoutubeChannel,
   suggestTrustedSource,
 } from '../lib/api'
+import { trackEvent, trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
 
 const route = useRoute()
@@ -64,6 +65,7 @@ async function submit() {
       note: note.value || undefined,
     })
     message.value = t('remaining.reportReceived')
+    trackEvent('domain_report_completed', { feature: 'domain_report', url: url.value, domain: domain.value })
   } catch (err) {
     error.value = err.errors?.url?.[0] || err.message || t('remaining.reportFailed')
   } finally {
@@ -90,6 +92,7 @@ async function submitClassification() {
       note: note.value || undefined,
     })
     classificationMessage.value = t('remaining.classificationReceived')
+    trackEvent('url_classification_completed', { feature: 'url_classification', url: url.value, domain: domain.value, metadata: { classification: classification.value } })
   } catch (err) {
     error.value = err.errors?.url?.[0] || err.message || t('remaining.classificationFailed')
   } finally {
@@ -115,6 +118,7 @@ async function submitTrustedSource() {
       note: note.value || undefined,
     })
     sourceMessage.value = t('remaining.sourceReceived')
+    trackEvent('trusted_source_suggested', { feature: 'trusted_source_suggestion', url: url.value, domain: domain.value, metadata: { source_type: sourceType.value } })
   } catch (err) {
     error.value = err.errors?.host?.[0] || err.message || t('remaining.sourceFailed')
   } finally {
@@ -141,6 +145,7 @@ async function submitYoutubeChannel() {
       note: note.value || undefined,
     })
     youtubeMessage.value = t('remaining.youtubeChannelReceived')
+    trackEvent('youtube_channel_report_completed', { feature: 'youtube_channel_report', url: youtubeChannelUrl.value, domain: domain.value, metadata: { channel_type: youtubeChannelType.value } })
     await loadYoutubeStatus()
   } catch (err) {
     error.value = err.errors?.channel_url?.[0] || err.message || t('remaining.youtubeChannelFailed')
@@ -172,6 +177,7 @@ async function loadYoutubeStatus() {
 }
 
 onMounted(async () => {
+  trackPageView('report_domain')
   if (!youtubeChannelUrl.value && isYoutubeContext.value) {
     youtubeChannelUrl.value = url.value
   }

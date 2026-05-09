@@ -1,5 +1,5 @@
-let TOOLTIP_ORIGIN = 'http://127.0.0.1:15173'
-let API_ORIGIN = 'http://127.0.0.1:18080'
+let TOOLTIP_ORIGIN = 'https://truth-shield.otus.tw'
+let API_ORIGIN = 'https://truth-shield-api.otus.tw'
 const HOVER_DELAY_MS = 300
 const TOOLTIP_STATUS_CACHE_TTL_MS = 5 * 60 * 1000
 const TOOLTIP_STATUS_CACHE_MAX = 250
@@ -182,6 +182,7 @@ function flushExtensionTelemetry() {
   const events = telemetryQueue.splice(0, TELEMETRY_BATCH_MAX)
   const payload = JSON.stringify({ events })
   const url = `${API_ORIGIN}/api/extension/events/batch`
+  flushTrafficTelemetry(events)
 
   try {
     if (navigator.sendBeacon && !extensionNonce?.nonce) {
@@ -200,6 +201,74 @@ function flushExtensionTelemetry() {
   } catch {
     // Dropping telemetry is acceptable; page behavior is more important.
   }
+}
+
+function flushTrafficTelemetry(events) {
+  const trafficEvents = events
+    .map((event) => {
+      const eventType = trafficEventType(event.event_type)
+      if (!eventType) return null
+
+      return {
+        event_type: eventType,
+        source: 'extension',
+        feature: trafficFeature(event.event_type),
+        domain: event.metadata?.href_host || event.domain,
+        success: event.success,
+        locale: contentLocale,
+        metadata: {
+          extension_version: event.extension_version,
+          mode: event.metadata?.mode,
+          reason: event.metadata?.reason,
+        },
+      }
+    })
+    .filter(Boolean)
+
+  if (!trafficEvents.length) {
+    return
+  }
+
+  const payload = JSON.stringify({ events: trafficEvents })
+  const url = `${API_ORIGIN}/api/traffic/events/batch`
+
+  try {
+    if (navigator.sendBeacon) {
+      const blob = new Blob([payload], { type: 'application/json' })
+      if (navigator.sendBeacon(url, blob)) {
+        return
+      }
+    }
+
+    fetch(url, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-TruthShield-Client': 'extension' },
+      body: payload,
+      keepalive: true,
+    }).catch(() => null)
+  } catch {
+    // Traffic telemetry must never affect the page.
+  }
+}
+
+function trafficEventType(extensionEventType) {
+  return {
+    tooltip_shown: 'tooltip_view',
+    article_banner_injected: 'banner_view',
+    vote_panel_opened: 'vote_panel_open',
+    article_banner_skipped: 'banner_skipped',
+    news_domains_loaded: 'extension_domains_loaded',
+    news_domains_failed: 'extension_domains_failed',
+  }[extensionEventType] || null
+}
+
+function trafficFeature(extensionEventType) {
+  if (extensionEventType.startsWith('tooltip')) return 'tooltip'
+  if (extensionEventType.startsWith('article_banner')) return 'article_banner'
+  if (extensionEventType.startsWith('vote_panel')) return 'vote_panel'
+  if (extensionEventType.startsWith('news_domains')) return 'extension_boot'
+
+  return 'extension'
 }
 
 function shouldSkipTelemetry(eventType, success, metadata) {

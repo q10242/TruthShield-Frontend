@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { createBugReport } from '../lib/api'
+import { trackEvent, trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
 
 const route = useRoute()
@@ -25,6 +26,7 @@ const error = ref('')
 const submitting = ref(false)
 
 onMounted(() => {
+  trackPageView('bug_report')
   form.report_type = String(route.query.report_type || form.report_type)
   form.page_url = String(route.query.url || '')
   form.title = String(route.query.title || '')
@@ -51,6 +53,7 @@ async function submit() {
     form.description = ''
     form.steps_to_reproduce = ''
     form.attachment_url = ''
+    trackEvent('bug_report_completed', { feature: 'bug_report', metadata: { report_type: form.report_type, severity: form.severity } })
   } catch (err) {
     error.value = err.errors?.title?.[0] || err.errors?.description?.[0] || err.message || t('bugReport.failed')
   } finally {

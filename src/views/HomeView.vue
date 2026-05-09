@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchCommunityTaskStats } from '../lib/api'
+import { trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
 
 const TOKEN_KEY = 'truthshield_api_token'
@@ -77,6 +78,7 @@ const communityCards = computed(() => [
 ])
 
 onMounted(async () => {
+  trackPageView('home')
   communityStats.value = await fetchCommunityTaskStats().catch(() => null)
 })
 </script>

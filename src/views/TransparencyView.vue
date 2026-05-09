@@ -30,6 +30,11 @@ const sections = [
     keys: ['account_edges', 'high_risk_account_edges', 'extension_failures_24h', 'operational_events_24h', 'selector_failures_24h', 'bot_challenges_24h', 'bot_blocks_24h', 'bot_protection_distribution'],
   },
   {
+    titleKey: 'transparency.trafficStats',
+    descriptionKey: 'transparency.trafficStatsDesc',
+    keys: ['today_api_requests', 'today_status_queries', 'cache_hit_rate', 'today_active_extension_clients', 'today_banner_views', 'today_tooltip_views', 'today_vote_panel_opens', 'today_votes', 'today_evidence_submissions', 'today_reports', 'extension_zip_downloads_today', 'error_rate'],
+  },
+  {
     titleKey: 'transparency.policyAndWeight',
     descriptionKey: 'transparency.policyAndWeightDesc',
     keys: ['active_api_clients', 'active_trusted_evidence_sources', 'active_rate_limit_policies', 'unread_notifications', 'weight_distribution'],

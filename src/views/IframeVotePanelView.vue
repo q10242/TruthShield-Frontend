@@ -20,6 +20,7 @@ import {
   createOfficialResponse,
 } from '../lib/api'
 import { evidenceUploadConfig, uploadEvidenceImage, validateEvidenceImage } from '../lib/evidenceUpload'
+import { trackEvent } from '../lib/traffic'
 import { useI18n } from '../i18n'
 
 const TOKEN_KEY = 'truthshield_api_token'
@@ -357,6 +358,7 @@ async function submitOfficialResponse() {
     officialResponseText.value = ''
     officialResponseEvidenceUrl.value = ''
     officialResponseMessage.value = t('votePanel.officialResponseSubmitted')
+    trackEvent('official_response_submitted', { feature: 'official_response', url: newsUrl.value })
   } catch (err) {
     officialResponseError.value = err.message || t('votePanel.officialResponseFailed')
   } finally {
@@ -389,6 +391,7 @@ async function reactOfficial(item, helpful) {
 }
 
 function openLogin() {
+  trackEvent('login_opened', { feature: 'auth', url: newsUrl.value })
   const loginUrl = new URL('/login', window.location.origin)
   loginUrl.searchParams.set('redirect', window.location.pathname + window.location.search)
   window.open(loginUrl.toString(), 'truthshield-login', 'width=460,height=680')
@@ -457,6 +460,17 @@ async function submitVote() {
     })
 
     voteMessage.value = t('votePanel.voteSuccess')
+    trackEvent('vote_completed', {
+      feature: 'vote',
+      url: newsUrl.value,
+      metadata: {
+        tag_id: selectedTagId.value,
+        has_evidence: Boolean(evidenceUrl.value.trim()),
+      },
+    })
+    if (evidenceUrl.value.trim()) {
+      trackEvent('evidence_submitted', { feature: 'evidence', url: newsUrl.value })
+    }
     activeTab.value = 'results'
     evidenceUrl.value = ''
     evidenceNote.value = ''
@@ -509,6 +523,7 @@ async function handleEvidenceFileChange(event) {
   try {
     evidenceUrl.value = await uploadEvidenceImage(file)
     evidenceUploadMessage.value = t('votePanel.uploadSuccess')
+    trackEvent('evidence_upload_completed', { feature: 'evidence_upload', url: newsUrl.value, metadata: { provider: evidenceUploadConfig.provider } })
   } catch (err) {
     voteError.value = err.reason === 'size'
       ? t('votePanel.uploadTooLarge', { size: evidenceUploadConfig.maxSizeMb })
@@ -560,6 +575,7 @@ async function reportItem(item) {
       note: reportReasons.value.find((reason) => reason.value === 'needs_review')?.label || t('votePanel.reportNote'),
     })
     reportMessage.value = t('votePanel.reportSuccess')
+    trackEvent('evidence_report_completed', { feature: 'evidence_report', url: newsUrl.value })
   } catch (err) {
     evidenceError.value = err.message || t('votePanel.reportFailed')
   } finally {
@@ -578,6 +594,7 @@ async function submitChangeReport(reportType) {
       page_title: pageSnapshot.value.title_snapshot || document.title || undefined,
     })
     changeReportMessage.value = t('votePanel.changeReportSuccess')
+    trackEvent('news_change_report_completed', { feature: 'news_change_report', url: newsUrl.value, metadata: { report_type: reportType } })
     await loadData()
   } catch (err) {
     evidenceError.value = err.message || t('votePanel.changeReportFailed')
@@ -611,6 +628,7 @@ async function react(item, helpful) {
   try {
     await reactToEvidence(token.value, item.id, helpful)
     evidence.value = await fetchNewsEvidence(newsUrl.value)
+    trackEvent('evidence_reaction_completed', { feature: 'evidence_reaction', url: newsUrl.value, metadata: { helpful } })
   } catch (err) {
     evidenceError.value = err.status === 409
       ? t('votePanel.reactionClosed')
@@ -663,6 +681,7 @@ watch(selectedTagId, (tagId) => {
 watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, evidenceUploading, evidenceUploadMessage, voteError, voteMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, readSeconds], notifyHeight)
 
 onMounted(async () => {
+  trackEvent('vote_panel_open', { source: 'extension', feature: 'vote_panel', url: newsUrl.value })
   await loadAuth()
   await syncSnapshot()
   await loadData()

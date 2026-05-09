@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchBotProtectionConfig, fetchSystemHealth } from '../lib/api'
+import { trackEvent, trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
 import extensionManifest from '../../public/extension/manifest.json'
 
@@ -56,6 +57,7 @@ const updateSteps = computed(() => [
 ])
 
 onMounted(async () => {
+  trackPageView('extension_install')
   loading.value = true
   const [healthPayload, botPayload] = await Promise.all([
     fetchSystemHealth().catch(() => null),
@@ -65,6 +67,10 @@ onMounted(async () => {
   botConfig.value = botPayload
   loading.value = false
 })
+
+function trackDownload() {
+  trackEvent('extension_zip_download', { feature: 'extension_download' })
+}
 </script>
 
 <template>
@@ -100,7 +106,7 @@ onMounted(async () => {
             </ul>
           </div>
           <div class="mt-6 flex flex-wrap gap-3">
-            <a class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" href="/truthshield-extension.zip" download>
+            <a class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" href="/truthshield-extension.zip" download @click="trackDownload">
               {{ t('extensionInstall.downloadZip') }}
             </a>
             <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="chrome://extensions">

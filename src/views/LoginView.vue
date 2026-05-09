@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { beginOauth, devLogin, oauthCallback } from '../lib/api'
+import { trackEvent, trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
 
 const TOKEN_KEY = 'truthshield_api_token'
@@ -54,6 +55,7 @@ async function persistLogin(payload) {
 }
 
 onMounted(async () => {
+  trackPageView('login')
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
 
   if (hash.get('oauth_error')) {
@@ -76,6 +78,7 @@ onMounted(async () => {
       token,
       user: JSON.parse(decodeBase64Url(encodedUser)),
     })
+    trackEvent('login_completed', { feature: 'auth', metadata: { provider: 'oauth_redirect' } })
     window.history.replaceState(null, '', window.location.pathname + window.location.search)
   } catch (err) {
     error.value = err.message || t('auth.loginFailed')
@@ -93,6 +96,7 @@ async function submit() {
       fb_id: fbId.value || undefined,
     })
     await persistLogin(payload)
+    trackEvent('login_completed', { feature: 'auth', metadata: { provider: 'dev' } })
   } catch (err) {
     error.value = err.message || t('auth.loginFailed')
   } finally {
@@ -111,6 +115,7 @@ async function providerLogin(provider) {
       email: email.value,
     })
     await persistLogin(payload)
+    trackEvent('login_completed', { feature: 'auth', metadata: { provider } })
   } catch (err) {
     error.value = err.message || t('auth.loginFailed')
   } finally {
@@ -126,6 +131,7 @@ async function realProviderLogin(provider) {
     const payload = await beginOauth(provider, {
       redirect_url: window.location.href,
     })
+    trackEvent('oauth_begin', { feature: 'auth', metadata: { provider } })
     window.location.assign(payload.auth_url)
   } catch (err) {
     error.value = err.message || t('auth.oauthNotConfigured')

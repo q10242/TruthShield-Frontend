@@ -1,6 +1,6 @@
 const defaults = {
-  tooltipOrigin: 'http://127.0.0.1:15173',
-  apiOrigin: 'http://127.0.0.1:18080',
+  tooltipOrigin: 'https://truth-shield.otus.tw',
+  apiOrigin: 'https://truth-shield-api.otus.tw',
   enableTooltip: true,
   enablePanel: true,
   enableReportButton: true,

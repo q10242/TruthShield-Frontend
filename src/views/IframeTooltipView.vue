@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchNewsStatus } from '../lib/api'
+import { trackEvent } from '../lib/traffic'
 import { useI18n } from '../i18n'
 
 const route = useRoute()
@@ -54,8 +55,22 @@ async function loadData() {
 
     const statusPayload = await fetchNewsStatus(newsUrl.value)
     status.value = statusPayload
+    trackEvent('tooltip_status_loaded', {
+      source: 'extension',
+      feature: 'tooltip',
+      url: newsUrl.value,
+      cache_status: statusPayload.cache_status,
+      metadata: { tone: statusPayload.tone || 'neutral' },
+    })
   } catch (err) {
     error.value = err.message || t('votePanel.unavailable')
+    trackEvent('tooltip_status_loaded', {
+      source: 'extension',
+      feature: 'tooltip',
+      url: newsUrl.value,
+      success: false,
+      metadata: { reason: 'load_failed' },
+    })
   } finally {
     loading.value = false
     statusLoading.value = false
