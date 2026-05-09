@@ -13,6 +13,7 @@ const communityStats = ref(null)
 const { t } = useI18n()
 
 const primaryLinks = computed(() => [
+  { to: '/user-guide', label: t('common.userGuide'), description: t('home.userGuideDesc'), mark: '00' },
   { to: '/extension-install', label: t('common.extensionInstall'), description: t('home.extensionInstallDesc'), mark: '01' },
   { to: '/news-search', label: t('common.newsSearch'), description: t('home.newsSearchDesc'), mark: '02' },
   { to: '/community-tasks', label: t('common.communityTasks'), description: t('home.communityTasksDesc'), mark: '03' },
@@ -30,6 +31,7 @@ function signOut() {
 }
 
 const secondaryLinks = computed(() => [
+  { to: '/user-guide', label: t('common.userGuide') },
   { to: '/extension-install', label: t('common.extensionInstall') },
   { to: '/news-search', label: t('common.newsSearch') },
   { to: '/profile', label: t('common.profile') },
@@ -389,8 +391,8 @@ onMounted(async () => {
               <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/extension-install">
                 {{ t('home.manualInstallCta') }}
               </RouterLink>
-              <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" to="/platform-rules">
-                {{ t('home.manualRulesCta') }}
+              <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" to="/user-guide">
+                {{ t('home.manualGuideCta') }}
               </RouterLink>
             </div>
           </div>
@@ -571,8 +573,8 @@ onMounted(async () => {
                 <p class="text-sm font-semibold text-cyan-300">{{ t('home.manualChapterEyebrow') }}</p>
                 <h3 class="mt-2 text-2xl font-semibold text-white">{{ t('home.manualChapterTitle') }}</h3>
               </div>
-              <RouterLink class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/10" to="/api-docs">
-                {{ t('common.apiDocs') }}
+              <RouterLink class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/10" to="/user-guide">
+                {{ t('common.userGuide') }}
               </RouterLink>
             </div>
             <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('home.manualChapterIntro') }}</p>
@@ -675,7 +677,7 @@ onMounted(async () => {
             <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.toolsTitle') }}</h2>
           </div>
         </div>
-        <div class="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+        <div class="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <RouterLink
             v-for="link in primaryLinks"
             :key="link.to"
@@ -711,6 +713,7 @@ onMounted(async () => {
       </section>
       <footer class="flex flex-wrap gap-3 border-t border-white/10 py-5 text-sm text-zinc-500">
         <RouterLink class="hover:text-cyan-100" to="/privacy">{{ t('common.privacy') }}</RouterLink>
+        <RouterLink class="hover:text-cyan-100" to="/user-guide">{{ t('common.userGuide') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/terms">{{ t('common.terms') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/data-processing-policy">{{ t('common.dataProcessingPolicy') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/official-response-policy">{{ t('common.officialResponsePolicy') }}</RouterLink>
