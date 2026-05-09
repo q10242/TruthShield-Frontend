@@ -584,7 +584,10 @@ export async function createDonation(payload) {
   return request('/api/donations/ecpay', {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      locale: currentLocale(),
+      ...payload,
+    }),
   })
 }
 
