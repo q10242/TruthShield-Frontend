@@ -119,10 +119,22 @@ function extensionVersion() {
 }
 
 function isTruthShieldWebOrigin() {
+  return sameOrigin(window.location.origin, TOOLTIP_ORIGIN)
+}
+
+function sameOrigin(left, right) {
   try {
-    return window.location.origin === new URL(TOOLTIP_ORIGIN).origin
+    return new URL(left).origin === new URL(right).origin
   } catch {
     return false
+  }
+}
+
+function tooltipOrigin() {
+  try {
+    return new URL(TOOLTIP_ORIGIN).origin
+  } catch {
+    return TOOLTIP_ORIGIN
   }
 }
 
@@ -187,7 +199,7 @@ async function postStoredAuthToVotePanelFrame() {
       token: auth.token,
       user: auth.user || null,
     },
-    TOOLTIP_ORIGIN,
+    tooltipOrigin(),
   )
 }
 
@@ -1320,7 +1332,7 @@ function startArticleReadTimer() {
           secondsRead: articleReadSeconds,
           pageTitle: document.title || '',
         },
-        TOOLTIP_ORIGIN,
+        tooltipOrigin(),
       )
     }
   }, 1000)
@@ -1476,7 +1488,7 @@ window.addEventListener('storage', (event) => {
 })
 
 window.addEventListener('message', (event) => {
-  if (event.origin !== TOOLTIP_ORIGIN) {
+  if (!sameOrigin(event.origin, TOOLTIP_ORIGIN)) {
     return
   }
 
@@ -1538,6 +1550,14 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
       isLikelyArticle: isLikelyArticlePage(),
       youtubeChannelUrl: currentYoutubeChannelUrl(),
     })
+    return true
+  }
+
+  if (message?.type === 'TRUTH_SHIELD_SYNC_WEB_AUTH') {
+    syncWebAuthToExtensionStorage()
+      .then(() => storedExtensionAuth())
+      .then((auth) => sendResponse({ ok: true, auth }))
+      .catch(() => sendResponse({ ok: false }))
     return true
   }
 

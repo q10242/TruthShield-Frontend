@@ -95,8 +95,19 @@ function storedAuth() {
   })
 }
 
+async function syncAuthFromActiveTab() {
+  if (!state.tab?.id) return null
+
+  try {
+    const response = await chrome.tabs.sendMessage(state.tab.id, { type: 'TRUTH_SHIELD_SYNC_WEB_AUTH' })
+    return response?.auth || null
+  } catch {
+    return null
+  }
+}
+
 async function loadAuthSummary() {
-  const auth = await storedAuth()
+  const auth = await syncAuthFromActiveTab() || await storedAuth()
   const authStatus = byId('authStatus')
   const authUser = byId('authUser')
 
