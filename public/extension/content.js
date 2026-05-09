@@ -10,6 +10,9 @@ const TELEMETRY_FLUSH_DELAY_MS = 5000
 const VOTE_PANEL_POSITION_KEY = 'truthShieldVotePanelPosition'
 const AUTH_TOKEN_KEY = 'truthshield_api_token'
 const AUTH_USER_KEY = 'truthshield_user'
+const PAGE_AUTH_REQUEST = 'TRUTH_SHIELD_PAGE_AUTH_REQUEST'
+const PAGE_AUTH_STATE = 'TRUTH_SHIELD_PAGE_AUTH_STATE'
+const PAGE_AUTH_BRIDGE_ID = 'truthshield-page-auth-bridge'
 let enableTooltip = true
 let enablePanel = true
 let enableReportButton = true
@@ -152,6 +155,55 @@ function readWebAuthFromLocalStorage() {
   return { token, user, updatedAt: Date.now() }
 }
 
+function installPageAuthBridge() {
+  if (!isTruthShieldWebOrigin() || document.getElementById(PAGE_AUTH_BRIDGE_ID)) {
+    return
+  }
+
+  const script = document.createElement('script')
+  script.id = PAGE_AUTH_BRIDGE_ID
+  script.textContent = `
+    (() => {
+      const TOKEN_KEY = ${JSON.stringify(AUTH_TOKEN_KEY)};
+      const USER_KEY = ${JSON.stringify(AUTH_USER_KEY)};
+      const REQUEST = ${JSON.stringify(PAGE_AUTH_REQUEST)};
+      const STATE = ${JSON.stringify(PAGE_AUTH_STATE)};
+
+      function readAuth() {
+        const token = window.localStorage.getItem(TOKEN_KEY) || '';
+        let user = null;
+        try {
+          user = JSON.parse(window.localStorage.getItem(USER_KEY) || 'null');
+        } catch (_) {
+          user = null;
+        }
+        return token ? { token, user, updatedAt: Date.now() } : null;
+      }
+
+      function postAuth() {
+        window.postMessage({ type: STATE, auth: readAuth() }, window.location.origin);
+      }
+
+      window.addEventListener('message', (event) => {
+        if (event.source === window && event.data?.type === REQUEST) postAuth();
+      });
+      window.addEventListener('storage', (event) => {
+        if (event.key === TOKEN_KEY || event.key === USER_KEY) postAuth();
+      });
+      postAuth();
+    })();
+  `
+  ;(document.head || document.documentElement).appendChild(script)
+  script.remove()
+}
+
+function requestPageAuthState() {
+  if (!isTruthShieldWebOrigin()) return
+
+  installPageAuthBridge()
+  window.postMessage({ type: PAGE_AUTH_REQUEST }, window.location.origin)
+}
+
 function sendRuntimeMessage(message) {
   return new Promise((resolve) => {
     try {
@@ -174,7 +226,7 @@ async function syncWebAuthToExtensionStorage() {
 
   const auth = readWebAuthFromLocalStorage()
   if (!auth) {
-    await sendRuntimeMessage({ type: 'TRUTH_SHIELD_CLEAR_AUTH' })
+    requestPageAuthState()
     return
   }
 
@@ -1492,6 +1544,15 @@ window.addEventListener('message', (event) => {
     return
   }
 
+  if (isTruthShieldWebOrigin() && event.source === window && event.data?.type === PAGE_AUTH_STATE) {
+    if (event.data.auth?.token) {
+      sendRuntimeMessage({ type: 'TRUTH_SHIELD_SET_AUTH', auth: event.data.auth })
+    } else {
+      sendRuntimeMessage({ type: 'TRUTH_SHIELD_CLEAR_AUTH' })
+    }
+    return
+  }
+
   if (isTruthShieldWebOrigin() && event.data?.type === 'TRUTH_SHIELD_AUTH_UPDATED' && event.data.token) {
     sendRuntimeMessage({
       type: 'TRUTH_SHIELD_SET_AUTH',
@@ -1554,6 +1615,7 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
   }
 
   if (message?.type === 'TRUTH_SHIELD_SYNC_WEB_AUTH') {
+    requestPageAuthState()
     syncWebAuthToExtensionStorage()
       .then(() => storedExtensionAuth())
       .then((auth) => sendResponse({ ok: true, auth }))
@@ -1565,6 +1627,8 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
 })
 
 loadSettings().then(loadExtensionNonce).then(loadNewsDomains).finally(async () => {
+  installPageAuthBridge()
+  requestPageAuthState()
   await syncWebAuthToExtensionStorage()
   if (enablePanel) maybeInjectVotePanel()
   maybeInjectDomainReportButton()
