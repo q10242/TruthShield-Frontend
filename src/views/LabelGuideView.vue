@@ -18,6 +18,17 @@ function criteriaFor(tag) {
   return translated === `labelGuide.criteria.${tag.slug}` ? tag.description : translated
 }
 
+function evidenceRequirementKey(tag) {
+  return tag.evidence_requirement || (tag.requires_evidence ? 'strong_evidence' : 'optional')
+}
+
+function evidenceRequirementFor(tag) {
+  const key = `labelGuide.evidenceRequirement.${evidenceRequirementKey(tag)}`
+  const translated = t(key)
+
+  return translated === key ? t('labelGuide.evidenceRequirement.optional') : translated
+}
+
 onMounted(async () => {
   try {
     tags.value = await fetchTags()
@@ -52,7 +63,7 @@ onMounted(async () => {
                 <span class="rounded px-2 py-1 text-xs font-semibold" :style="{ backgroundColor: `${tag.color}22`, color: tag.color }">{{ tag.severity }}</span>
               </div>
               <p class="mt-2 text-sm leading-6 text-zinc-400">{{ criteriaFor(tag) }}</p>
-              <p v-if="tag.requires_evidence" class="mt-3 text-xs font-semibold text-amber-200">{{ t('labelGuide.evidenceRequired') }}</p>
+              <p class="mt-3 text-xs font-semibold text-amber-200">{{ evidenceRequirementFor(tag) }}</p>
             </article>
           </div>
         </section>
@@ -66,6 +77,7 @@ onMounted(async () => {
                 <span class="rounded px-2 py-1 text-xs font-semibold" :style="{ backgroundColor: `${tag.color}22`, color: tag.color }">{{ t('labelGuide.positiveBadge') }}</span>
               </div>
               <p class="mt-2 text-sm leading-6 text-zinc-400">{{ criteriaFor(tag) }}</p>
+              <p class="mt-3 text-xs font-semibold text-emerald-200">{{ evidenceRequirementFor(tag) }}</p>
             </article>
           </div>
         </section>

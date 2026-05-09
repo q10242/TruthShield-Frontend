@@ -93,6 +93,29 @@ const selectedTagCriteria = computed(() => {
     ? selectedTag.value.description || t('votePanel.tagCriteriaFallback')
     : localized
 })
+const selectedEvidenceRequirement = computed(() => {
+  if (!selectedTag.value) return 'optional'
+
+  return selectedTag.value.evidence_requirement || (selectedTag.value.requires_evidence ? 'strong_evidence' : 'optional')
+})
+const requiresEvidenceUrl = computed(() => {
+  if (!selectedTag.value) return false
+  if (typeof selectedTag.value.evidence_url_required === 'boolean') return selectedTag.value.evidence_url_required
+
+  return selectedEvidenceRequirement.value === 'strong_evidence'
+})
+const requiresEvidenceNote = computed(() => {
+  if (!selectedTag.value) return false
+  if (typeof selectedTag.value.evidence_note_required === 'boolean') return selectedTag.value.evidence_note_required
+
+  return Boolean(selectedTag.value.requires_evidence)
+})
+const selectedEvidenceGuidance = computed(() => {
+  const key = `votePanel.evidenceRequirement.${selectedEvidenceRequirement.value}`
+  const localized = t(key)
+
+  return localized === key ? t('votePanel.evidenceRequirement.optional') : localized
+})
 const isLoggedIn = computed(() => Boolean(token.value && user.value))
 const totalWeight = computed(() => Number(status.value?.total_weight || 0))
 const distribution = computed(() => status.value?.distribution || [])
@@ -455,13 +478,13 @@ async function submitVote() {
     return
   }
 
-  if (selectedTag.value?.requires_evidence && !evidenceUrl.value.trim()) {
+  if (requiresEvidenceUrl.value && !evidenceUrl.value.trim()) {
     voteError.value = t('votePanel.evidenceRequiredError')
     notifyHeight()
     return
   }
 
-  if (selectedTag.value?.requires_evidence && !evidenceNote.value.trim()) {
+  if (requiresEvidenceNote.value && !evidenceNote.value.trim()) {
     voteError.value = t('votePanel.noteRequiredError')
     notifyHeight()
     return
@@ -986,16 +1009,16 @@ onMounted(async () => {
         <details class="rounded-md border border-white/10 bg-zinc-950/70 p-3 text-xs text-zinc-400">
           <summary class="cursor-pointer font-semibold text-cyan-100">{{ t('votePanel.tagCriteria') }}</summary>
           <p class="mt-2 leading-5">{{ selectedTagCriteria }}</p>
-          <p class="mt-2 leading-5">{{ selectedTag?.requires_evidence ? t('votePanel.negativeCriteria') : t('votePanel.positiveCriteria') }}</p>
+          <p class="mt-2 leading-5">{{ selectedEvidenceGuidance }}</p>
         </details>
 
         <label class="block text-xs text-zinc-400">
-          {{ t('votePanel.evidenceUrlLabel') }}
+          {{ t('votePanel.evidenceUrlLabel') }}<span v-if="requiresEvidenceUrl" class="text-amber-200"> *</span>
           <input
             v-model="evidenceUrl"
             class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
             :disabled="!isVotingOpen"
-            :placeholder="selectedTag?.requires_evidence ? t('votePanel.evidenceUrlRequired') : t('votePanel.optional')"
+            :placeholder="requiresEvidenceUrl ? t('votePanel.evidenceUrlRequired') : t('votePanel.evidenceUrlOptional')"
           />
         </label>
 
@@ -1049,13 +1072,13 @@ onMounted(async () => {
         </div>
 
         <label class="block text-xs text-zinc-400">
-          {{ t('votePanel.evidenceNoteLabel') }}
+          {{ t('votePanel.evidenceNoteLabel') }}<span v-if="requiresEvidenceNote" class="text-amber-200"> *</span>
           <textarea
             v-model="evidenceNote"
             rows="3"
             class="mt-2 w-full resize-none rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
             :disabled="!isVotingOpen"
-            :placeholder="selectedTag?.requires_evidence ? t('votePanel.evidenceNoteRequired') : t('votePanel.optional')"
+            :placeholder="requiresEvidenceNote ? t('votePanel.evidenceNoteRequired') : t('votePanel.optional')"
           ></textarea>
         </label>
 
