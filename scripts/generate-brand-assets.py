@@ -72,9 +72,14 @@ def draw_mark(draw: ImageDraw.ImageDraw, box: Tuple[int, int, int, int], backgro
     cx = x1 + w / 2
     top = y1 + pad * 1.1
     size = base - pad * 2.2
-    shield = shield_points(cx, top, size)
-    draw.polygon(shield, fill=COLORS["panel"])
-    draw.line(shield + [shield[0]], fill=COLORS["cyan"], width=max(2, int(base * (0.07 if compact else 0.042))), joint="curve")
+    outer_shield = shield_points(cx, top, size)
+    draw.polygon(outer_shield, fill=COLORS["cyan"])
+
+    inset = base * (0.08 if compact else 0.055)
+    inner_size = size - inset * 2
+    inner_top = top + inset * 1.12
+    inner_shield = shield_points(cx, inner_top, inner_size)
+    draw.polygon(inner_shield, fill=COLORS["panel"])
 
     nodes = {
         "center": (x1 + base * 0.50, y1 + base * 0.50),

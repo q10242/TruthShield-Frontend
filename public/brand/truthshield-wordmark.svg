@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 276 64" role="img" aria-label="TruthShield">
   <rect width="64" height="64" rx="15" fill="#09090b"/>
-  <path d="M32 7.5 50 14.8v13.9c0 12.3-6.5 21.3-18 27.2-11.5-5.9-18-14.9-18-27.2V14.8z" fill="#0f172a"/>
-  <path d="M32 7.5 50 14.8v13.9c0 12.3-6.5 21.3-18 27.2-11.5-5.9-18-14.9-18-27.2V14.8z" fill="none" stroke="#67e8f9" stroke-width="2.8" stroke-linejoin="round"/>
+  <path d="M32 7.5 50 14.8v13.9c0 12.3-6.5 21.3-18 27.2-11.5-5.9-18-14.9-18-27.2V14.8z" fill="#67e8f9"/>
+  <path d="M32 11.3 46.8 17.3v11.4c0 9.9-5.1 17.3-14.8 22.9-9.7-5.6-14.8-13-14.8-22.9V17.3z" fill="#0f172a"/>
   <path d="M22 25.5 32 32 42.8 23.6" fill="none" stroke="#67e8f9" stroke-opacity=".78" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M20.8 40.5 32 32 44 41.3" fill="none" stroke="#2dd4bf" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
   <circle cx="32" cy="32" r="4.3" fill="#ecfeff"/>
