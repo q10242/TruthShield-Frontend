@@ -29,6 +29,15 @@
         color: #d4d4d8;
         word-break: break-all;
       }
+      .auth {
+        margin-top: 12px;
+        border: 1px solid #164e63;
+        border-radius: 8px;
+        padding: 10px;
+        background: rgba(8, 145, 178, .08);
+      }
+      .auth strong { display:block; color:#cffafe; font-size:12px; }
+      .auth span { display:block; margin-top:4px; color:#a1a1aa; font-size:12px; line-height:1.4; word-break:break-word; }
       button {
         width: 100%;
         margin-top: 8px;
@@ -69,6 +78,11 @@
       <div class="target">
         <div class="label" data-i18n="currentTab">目前分頁</div>
         <div id="currentUrl" data-i18n="loading">讀取中...</div>
+      </div>
+
+      <div class="auth">
+        <strong id="authStatus" data-i18n="authChecking">登入狀態檢查中</strong>
+        <span id="authUser" data-i18n="authHint">如果你已在官網登入，插件會自動同步。</span>
       </div>
 
       <button id="openStatus" class="primary" data-i18n="openStatus">查看目前頁面評分</button>

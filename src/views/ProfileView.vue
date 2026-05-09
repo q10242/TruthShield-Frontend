@@ -53,6 +53,7 @@ async function signOut() {
   if (token.value) await logout(token.value).catch(() => null)
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(USER_KEY)
+  window.postMessage({ type: 'TRUTH_SHIELD_AUTH_CLEARED' }, window.location.origin)
   token.value = ''
   profile.value = null
 }

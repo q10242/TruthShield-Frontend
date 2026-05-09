@@ -8,6 +8,8 @@ const TELEMETRY_CACHE_MAX = 300
 const TELEMETRY_BATCH_MAX = 20
 const TELEMETRY_FLUSH_DELAY_MS = 5000
 const VOTE_PANEL_POSITION_KEY = 'truthShieldVotePanelPosition'
+const AUTH_TOKEN_KEY = 'truthshield_api_token'
+const AUTH_USER_KEY = 'truthshield_user'
 let enableTooltip = true
 let enablePanel = true
 let enableReportButton = true
@@ -114,6 +116,79 @@ function extensionVersion() {
   } catch {
     return null
   }
+}
+
+function isTruthShieldWebOrigin() {
+  try {
+    return window.location.origin === new URL(TOOLTIP_ORIGIN).origin
+  } catch {
+    return false
+  }
+}
+
+function readWebAuthFromLocalStorage() {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY) || ''
+  if (!token) return null
+
+  let user = null
+  try {
+    user = JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null')
+  } catch {
+    user = null
+  }
+
+  return { token, user, updatedAt: Date.now() }
+}
+
+function sendRuntimeMessage(message) {
+  return new Promise((resolve) => {
+    try {
+      chrome.runtime?.sendMessage?.(message, (response) => {
+        if (chrome.runtime?.lastError) {
+          resolve(null)
+          return
+        }
+
+        resolve(response || null)
+      })
+    } catch {
+      resolve(null)
+    }
+  })
+}
+
+async function syncWebAuthToExtensionStorage() {
+  if (!isTruthShieldWebOrigin()) return
+
+  const auth = readWebAuthFromLocalStorage()
+  if (!auth) {
+    await sendRuntimeMessage({ type: 'TRUTH_SHIELD_CLEAR_AUTH' })
+    return
+  }
+
+  await sendRuntimeMessage({ type: 'TRUTH_SHIELD_SET_AUTH', auth })
+}
+
+async function storedExtensionAuth() {
+  const response = await sendRuntimeMessage({ type: 'TRUTH_SHIELD_GET_AUTH' })
+  return response?.auth || null
+}
+
+async function postStoredAuthToVotePanelFrame() {
+  if (!votePanelFrame?.contentWindow) return
+
+  const auth = await storedExtensionAuth()
+  if (!auth?.token || !votePanelFrame?.contentWindow) return
+
+  votePanelFrame.contentWindow.postMessage(
+    {
+      type: 'TRUTH_SHIELD_AUTH_UPDATED',
+      source: 'truthshield-extension',
+      token: auth.token,
+      user: auth.user || null,
+    },
+    TOOLTIP_ORIGIN,
+  )
 }
 
 async function loadExtensionNonce() {
@@ -756,7 +831,7 @@ function ensureArticleBanner() {
   articleBanner.dataset.truthshieldMode = youtubeMode ? 'youtube_chip' : 'article_bar'
   articleBanner.setAttribute('role', 'region')
   articleBanner.setAttribute('aria-label', t('newsStatus'))
-  articleBanner.style.position = youtubeContainer ? 'relative' : 'fixed'
+  articleBanner.style.position = youtubeContainer ? 'relative' : 'sticky'
   articleBanner.style.top = youtubeMode ? (youtubeContainer ? 'auto' : '72px') : '0'
   articleBanner.style.left = youtubeMode ? 'auto' : '0'
   articleBanner.style.right = youtubeMode ? '16px' : '0'
@@ -775,6 +850,7 @@ function ensureArticleBanner() {
   articleBanner.style.cursor = 'pointer'
   articleBanner.style.maxWidth = youtubeMode ? 'min(360px, calc(100vw - 32px))' : 'none'
   articleBanner.style.marginRight = youtubeContainer ? '8px' : '0'
+  articleBanner.style.width = youtubeMode ? 'auto' : '100%'
   articleBanner.addEventListener('click', (event) => {
     const target = event.target
     if (target?.closest?.('[data-truthshield-close-banner]')) {
@@ -795,7 +871,7 @@ function ensureArticleBanner() {
   if (youtubeContainer) {
     youtubeContainer.prepend(articleBanner)
   } else {
-    document.documentElement.appendChild(articleBanner)
+    ;(document.body || document.documentElement).prepend(articleBanner)
   }
   renderArticleBannerFromCache(window.location.href)
 
@@ -914,6 +990,44 @@ function loadArticleBannerStatusOnce(url) {
     })
 
   articleBannerStatusRequests.set(cacheKey, request)
+}
+
+function clearStatusCachesForUrl(url) {
+  const cacheKey = canonicalStatusUrl(url || window.location.href)
+  tooltipStatusCache.delete(cacheKey)
+  tooltipStatusRequests.delete(cacheKey)
+  articleBannerStatusCache.delete(cacheKey)
+  articleBannerStatusRequests.delete(cacheKey)
+}
+
+async function refreshArticleBannerStatus(url = window.location.href, knownStatus = null) {
+  const cacheKey = canonicalStatusUrl(url)
+
+  if (knownStatus) {
+    articleBannerStatusCache.set(cacheKey, { state: 'success', payload: knownStatus })
+    if (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey) {
+      renderArticleBanner(knownStatus)
+    }
+    return
+  }
+
+  clearStatusCachesForUrl(cacheKey)
+  if (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey) {
+    renderArticleBanner(null, true)
+  }
+
+  try {
+    const payload = await fetchStatus(cacheKey)
+    articleBannerStatusCache.set(cacheKey, { state: 'success', payload })
+    if (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey) {
+      renderArticleBanner(payload)
+    }
+  } catch {
+    articleBannerStatusCache.set(cacheKey, { state: 'failed' })
+    if (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey) {
+      renderArticleBanner(null, false, true)
+    }
+  }
 }
 
 function ensureVotePanelFrame(url = window.location.href) {
@@ -1123,6 +1237,7 @@ function openVotePanelModal(targetUrl = window.location.href) {
   votePanelFrame.style.background = 'transparent'
   votePanelFrame.style.display = 'block'
   votePanelFrame.style.colorScheme = 'normal'
+  votePanelFrame.addEventListener('load', postStoredAuthToVotePanelFrame)
 
   const panelUrl = new URL('/iframe-vote-panel', TOOLTIP_ORIGIN)
   panelUrl.searchParams.set('news_url', targetUrl)
@@ -1148,6 +1263,7 @@ function openVotePanelModal(targetUrl = window.location.href) {
     }
   })
   updateVotePanelShellSize(620, false)
+  postStoredAuthToVotePanelFrame()
   reportExtensionEvent('vote_panel_opened', true, { mode: 'side_panel_from_banner' })
   startArticleReadTimer()
 
@@ -1353,14 +1469,49 @@ window.addEventListener('scroll', () => {
 })
 
 window.addEventListener('pagehide', flushExtensionTelemetry)
+window.addEventListener('storage', (event) => {
+  if (event.key === AUTH_TOKEN_KEY || event.key === AUTH_USER_KEY) {
+    syncWebAuthToExtensionStorage()
+  }
+})
 
 window.addEventListener('message', (event) => {
   if (event.origin !== TOOLTIP_ORIGIN) {
     return
   }
 
+  if (isTruthShieldWebOrigin() && event.data?.type === 'TRUTH_SHIELD_AUTH_UPDATED' && event.data.token) {
+    sendRuntimeMessage({
+      type: 'TRUTH_SHIELD_SET_AUTH',
+      auth: {
+        token: event.data.token,
+        user: event.data.user || null,
+        updatedAt: Date.now(),
+      },
+    })
+  }
+
+  if (isTruthShieldWebOrigin() && event.data?.type === 'TRUTH_SHIELD_AUTH_CLEARED') {
+    sendRuntimeMessage({ type: 'TRUTH_SHIELD_CLEAR_AUTH' })
+  }
+
   if (event.data?.type === 'TRUTH_SHIELD_VOTE_PANEL_RESIZE' && votePanelFrame) {
     updateVotePanelShellSize(Number(event.data.height), Boolean(event.data.collapsed))
+  }
+
+  if (event.data?.type === 'TRUTH_SHIELD_AUTH_UPDATED' && event.data.token) {
+    sendRuntimeMessage({
+      type: 'TRUTH_SHIELD_SET_AUTH',
+      auth: {
+        token: event.data.token,
+        user: event.data.user || null,
+        updatedAt: Date.now(),
+      },
+    })
+  }
+
+  if (event.data?.type === 'TRUTH_SHIELD_VOTE_UPDATED') {
+    refreshArticleBannerStatus(event.data.url || votePanelUrl || window.location.href, event.data.status || null)
   }
 })
 
@@ -1393,7 +1544,8 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
   return false
 })
 
-loadSettings().then(loadExtensionNonce).then(loadNewsDomains).finally(() => {
+loadSettings().then(loadExtensionNonce).then(loadNewsDomains).finally(async () => {
+  await syncWebAuthToExtensionStorage()
   if (enablePanel) maybeInjectVotePanel()
   maybeInjectDomainReportButton()
   observeArticleChanges()

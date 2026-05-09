@@ -78,6 +78,41 @@ function trackPopupEvent(eventType, feature, metadata = {}) {
   }
 }
 
+function storedAuth() {
+  return new Promise((resolve) => {
+    try {
+      chrome.runtime.sendMessage({ type: 'TRUTH_SHIELD_GET_AUTH' }, (response) => {
+        if (chrome.runtime.lastError) {
+          resolve(null)
+          return
+        }
+
+        resolve(response?.auth || null)
+      })
+    } catch {
+      resolve(null)
+    }
+  })
+}
+
+async function loadAuthSummary() {
+  const auth = await storedAuth()
+  const authStatus = byId('authStatus')
+  const authUser = byId('authUser')
+
+  if (auth?.token) {
+    const user = auth.user || {}
+    authStatus.textContent = t('authSignedIn')
+    authStatus.style.color = '#cffafe'
+    authUser.textContent = user.display_name || user.name || user.email || t('authHint')
+    return
+  }
+
+  authStatus.textContent = t('authSignedOut')
+  authStatus.style.color = '#fef3c7'
+  authUser.textContent = t('authOpenHub')
+}
+
 async function currentPageContext() {
   if (!state.tab?.id) {
     return {}
@@ -195,6 +230,7 @@ async function initPopup() {
 
     bindActions()
     trackPopupEvent('popup_opened', 'popup')
+    await loadAuthSummary()
     await loadSummary()
   })
 }

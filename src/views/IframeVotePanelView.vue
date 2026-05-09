@@ -343,6 +343,14 @@ async function loadData() {
   }
 }
 
+function notifyVoteUpdated() {
+  window.parent?.postMessage({
+    type: 'TRUTH_SHIELD_VOTE_UPDATED',
+    url: newsUrl.value,
+    status: status.value,
+  }, '*')
+}
+
 async function submitOfficialResponse() {
   officialResponseError.value = ''
   officialResponseMessage.value = ''
@@ -486,6 +494,7 @@ async function submitVote() {
     evidenceUrl.value = ''
     evidenceNote.value = ''
     await loadData()
+    notifyVoteUpdated()
   } catch (err) {
     voteError.value = err.status === 409
       ? t('votePanel.voteWindowClosedError')
@@ -700,11 +709,20 @@ onMounted(async () => {
   window.addEventListener('storage', loadAuth)
   window.addEventListener('message', async (event) => {
     if (event.data?.type === 'TRUTH_SHIELD_AUTH_UPDATED') {
-      if (event.origin === window.location.origin && event.data.token) {
+      const isSameOriginLogin = event.origin === window.location.origin
+      const isExtensionHandoff = event.source === window.parent && event.data.source === 'truthshield-extension'
+
+      if ((isSameOriginLogin || isExtensionHandoff) && event.data.token) {
         localStorage.setItem(TOKEN_KEY, event.data.token)
         if (event.data.user) {
           localStorage.setItem(USER_KEY, JSON.stringify(event.data.user))
         }
+
+        window.parent?.postMessage({
+          type: 'TRUTH_SHIELD_AUTH_UPDATED',
+          token: event.data.token,
+          user: event.data.user || null,
+        }, '*')
       }
 
       await loadAuth()

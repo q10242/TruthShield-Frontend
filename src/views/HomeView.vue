@@ -27,6 +27,7 @@ const authLabel = computed(() => token.value ? (user.value?.name || t('common.pr
 function signOut() {
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(USER_KEY)
+  window.postMessage({ type: 'TRUTH_SHIELD_AUTH_CLEARED' }, window.location.origin)
   token.value = ''
   user.value = null
 }

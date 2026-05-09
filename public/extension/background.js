@@ -30,6 +30,7 @@ function resolveLocale(setting = 'auto') {
 }
 
 const nonceCache = new Map()
+const AUTH_STORAGE_KEY = 'truthshieldAuth'
 
 async function createMenus() {
   const settings = await getSettings()
@@ -49,6 +50,16 @@ async function createMenus() {
 
 function getSettings() {
   return chrome.storage.sync.get(defaults)
+}
+
+function sanitizeStoredAuth(auth = {}) {
+  if (!auth?.token) return null
+
+  return {
+    token: String(auth.token),
+    user: auth.user && typeof auth.user === 'object' ? auth.user : null,
+    updatedAt: Number(auth.updatedAt || Date.now()),
+  }
 }
 
 async function extensionRequestHeaders(settings, headers = {}) {
@@ -169,6 +180,29 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 })
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === 'TRUTH_SHIELD_SET_AUTH') {
+    const auth = sanitizeStoredAuth(message.auth)
+    if (!auth) {
+      chrome.storage.local.remove(AUTH_STORAGE_KEY, () => sendResponse({ ok: true, cleared: true }))
+      return true
+    }
+
+    chrome.storage.local.set({ [AUTH_STORAGE_KEY]: auth }, () => sendResponse({ ok: true }))
+    return true
+  }
+
+  if (message?.type === 'TRUTH_SHIELD_GET_AUTH') {
+    chrome.storage.local.get(AUTH_STORAGE_KEY, (payload) => {
+      sendResponse({ ok: true, auth: sanitizeStoredAuth(payload?.[AUTH_STORAGE_KEY]) })
+    })
+    return true
+  }
+
+  if (message?.type === 'TRUTH_SHIELD_CLEAR_AUTH') {
+    chrome.storage.local.remove(AUTH_STORAGE_KEY, () => sendResponse({ ok: true }))
+    return true
+  }
+
   if (message?.type !== 'TRUTH_SHIELD_FETCH_STATUS' || !message.url) {
     return false
   }
