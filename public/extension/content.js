@@ -230,6 +230,16 @@ function requestPageAuthState() {
   window.postMessage({ type: PAGE_AUTH_REQUEST }, window.location.origin)
 }
 
+function clearWebAuthState() {
+  try {
+    localStorage.removeItem(AUTH_TOKEN_KEY)
+    localStorage.removeItem(AUTH_USER_KEY)
+    window.postMessage({ type: 'TRUTH_SHIELD_AUTH_CLEARED' }, window.location.origin)
+  } catch {
+    // Ignore pages that disallow localStorage access.
+  }
+}
+
 function sendRuntimeMessage(message) {
   return new Promise((resolve) => {
     try {
@@ -1834,6 +1844,16 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
       .then(() => storedExtensionAuth())
       .then((auth) => sendResponse({ ok: true, auth }))
       .catch(() => sendResponse({ ok: false }))
+    return true
+  }
+
+  if (message?.type === 'TRUTH_SHIELD_EXTENSION_LOGOUT') {
+    sendRuntimeMessage({ type: 'TRUTH_SHIELD_CLEAR_AUTH' })
+    if (isTruthShieldWebOrigin()) {
+      clearWebAuthState()
+    }
+    votePanelFrame?.contentWindow?.postMessage({ type: 'TRUTH_SHIELD_AUTH_CLEARED' }, tooltipOrigin())
+    sendResponse({ ok: true })
     return true
   }
 

@@ -581,6 +581,10 @@ export const messages = {
         'transparent-disclosure': '清楚揭露贊助、合作、利益衝突或相關關係。',
       },
     },
+    extensionAuthSync: {
+      doneTitle: '已同步登出',
+      doneDesc: 'TruthShield 官網與插件登入狀態已清除。這個視窗會自動關閉。',
+    },
     extensionInstall: {
       eyebrow: 'Chrome 插件',
       title: '把 TruthShield 裝進你的新聞閱讀流程',
@@ -2013,6 +2017,10 @@ export const messages = {
         'complete-context': 'The article explains relevant background, limitations, history, baselines, or sequence of events.',
         'transparent-disclosure': 'Sponsorship, cooperation, conflicts, or relevant affiliations are clearly disclosed.',
       },
+    },
+    extensionAuthSync: {
+      doneTitle: 'Signed out',
+      doneDesc: 'TruthShield website and extension auth state have been cleared. This window will close automatically.',
     },
     extensionInstall: {
       eyebrow: 'Chrome extension',

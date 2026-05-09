@@ -64,6 +64,7 @@ const router = createRouter({
     { path: '/moderation-events', name: 'moderation-events', component: ModerationEventsView },
     { path: '/extension-coverage', name: 'extension-coverage', component: ExtensionCoverageView },
     { path: '/extension-install', name: 'extension-install', component: ExtensionInstallView },
+    { path: '/extension-auth-sync', name: 'extension-auth-sync', component: () => import('../views/ExtensionAuthSyncView.vue') },
     { path: '/user-guide', name: 'user-guide', component: () => import('../views/UserGuideView.vue') },
     { path: '/demo-news', name: 'demo-news', component: () => import('../views/DemoNewsView.vue') },
     { path: '/account-graph', name: 'account-graph', component: AccountGraphView },

@@ -7,6 +7,7 @@ const defaults = {
 const state = {
   settings: defaults,
   tab: null,
+  auth: null,
 }
 const t = window.truthShieldT || ((key) => key)
 
@@ -51,6 +52,23 @@ function openTab(url) {
 
 function openWindow(url, width = 460, height = 720) {
   chrome.windows.create({ url, type: 'popup', width, height, focused: true })
+}
+
+function sendRuntimeMessage(message) {
+  return new Promise((resolve) => {
+    try {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          resolve(null)
+          return
+        }
+
+        resolve(response || null)
+      })
+    } catch {
+      resolve(null)
+    }
+  })
 }
 
 function trackPopupEvent(eventType, feature, metadata = {}) {
@@ -108,20 +126,60 @@ async function syncAuthFromActiveTab() {
 
 async function loadAuthSummary() {
   const auth = await syncAuthFromActiveTab() || await storedAuth()
+  state.auth = auth
   const authStatus = byId('authStatus')
   const authUser = byId('authUser')
+  const openLogin = byId('openLogin')
+  const signOut = byId('signOut')
 
   if (auth?.token) {
     const user = auth.user || {}
     authStatus.textContent = t('authSignedIn')
     authStatus.style.color = '#cffafe'
     authUser.textContent = user.display_name || user.name || user.email || t('authHint')
+    openLogin.hidden = true
+    signOut.hidden = false
     return
   }
 
   authStatus.textContent = t('authSignedOut')
   authStatus.style.color = '#fef3c7'
   authUser.textContent = t('authOpenHub')
+  openLogin.hidden = false
+  signOut.hidden = true
+}
+
+async function notifyActiveTabLogout() {
+  if (!state.tab?.id) return
+
+  try {
+    await chrome.tabs.sendMessage(state.tab.id, { type: 'TRUTH_SHIELD_EXTENSION_LOGOUT' })
+  } catch {
+    // Active tab may not have TruthShield content script access.
+  }
+}
+
+async function signOut() {
+  const auth = state.auth || await storedAuth()
+  byId('signOut').disabled = true
+  setStatus(t('signingOut'))
+
+  if (auth?.token) {
+    fetch(`${state.settings.apiOrigin}/api/auth/logout`, {
+      method: 'POST',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${auth.token}` },
+      keepalive: true,
+    }).catch(() => null)
+  }
+
+  await sendRuntimeMessage({ type: 'TRUTH_SHIELD_CLEAR_AUTH' })
+  await notifyActiveTabLogout()
+  openWindow(truthUrl('/extension-auth-sync', { action: 'logout', close: '1' }), 360, 260)
+  trackPopupEvent('auth_logout', 'popup_auth')
+  state.auth = null
+  await loadAuthSummary()
+  byId('signOut').disabled = false
+  setStatus(t('signedOut'))
 }
 
 async function currentPageContext() {
@@ -178,6 +236,13 @@ function bindActions() {
   byId('openHub').addEventListener('click', (event) => {
     trackPopupEvent('popup_action', 'open_hub')
     openTab(state.settings.tooltipOrigin)
+  })
+  byId('openLogin').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'open_login')
+    openTab(truthUrl('/login'))
+  })
+  byId('signOut').addEventListener('click', () => {
+    signOut()
   })
   byId('openOptions').addEventListener('click', (event) => {
     trackPopupEvent('popup_action', 'open_options')

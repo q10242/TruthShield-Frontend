@@ -38,6 +38,9 @@
       }
       .auth strong { display:block; color:#cffafe; font-size:12px; }
       .auth span { display:block; margin-top:4px; color:#a1a1aa; font-size:12px; line-height:1.4; word-break:break-word; }
+      .auth-actions { display:flex; gap:8px; margin-top:10px; }
+      .auth-actions button { margin-top:0; padding:8px; text-align:center; }
+      .auth-actions .danger { border-color:#7f1d1d; background:rgba(127,29,29,.35); color:#fecaca; }
       button {
         width: 100%;
         margin-top: 8px;
@@ -83,6 +86,10 @@
       <div class="auth">
         <strong id="authStatus" data-i18n="authChecking">登入狀態檢查中</strong>
         <span id="authUser" data-i18n="authHint">如果你已在官網登入，插件會自動同步。</span>
+        <div class="auth-actions">
+          <button id="openLogin" type="button" data-i18n="signIn">登入</button>
+          <button id="signOut" class="danger" type="button" data-i18n="signOut" hidden>登出</button>
+        </div>
       </div>
 
       <button id="openStatus" class="primary" data-i18n="openStatus">查看目前頁面評分</button>
