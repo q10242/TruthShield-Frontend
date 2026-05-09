@@ -712,8 +712,15 @@ function youtubeChannelInfoFromUrl(url) {
   }
 }
 
-function isActiveYoutubeChannelUrl(url) {
-  const info = youtubeChannelInfoFromUrl(url)
+function mergeYoutubeChannelInfo(...infos) {
+  return infos.reduce((merged, info) => ({
+    channelId: merged.channelId || info?.channelId || '',
+    handle: merged.handle || info?.handle || '',
+    channelUrl: merged.channelUrl || info?.channelUrl || '',
+  }), { channelId: '', handle: '', channelUrl: '' })
+}
+
+function isActiveYoutubeChannelInfo(info) {
   if (!info.channelId && !info.handle && !info.channelUrl) {
     return false
   }
@@ -725,26 +732,30 @@ function isActiveYoutubeChannelUrl(url) {
   ))
 }
 
+function isActiveYoutubeChannelUrl(url) {
+  return isActiveYoutubeChannelInfo(youtubeChannelInfoFromUrl(url))
+}
+
 function isCurrentYouTubeNewsPage() {
   if (!isYouTubeVideoPage()) {
     return false
   }
 
-  const channelUrl = currentYoutubeChannelUrl()
-  return channelUrl ? isActiveYoutubeChannelUrl(channelUrl) : false
+  return isActiveYoutubeChannelInfo(currentYoutubeChannelInfo())
 }
 
-function currentYoutubeChannelUrl() {
+function currentYoutubeChannelInfo() {
   const host = window.location.hostname.toLowerCase()
   const path = window.location.pathname
+  let info = { channelId: '', handle: '', channelUrl: '' }
 
   if (['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(host)) {
     const channelPath = path.match(/^\/(?:channel\/[^/?#]+|@[^/?#]+|c\/[^/?#]+|user\/[^/?#]+)/)?.[0]
     if (channelPath) {
-      return new URL(channelPath, 'https://www.youtube.com').toString()
+      info = mergeYoutubeChannelInfo(info, youtubeChannelInfoFromUrl(new URL(channelPath, 'https://www.youtube.com').toString()))
     }
 
-    const ownerAnchor = document.querySelector(
+    const ownerAnchors = [...document.querySelectorAll(
       [
         'ytd-watch-metadata ytd-video-owner-renderer a[href^="/@"]',
         'ytd-watch-metadata ytd-video-owner-renderer a[href^="/channel/"]',
@@ -757,52 +768,61 @@ function currentYoutubeChannelUrl() {
         '#upload-info ytd-channel-name a[href^="/@"]',
         '#upload-info ytd-channel-name a[href^="/channel/"]',
       ].join(', '),
-    )
-    const href = ownerAnchor?.getAttribute('href')
-    if (href) {
-      return new URL(href, 'https://www.youtube.com').toString()
+    )]
+    for (const anchor of ownerAnchors) {
+      const href = anchor?.getAttribute('href')
+      if (href) {
+        info = mergeYoutubeChannelInfo(info, youtubeChannelInfoFromUrl(new URL(href, 'https://www.youtube.com').toString()))
+      }
     }
 
     const itempropUrl = document.querySelector('ytd-watch-metadata link[itemprop="url"][href*="youtube.com/"], ytd-watch-metadata meta[itemprop="url"][content*="youtube.com/"]')
     const itempropHref = itempropUrl?.getAttribute('href') || itempropUrl?.getAttribute('content')
-    const itempropChannelUrl = itempropHref ? canonicalYoutubeChannelUrl(itempropHref) : ''
-    if (itempropChannelUrl) {
-      return itempropChannelUrl
+    if (itempropHref) {
+      info = mergeYoutubeChannelInfo(info, youtubeChannelInfoFromUrl(itempropHref))
     }
 
     const channelIdMeta = document.querySelector('ytd-watch-metadata meta[itemprop="channelId"][content], meta[itemprop="channelId"][content]')
     const channelId = channelIdMeta?.getAttribute('content')
     if (channelId) {
-      return new URL(`/channel/${channelId}`, 'https://www.youtube.com').toString()
+      info = mergeYoutubeChannelInfo(info, { channelId, handle: '', channelUrl: new URL(`/channel/${channelId}`, 'https://www.youtube.com').toString() })
     }
 
-    const initialDataChannelUrl = channelUrlFromYoutubeInitialData()
-    if (initialDataChannelUrl) {
-      return initialDataChannelUrl
-    }
+    info = mergeYoutubeChannelInfo(info, channelInfoFromYoutubeInitialData())
   }
+
+  return info
+}
+
+function currentYoutubeChannelUrl() {
+  const info = currentYoutubeChannelInfo()
+  if (info.channelUrl) return info.channelUrl
+  if (info.channelId) return new URL(`/channel/${info.channelId}`, 'https://www.youtube.com').toString()
+  if (info.handle) return new URL(`/@${info.handle}`, 'https://www.youtube.com').toString()
 
   return ''
 }
 
-function channelUrlFromYoutubeInitialData() {
+function channelInfoFromYoutubeInitialData() {
   const scripts = [...document.scripts].filter((script) => script.textContent?.includes('videoOwnerRenderer'))
 
   for (const script of scripts) {
     const source = script.textContent || ''
     const ownerBlock = source.match(/"videoOwnerRenderer":\{[\s\S]{0,5000}?\}\s*,\s*"/)?.[0] || source
     const canonicalBaseUrl = ownerBlock.match(/"canonicalBaseUrl":"(\/@[^"]+)"/)?.[1]
+    const browseId = ownerBlock.match(/"browseId":"(UC[^"]+)"/)?.[1]
+    let info = { channelId: browseId || '', handle: '', channelUrl: '' }
+
     if (canonicalBaseUrl) {
-      return new URL(canonicalBaseUrl.replaceAll('\\/', '/'), 'https://www.youtube.com').toString()
+      info = mergeYoutubeChannelInfo(info, youtubeChannelInfoFromUrl(new URL(canonicalBaseUrl.replaceAll('\\/', '/'), 'https://www.youtube.com').toString()))
     }
 
-    const browseId = ownerBlock.match(/"browseId":"(UC[^"]+)"/)?.[1]
-    if (browseId) {
-      return new URL(`/channel/${browseId}`, 'https://www.youtube.com').toString()
+    if (info.channelId || info.handle || info.channelUrl) {
+      return info
     }
   }
 
-  return ''
+  return { channelId: '', handle: '', channelUrl: '' }
 }
 
 function isPotentialUntrackedNewsPage() {
