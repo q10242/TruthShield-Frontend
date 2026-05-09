@@ -7,6 +7,7 @@ const TELEMETRY_CACHE_TTL_MS = 5 * 60 * 1000
 const TELEMETRY_CACHE_MAX = 300
 const TELEMETRY_BATCH_MAX = 20
 const TELEMETRY_FLUSH_DELAY_MS = 5000
+const VOTE_PANEL_POSITION_KEY = 'truthShieldVotePanelPosition'
 let enableTooltip = true
 let enablePanel = true
 let enableReportButton = true
@@ -919,6 +920,33 @@ function ensureVotePanelFrame(url = window.location.href) {
   return openVotePanelModal(url)
 }
 
+async function loadVotePanelPosition() {
+  try {
+    const stored = await chrome.storage?.local?.get?.(VOTE_PANEL_POSITION_KEY)
+    const value = stored?.[VOTE_PANEL_POSITION_KEY]
+    if (!value || typeof value.left !== 'number' || typeof value.top !== 'number') return null
+
+    return {
+      left: value.left,
+      top: value.top,
+    }
+  } catch {
+    return null
+  }
+}
+
+function saveVotePanelPosition() {
+  if (!votePanelPosition || !chrome.storage?.local?.set) return
+
+  chrome.storage.local.set({
+    [VOTE_PANEL_POSITION_KEY]: {
+      left: Math.round(votePanelPosition.left),
+      top: Math.round(votePanelPosition.top),
+      savedAt: Date.now(),
+    },
+  }).catch?.(() => null)
+}
+
 function clampVotePanelPosition(left, top, width = votePanelShell?.offsetWidth || 420, height = votePanelShell?.offsetHeight || 620) {
   const margin = 8
   const maxLeft = Math.max(margin, window.innerWidth - width - margin)
@@ -1009,6 +1037,7 @@ function stopVotePanelDrag(event) {
   votePanelShell.style.userSelect = ''
   if (votePanelFrame) votePanelFrame.style.pointerEvents = 'auto'
   votePanelDrag = null
+  saveVotePanelPosition()
 }
 
 function openVotePanelModal(targetUrl = window.location.href) {
@@ -1113,6 +1142,11 @@ function openVotePanelModal(targetUrl = window.location.href) {
   shell.append(dragHandle, closeButton, votePanelFrame)
   votePanelBackdrop.appendChild(shell)
   document.documentElement.appendChild(votePanelBackdrop)
+  loadVotePanelPosition().then((position) => {
+    if (votePanelBackdrop && votePanelShell && votePanelUrl === targetUrl) {
+      applyVotePanelPosition(position)
+    }
+  })
   updateVotePanelShellSize(620, false)
   reportExtensionEvent('vote_panel_opened', true, { mode: 'side_panel_from_banner' })
   startArticleReadTimer()
