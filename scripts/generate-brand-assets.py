@@ -13,10 +13,11 @@ EXTENSION_ICON_DIR = ROOT / "public" / "extension" / "icons"
 
 COLORS = {
     "bg": (9, 9, 11, 255),
-    "panel": (17, 24, 39, 255),
+    "panel": (16, 24, 39, 255),
     "cyan": (103, 232, 249, 255),
-    "green": (52, 211, 153, 255),
-    "red": (244, 63, 94, 255),
+    "teal": (45, 212, 191, 255),
+    "ice": (228, 250, 255, 255),
+    "pink": (244, 63, 94, 255),
     "white": (250, 250, 250, 255),
     "muted": (161, 161, 170, 255),
     "line": (39, 39, 42, 255),
@@ -74,22 +75,28 @@ def draw_mark(draw: ImageDraw.ImageDraw, box: Tuple[int, int, int, int], backgro
     draw.polygon(shield, fill=COLORS["panel"])
     draw.line(shield + [shield[0]], fill=COLORS["cyan"], width=max(2, int(base * 0.047)), joint="curve")
 
-    draw.line(
-        [(x1 + base * 0.31, y1 + base * 0.48), (x1 + base * 0.45, y1 + base * 0.59), (x1 + base * 0.68, y1 + base * 0.34)],
-        fill=COLORS["green"],
-        width=max(3, int(base * 0.073)),
-        joint="curve",
-    )
-    draw.line(
-        [(x1 + base * 0.31, y1 + base * 0.27), (x1 + base * 0.69, y1 + base * 0.27)],
-        fill=COLORS["red"],
-        width=max(2, int(base * 0.047)),
-    )
-    draw.line(
-        [(cx, y1 + base * 0.12), (cx, y1 + base * 0.88)],
-        fill=(103, 232, 249, 40),
-        width=max(1, int(base * 0.02)),
-    )
+    nodes = {
+        "center": (x1 + base * 0.50, y1 + base * 0.48),
+        "left_top": (x1 + base * 0.36, y1 + base * 0.39),
+        "right_top": (x1 + base * 0.65, y1 + base * 0.35),
+        "left_bottom": (x1 + base * 0.33, y1 + base * 0.61),
+        "right_bottom": (x1 + base * 0.68, y1 + base * 0.63),
+    }
+    line_width = max(2, int(base * 0.046))
+    draw.line([nodes["left_top"], nodes["center"], nodes["right_top"]], fill=(103, 232, 249, 175), width=line_width, joint="curve")
+    draw.line([nodes["left_bottom"], nodes["center"], nodes["right_bottom"]], fill=COLORS["teal"], width=line_width, joint="curve")
+    draw.line([(cx, y1 + base * 0.14), nodes["center"]], fill=(103, 232, 249, 65), width=max(1, int(base * 0.026)))
+
+    outer_radius = max(2, int(base * 0.06))
+    center_radius = max(3, int(base * 0.083))
+    for key in ("left_top", "right_top"):
+        x, y = nodes[key]
+        draw.ellipse((x - outer_radius, y - outer_radius, x + outer_radius, y + outer_radius), fill=COLORS["cyan"], outline=COLORS["bg"], width=max(1, int(base * 0.023)))
+    for key in ("left_bottom", "right_bottom"):
+        x, y = nodes[key]
+        draw.ellipse((x - outer_radius, y - outer_radius, x + outer_radius, y + outer_radius), fill=COLORS["teal"], outline=COLORS["bg"], width=max(1, int(base * 0.023)))
+    x, y = nodes["center"]
+    draw.ellipse((x - center_radius, y - center_radius, x + center_radius, y + center_radius), fill=COLORS["ice"], outline=COLORS["bg"], width=max(1, int(base * 0.03)))
 
 
 def save_png(image: Image.Image, path: Path):
