@@ -56,6 +56,11 @@ const updateSteps = computed(() => [
   t('extensionInstall.updateStep3'),
 ])
 
+const githubLinks = computed(() => [
+  { href: 'https://github.com/q10242/TruthShield-Frontend', label: t('common.githubFrontend') },
+  { href: 'https://github.com/q10242/TruthShield-Backend', label: t('common.githubBackend') },
+])
+
 onMounted(async () => {
   trackPageView('extension_install')
   loading.value = true
@@ -79,6 +84,14 @@ function trackDownload() {
       <nav class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
         <BrandLink />
         <div class="flex flex-wrap gap-2">
+          <a
+            class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100"
+            href="https://github.com/q10242/TruthShield-Frontend"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ t('common.github') }}
+          </a>
           <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/extension-coverage">
             {{ t('common.extensionCoverage') }}
           </RouterLink>
@@ -170,6 +183,18 @@ function trackDownload() {
           <p class="mt-4 rounded-md border border-white/10 bg-zinc-950/70 p-3 text-xs leading-5 text-zinc-500">
             {{ t('extensionInstall.securityNote') }}
           </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <a
+              v-for="link in githubLinks"
+              :key="link.href"
+              class="rounded-md border border-cyan-300/30 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/10"
+              :href="link.href"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ link.label }}
+            </a>
+          </div>
         </article>
       </section>
     </section>

@@ -46,6 +46,11 @@ const secondaryLinks = computed(() => [
   { to: '/api-docs', label: t('common.apiDocs') },
 ])
 
+const githubLinks = computed(() => [
+  { href: 'https://github.com/q10242/TruthShield-Frontend', label: t('common.githubFrontend') },
+  { href: 'https://github.com/q10242/TruthShield-Backend', label: t('common.githubBackend') },
+])
+
 const navGroups = computed(() => [
   { title: t('home.readerGroup'), links: secondaryLinks.value.slice(0, 3) },
   { title: t('home.reviewerGroup'), links: secondaryLinks.value.slice(3, 6) },
@@ -103,6 +108,14 @@ onMounted(async () => {
           >
             {{ link.label }}
           </RouterLink>
+          <a
+            class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100"
+            href="https://github.com/q10242/TruthShield-Frontend"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ t('common.github') }}
+          </a>
           <RouterLink
             class="rounded-md bg-cyan-300 px-3 py-2 text-sm font-semibold text-zinc-950"
             :to="token ? '/profile' : '/login'"
@@ -327,6 +340,16 @@ onMounted(async () => {
         <RouterLink class="hover:text-cyan-100" to="/label-guide">{{ t('common.labelGuide') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/vision-readiness">{{ t('common.visionReadiness') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/donate">{{ t('common.donate') }}</RouterLink>
+        <a
+          v-for="link in githubLinks"
+          :key="link.href"
+          class="hover:text-cyan-100"
+          :href="link.href"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {{ link.label }}
+        </a>
       </footer>
     </section>
   </main>

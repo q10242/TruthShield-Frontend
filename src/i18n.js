@@ -45,6 +45,9 @@ export const messages = {
       dataProcessingPolicy: '資料處理說明',
       officialResponsePolicy: '官方澄清政策',
       language: '語言',
+      github: 'GitHub',
+      githubFrontend: '前端原始碼',
+      githubBackend: '後端原始碼',
     },
     home: {
       network: '全網新聞信譽防禦網',
@@ -1098,6 +1101,9 @@ export const messages = {
       dataProcessingPolicy: 'Data Processing',
       officialResponsePolicy: 'Response Policy',
       language: 'Language',
+      github: 'GitHub',
+      githubFrontend: 'Frontend source',
+      githubBackend: 'Backend source',
     },
     home: {
       network: 'Crowd-powered news credibility shield',
