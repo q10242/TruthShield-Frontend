@@ -7,6 +7,7 @@ import { useI18n } from '../i18n'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
+const LOGIN_REDIRECT_KEY = 'truthshield_login_redirect'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -17,7 +18,7 @@ const loading = ref(false)
 const error = ref('')
 const done = ref(false)
 
-const redirectPath = computed(() => route.query.redirect || '/')
+const redirectPath = computed(() => safeRedirectPath(route.query.redirect || sessionStorage.getItem(LOGIN_REDIRECT_KEY) || '/'))
 const isLocalMode = computed(() => ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname) || window.location.hostname.endsWith('.localhost'))
 const demoAccounts = computed(() => [
   { label: t('auth.normalTester'), name: t('auth.defaultName'), email: 'checker@example.com' },
@@ -38,9 +39,21 @@ function useDemoAccount(account) {
   fbId.value = ''
 }
 
+function safeRedirectPath(value) {
+  const path = String(value || '/')
+  if (!path.startsWith('/') || path.startsWith('//')) return '/'
+
+  return path
+}
+
+function oauthReturnUrl() {
+  return new URL('/login', window.location.origin).toString()
+}
+
 async function persistLogin(payload) {
   localStorage.setItem(TOKEN_KEY, payload.token)
   localStorage.setItem(USER_KEY, JSON.stringify(payload.user))
+  sessionStorage.removeItem(LOGIN_REDIRECT_KEY)
   window.postMessage({
     type: 'TRUTH_SHIELD_AUTH_UPDATED',
     token: payload.token,
@@ -137,8 +150,9 @@ async function realProviderLogin(provider) {
   error.value = ''
 
   try {
+    sessionStorage.setItem(LOGIN_REDIRECT_KEY, redirectPath.value)
     const payload = await beginOauth(provider, {
-      redirect_url: window.location.href,
+      redirect_url: oauthReturnUrl(),
     })
     trackEvent('oauth_begin', { feature: 'auth', metadata: { provider } })
     window.location.assign(payload.auth_url)
