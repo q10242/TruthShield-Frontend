@@ -16,10 +16,11 @@ const primaryLinks = computed(() => [
   { to: '/demo-news', label: t('common.demoNews'), description: t('home.demoNewsDesc'), mark: '00' },
   { to: '/user-guide', label: t('common.userGuide'), description: t('home.userGuideDesc'), mark: '01' },
   { to: '/extension-install', label: t('common.extensionInstall'), description: t('home.extensionInstallDesc'), mark: '02' },
-  { to: '/news-search', label: t('common.newsSearch'), description: t('home.newsSearchDesc'), mark: '03' },
-  { to: '/community-tasks', label: t('common.communityTasks'), description: t('home.communityTasksDesc'), mark: '04' },
-  { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc'), mark: '05' },
-  { to: '/transparency', label: t('common.transparency'), description: t('home.transparencyDesc'), mark: '06' },
+  { to: '/mobile', label: t('common.mobile'), description: t('home.mobileDesc'), mark: '03' },
+  { to: '/news-search', label: t('common.newsSearch'), description: t('home.newsSearchDesc'), mark: '04' },
+  { to: '/community-tasks', label: t('common.communityTasks'), description: t('home.communityTasksDesc'), mark: '05' },
+  { to: '/evidence-library', label: t('common.evidenceLibrary'), description: t('home.evidenceLibraryDesc'), mark: '06' },
+  { to: '/transparency', label: t('common.transparency'), description: t('home.transparencyDesc'), mark: '07' },
 ])
 
 const authLabel = computed(() => token.value ? (user.value?.name || t('common.profile')) : t('common.signIn'))
@@ -36,6 +37,7 @@ const secondaryLinks = computed(() => [
   { to: '/demo-news', label: t('common.demoNews') },
   { to: '/user-guide', label: t('common.userGuide') },
   { to: '/extension-install', label: t('common.extensionInstall') },
+  { to: '/mobile', label: t('common.mobile') },
   { to: '/news-search', label: t('common.newsSearch') },
   { to: '/profile', label: t('common.profile') },
   { to: '/trust-leaderboard', label: t('common.trustLeaderboard') },

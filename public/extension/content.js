@@ -1,5 +1,6 @@
 let TOOLTIP_ORIGIN = 'https://truth-shield.otus.tw'
 let API_ORIGIN = 'https://truth-shield-api.otus.tw'
+const DEBUG_LOG = true
 const HOVER_DELAY_MS = 300
 const TOOLTIP_STATUS_CACHE_TTL_MS = 5 * 60 * 1000
 const TOOLTIP_STATUS_CACHE_MAX = 250
@@ -10,9 +11,6 @@ const TELEMETRY_FLUSH_DELAY_MS = 5000
 const VOTE_PANEL_POSITION_KEY = 'truthShieldVotePanelPosition'
 const AUTH_TOKEN_KEY = 'truthshield_api_token'
 const AUTH_USER_KEY = 'truthshield_user'
-const PAGE_AUTH_REQUEST = 'TRUTH_SHIELD_PAGE_AUTH_REQUEST'
-const PAGE_AUTH_STATE = 'TRUTH_SHIELD_PAGE_AUTH_STATE'
-const PAGE_AUTH_BRIDGE_ID = 'truthshield-page-auth-bridge'
 let enableTooltip = true
 let enablePanel = true
 let enableReportButton = true
@@ -27,10 +25,32 @@ const FALLBACK_NEWS_DOMAINS = [
   'www.businessweekly.com.tw',
   'udn.com',
   'www.chinatimes.com',
+  'ctinews.com',
+  'www.ctinews.com',
   'www.ettoday.net',
   'www.setn.com',
   'news.ltn.com.tw',
   'tw.news.yahoo.com',
+  'www.storm.mg',
+  'www.thenewslens.com',
+  'www.mirrormedia.mg',
+  'www.rti.org.tw',
+  'www.ftvnews.com.tw',
+  'news.tvbs.com.tw',
+  'www.nownews.com',
+  'www.taisounds.com',
+  'www.upmedia.mg',
+  'www.businesstoday.com.tw',
+  'finance.ettoday.net',
+  'www.peoplenews.tw',
+  'news.ebc.net.tw',
+  'www.nexttv.com.tw',
+  'www.taiwannews.com.tw',
+  'english.cw.com.tw',
+  'www.taiwanplus.com',
+  'www.taipeitimes.com',
+  'www.mnews.tw',
+  'www.cmmedia.com.tw',
 ]
 const FALLBACK_YOUTUBE_CHANNELS = [
   { handle: null, channelId: null, channelUrl: 'https://www.youtube.com/user/cnataiwan' },
@@ -92,6 +112,26 @@ let hideTimer = null
 let hoverTimer = null
 let articleReadSeconds = 0
 let articleReadTimer = null
+
+function debugLog(message, payload = null) {
+  if (!DEBUG_LOG) return
+
+  try {
+    if (payload === null || payload === undefined) {
+      console.info(`[TruthShield] ${message}`)
+    } else {
+      console.info(`[TruthShield] ${message}`, payload)
+    }
+  } catch {
+    // Debug logging must never affect page behavior.
+  }
+}
+
+debugLog('content script bootstrap', {
+  href: window.location.href,
+  hostname: window.location.hostname,
+  readyState: document.readyState,
+})
 const contentMessages = {
   'zh-TW': {
     checkingLink: '正在查核此連結...',
@@ -182,52 +222,15 @@ function readWebAuthFromLocalStorage() {
 }
 
 function installPageAuthBridge() {
-  if (!isTruthShieldWebOrigin() || document.getElementById(PAGE_AUTH_BRIDGE_ID)) {
-    return
-  }
-
-  const script = document.createElement('script')
-  script.id = PAGE_AUTH_BRIDGE_ID
-  script.textContent = `
-    (() => {
-      const TOKEN_KEY = ${JSON.stringify(AUTH_TOKEN_KEY)};
-      const USER_KEY = ${JSON.stringify(AUTH_USER_KEY)};
-      const REQUEST = ${JSON.stringify(PAGE_AUTH_REQUEST)};
-      const STATE = ${JSON.stringify(PAGE_AUTH_STATE)};
-
-      function readAuth() {
-        const token = window.localStorage.getItem(TOKEN_KEY) || '';
-        let user = null;
-        try {
-          user = JSON.parse(window.localStorage.getItem(USER_KEY) || 'null');
-        } catch (_) {
-          user = null;
-        }
-        return token ? { token, user, updatedAt: Date.now() } : null;
-      }
-
-      function postAuth() {
-        window.postMessage({ type: STATE, auth: readAuth() }, window.location.origin);
-      }
-
-      window.addEventListener('message', (event) => {
-        if (event.source === window && event.data?.type === REQUEST) postAuth();
-      });
-      window.addEventListener('storage', (event) => {
-        if (event.key === TOKEN_KEY || event.key === USER_KEY) postAuth();
-      });
-      postAuth();
-    })();
-  `
-  ;(document.head || document.documentElement).appendChild(script)
-  script.remove()
+  // Older builds injected an inline page script here to read page auth. That
+  // violates strict site CSP on some news sites and is no longer needed because
+  // content scripts can read localStorage on the TruthShield origin directly.
 }
 
 function requestPageAuthState() {
   if (!isTruthShieldWebOrigin()) return
 
-  installPageAuthBridge()
-  window.postMessage({ type: PAGE_AUTH_REQUEST }, window.location.origin)
+  syncWebAuthToExtensionStorage()
 }
 
 function clearWebAuthState() {
@@ -498,12 +501,14 @@ function reportSelectorCheck(checkType, success, selector = null, metadata = {})
 }
 
 async function loadNewsDomains() {
+  debugLog('loadNewsDomains:start', { apiOrigin: API_ORIGIN })
   try {
     const response = await fetch(`${API_ORIGIN}/api/news-domains`, {
       headers: extensionRequestHeaders({ Accept: 'application/json' }),
     })
 
     if (!response.ok) {
+      debugLog('loadNewsDomains:bad-response', { status: response.status })
       return
     }
 
@@ -513,11 +518,16 @@ async function loadNewsDomains() {
       : []
 
     if (domains.length > 0) {
-      newsDomains = domains
-      domainConfigs = payload.data
+      newsDomains = [...new Set([...FALLBACK_NEWS_DOMAINS, ...domains])]
+      domainConfigs = [
+        ...FALLBACK_NEWS_DOMAINS.map((domain) => ({ domain })),
+        ...payload.data,
+      ]
+      debugLog('loadNewsDomains:success', { count: newsDomains.length, matched: newsDomains.includes(window.location.hostname) })
     }
   } catch {
     newsDomains = [...FALLBACK_NEWS_DOMAINS]
+    debugLog('loadNewsDomains:failed-fallback', { count: newsDomains.length, matched: newsDomains.includes(window.location.hostname) })
   }
 }
 
@@ -584,7 +594,9 @@ function isNewsHostname(hostname) {
     return isCurrentYouTubeNewsPage()
   }
 
-  return newsDomains.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`))
+  const matched = newsDomains.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`))
+  debugLog('isNewsHostname', { hostname, matched })
+  return matched
 }
 
 function isCurrentNewsPage() {
@@ -597,9 +609,15 @@ function isLikelyArticlePage() {
   }
 
   const matchedConfig = domainConfigs.find((config) => window.location.hostname === config.domain || window.location.hostname.endsWith(`.${config.domain}`))
+  debugLog('isLikelyArticlePage:start', {
+    href: window.location.href,
+    matchedConfig: matchedConfig?.domain || '',
+    path: window.location.pathname,
+  })
   if (matchedConfig?.blocked_path_pattern) {
     try {
       if (new RegExp(matchedConfig.blocked_path_pattern).test(window.location.pathname)) {
+        debugLog('isLikelyArticlePage:false-blocked-path', { pattern: matchedConfig.blocked_path_pattern })
         return false
       }
     } catch {
@@ -610,6 +628,7 @@ function isLikelyArticlePage() {
   if (matchedConfig?.list_url_pattern) {
     try {
       if (new RegExp(matchedConfig.list_url_pattern).test(window.location.pathname)) {
+        debugLog('isLikelyArticlePage:false-list-pattern', { pattern: matchedConfig.list_url_pattern })
         return false
       }
     } catch {
@@ -620,6 +639,7 @@ function isLikelyArticlePage() {
   if (matchedConfig?.article_url_pattern) {
     try {
       if (new RegExp(matchedConfig.article_url_pattern).test(window.location.pathname)) {
+        debugLog('isLikelyArticlePage:true-article-pattern', { pattern: matchedConfig.article_url_pattern })
         return true
       }
     } catch {
@@ -631,10 +651,13 @@ function isLikelyArticlePage() {
   const path = window.location.pathname.toLowerCase()
   const listLikePath = /^\/?$/.test(path) || /\/(category|section|topics?|search|tag|author|latest|realtime|archive)(\/|$)/.test(path)
   if (listLikePath) {
+    debugLog('isLikelyArticlePage:false-list-like-path', { path })
     return false
   }
 
-  return pathParts.length >= 2 || path.includes('news')
+  const likely = pathParts.length >= 2 || path.includes('news')
+  debugLog('isLikelyArticlePage:fallback-result', { likely, pathPartsLength: pathParts.length, path })
+  return likely
 }
 
 function isYouTubeVideoPage() {
@@ -1097,6 +1120,7 @@ async function fetchStatus(url) {
 }
 
 function ensureArticleBanner() {
+  debugLog('ensureArticleBanner:start', { dismissed: articleBannerDismissed, href: window.location.href })
   if (articleBannerDismissed) {
     return null
   }
@@ -1161,6 +1185,7 @@ function ensureArticleBanner() {
   } else {
     ;(document.body || document.documentElement).prepend(articleBanner)
   }
+  debugLog('ensureArticleBanner:inserted', { mode: articleBanner.dataset.truthshieldMode, inDom: document.documentElement.contains(articleBanner) })
   renderArticleBannerFromCache(window.location.href)
 
   if (!articleBannerReportedUrls.has(window.location.href)) {
@@ -1572,8 +1597,18 @@ function closeVotePanelModal() {
 }
 
 function maybeInjectVotePanel() {
-  if (!isCurrentNewsPage() || !isLikelyArticlePage()) {
-    if (isCurrentNewsPage() && !articleBannerSkippedUrls.has(window.location.href)) {
+  const tracked = isCurrentNewsPage()
+  const likely = tracked ? isLikelyArticlePage() : false
+  debugLog('maybeInjectVotePanel', {
+    enablePanel,
+    href: window.location.href,
+    tracked,
+    likely,
+    domainCount: newsDomains.length,
+    domainMatched: newsDomains.find((domain) => window.location.hostname === domain || window.location.hostname.endsWith(`.${domain}`)) || '',
+  })
+  if (!tracked || !likely) {
+    if (tracked && !articleBannerSkippedUrls.has(window.location.href)) {
       articleBannerSkippedUrls.add(window.location.href)
       reportExtensionEvent('article_banner_skipped', false, { reason: 'not_article_shape' })
     }
@@ -1768,15 +1803,6 @@ window.addEventListener('message', (event) => {
     return
   }
 
-  if (isTruthShieldWebOrigin() && event.source === window && event.data?.type === PAGE_AUTH_STATE) {
-    if (event.data.auth?.token) {
-      sendRuntimeMessage({ type: 'TRUTH_SHIELD_SET_AUTH', auth: event.data.auth })
-    } else {
-      sendRuntimeMessage({ type: 'TRUTH_SHIELD_CLEAR_AUTH' })
-    }
-    return
-  }
-
   if (isTruthShieldWebOrigin() && event.data?.type === 'TRUTH_SHIELD_AUTH_UPDATED' && event.data.token) {
     sendRuntimeMessage({
       type: 'TRUTH_SHIELD_SET_AUTH',
@@ -1833,6 +1859,14 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
       title: document.title || '',
       isTrackedNews: isCurrentNewsPage(),
       isLikelyArticle: isLikelyArticlePage(),
+      enablePanel,
+      enableTooltip,
+      hostname: window.location.hostname,
+      matchedDomain: newsDomains.find((domain) => window.location.hostname === domain || window.location.hostname.endsWith(`.${domain}`)) || '',
+      domainCount: newsDomains.length,
+      hasArticleBanner: Boolean(articleBanner && document.documentElement.contains(articleBanner)),
+      articleBannerDismissed,
+      articleBannerUrl,
       youtubeChannelUrl: currentYoutubeChannelUrl(),
     })
     return true

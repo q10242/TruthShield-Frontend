@@ -1,0 +1,55 @@
+{
+  "name": "TruthShield 真相護盾",
+  "short_name": "TruthShield",
+  "description": "用社群證據、信用權重與透明治理查證新聞可信度。",
+  "start_url": "/mobile?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "portrait-primary",
+  "lang": "zh-Hant",
+  "icons": [
+    {
+      "src": "/brand/export/logo-mark-128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/brand/export/logo-mark-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/export/logo-mark-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "查新聞",
+      "short_name": "查新聞",
+      "description": "貼上新聞網址並查看 TruthShield 結果。",
+      "url": "/mobile/check",
+      "icons": [{ "src": "/brand/export/logo-mark-128.png", "sizes": "128x128" }]
+    },
+    {
+      "name": "社群任務",
+      "short_name": "任務",
+      "description": "協助維護未收錄新聞站與證據品質。",
+      "url": "/community-tasks",
+      "icons": [{ "src": "/brand/export/logo-mark-128.png", "sizes": "128x128" }]
+    }
+  ],
+  "share_target": {
+    "action": "/mobile/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

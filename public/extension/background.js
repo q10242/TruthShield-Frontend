@@ -31,8 +31,53 @@ function resolveLocale(setting = 'auto') {
 
 const nonceCache = new Map()
 const AUTH_STORAGE_KEY = 'truthshieldAuth'
+let menuCreationPromise = null
+
+function debugLog(message, payload = null) {
+  try {
+    if (payload === null || payload === undefined) {
+      console.info(`[TruthShield:bg] ${message}`)
+    } else {
+      console.info(`[TruthShield:bg] ${message}`, payload)
+    }
+  } catch {
+    // Debug logging must never affect extension behavior.
+  }
+}
+
+function removeAllContextMenus() {
+  return new Promise((resolve) => {
+    chrome.contextMenus.removeAll(() => {
+      chrome.runtime.lastError
+      resolve()
+    })
+  })
+}
+
+function createContextMenu(item) {
+  return new Promise((resolve) => {
+    chrome.contextMenus.create(item, () => {
+      chrome.runtime.lastError
+      resolve()
+    })
+  })
+}
 
 async function createMenus() {
+  debugLog('createMenus:start')
+  if (menuCreationPromise) {
+    debugLog('createMenus:reuse-running')
+    return menuCreationPromise
+  }
+
+  menuCreationPromise = createMenusNow().finally(() => {
+    menuCreationPromise = null
+  })
+
+  return menuCreationPromise
+}
+
+async function createMenusNow() {
   const settings = await getSettings()
   const dictionary = menuDictionaries[resolveLocale(settings.locale)] || menuDictionaries['zh-TW']
   const menuItems = [
@@ -43,9 +88,9 @@ async function createMenus() {
     { id: 'truthshield-report-domain', title: dictionary.reportDomain, contexts: ['page', 'link'] },
   ]
 
-  chrome.contextMenus.removeAll(() => {
-    menuItems.forEach((item) => chrome.contextMenus.create(item))
-  })
+  await removeAllContextMenus()
+  await Promise.all(menuItems.map(createContextMenu))
+  debugLog('createMenus:done', { count: menuItems.length })
 }
 
 function getSettings() {
@@ -130,7 +175,17 @@ async function openVote(url, tab = null) {
         return
       }
     } catch {
-      // Fall through to popup for pages where the content script is unavailable.
+      const injected = await ensureContentScript(tab.id)
+      if (injected) {
+        try {
+          const response = await chrome.tabs.sendMessage(tab.id, { type: 'TRUTH_SHIELD_SHOW_VOTE_PANEL', url })
+          if (response?.ok) {
+            return
+          }
+        } catch {
+          // Fall through to popup for pages where scripted injection is unavailable.
+        }
+      }
     }
   }
 
@@ -140,6 +195,26 @@ async function openVote(url, tab = null) {
   target.searchParams.set('expanded', '1')
   if (settings.locale === 'zh-TW' || settings.locale === 'en') target.searchParams.set('locale', settings.locale)
   openTruthShieldWindow(target.toString(), 460, 720)
+}
+
+async function ensureContentScript(tabId) {
+  if (!tabId || !chrome.scripting?.executeScript) {
+    debugLog('ensureContentScript:unavailable', { tabId })
+    return false
+  }
+
+  try {
+    debugLog('ensureContentScript:start', { tabId })
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['content.js'],
+    })
+    debugLog('ensureContentScript:done', { tabId })
+    return true
+  } catch {
+    debugLog('ensureContentScript:failed', { tabId })
+    return false
+  }
 }
 
 async function openReport(url, title = '') {

@@ -41,6 +41,15 @@
       .auth-actions { display:flex; gap:8px; margin-top:10px; }
       .auth-actions button { margin-top:0; padding:8px; text-align:center; }
       .auth-actions .danger { border-color:#7f1d1d; background:rgba(127,29,29,.35); color:#fecaca; }
+      .debug {
+        margin-top: 12px;
+        border: 1px solid #27272a;
+        border-radius: 8px;
+        background: #111113;
+        padding: 10px;
+      }
+      .debug strong { display:block; color:#cffafe; font-size:12px; }
+      .debug pre { margin:8px 0 0; max-height:150px; overflow:auto; white-space:pre-wrap; word-break:break-word; color:#a7f3d0; font:11px ui-monospace, SFMono-Regular, Menlo, monospace; }
       button {
         width: 100%;
         margin-top: 8px;
@@ -90,6 +99,11 @@
           <button id="openLogin" type="button" data-i18n="signIn">登入</button>
           <button id="signOut" class="danger" type="button" data-i18n="signOut" hidden>登出</button>
         </div>
+      </div>
+
+      <div class="debug">
+        <strong>頁面診斷</strong>
+        <pre id="pageDebug">checking...</pre>
       </div>
 
       <button id="openStatus" class="primary" data-i18n="openStatus">查看目前頁面評分</button>

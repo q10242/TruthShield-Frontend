@@ -36,6 +36,9 @@ import LabelGuideView from '../views/LabelGuideView.vue'
 import DataProcessingPolicyView from '../views/DataProcessingPolicyView.vue'
 import OfficialResponsePolicyView from '../views/OfficialResponsePolicyView.vue'
 import BugReportView from '../views/BugReportView.vue'
+import MobileHomeView from '../views/MobileHomeView.vue'
+import MobileShareView from '../views/MobileShareView.vue'
+import MobileCheckView from '../views/MobileCheckView.vue'
 
 const localRoutes = import.meta.env.DEV
   ? [
@@ -48,6 +51,9 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'home', component: HomeView },
+    { path: '/mobile', name: 'mobile', component: MobileHomeView },
+    { path: '/mobile/share', name: 'mobile-share', component: MobileShareView },
+    { path: '/mobile/check', name: 'mobile-check', component: MobileCheckView },
     { path: '/login', name: 'login', component: LoginView },
     { path: '/ranking', name: 'ranking', component: RankingView },
     { path: '/evidence-library', name: 'evidence-library', component: EvidenceLibraryView },

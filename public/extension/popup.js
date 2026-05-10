@@ -191,7 +191,44 @@ async function currentPageContext() {
     const response = await chrome.tabs.sendMessage(state.tab.id, { type: 'TRUTH_SHIELD_GET_PAGE_CONTEXT' })
     return response?.ok ? response : {}
   } catch {
-    return {}
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: state.tab.id },
+        files: ['content.js'],
+      })
+      const response = await chrome.tabs.sendMessage(state.tab.id, { type: 'TRUTH_SHIELD_GET_PAGE_CONTEXT' })
+      return response?.ok ? response : {}
+    } catch {
+      return {}
+    }
+  }
+}
+
+async function loadPageDebug() {
+  const debug = byId('pageDebug')
+  if (!state.tab?.id || !debug) return
+
+  try {
+    const context = await currentPageContext()
+    debug.style.color = context?.ok ? '#a7f3d0' : '#fca5a5'
+    debug.textContent = context?.ok
+      ? JSON.stringify({
+          content_script: true,
+          hostname: context.hostname,
+          matched_domain: context.matchedDomain,
+          tracked_news: context.isTrackedNews,
+          likely_article: context.isLikelyArticle,
+          panel_enabled: context.enablePanel,
+          tooltip_enabled: context.enableTooltip,
+          domain_count: context.domainCount,
+          banner_present: context.hasArticleBanner,
+          banner_dismissed: context.articleBannerDismissed,
+          banner_url: context.articleBannerUrl,
+        }, null, 2)
+      : 'content_script: false'
+  } catch (error) {
+    debug.style.color = '#fca5a5'
+    debug.textContent = `content_script: false\n${error.message || 'No response from content script'}`
   }
 }
 
@@ -306,6 +343,7 @@ async function initPopup() {
 
     bindActions()
     trackPopupEvent('popup_opened', 'popup')
+    await loadPageDebug()
     await loadAuthSummary()
     await loadSummary()
   })
