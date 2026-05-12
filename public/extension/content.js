@@ -41,6 +41,7 @@ const FALLBACK_NEWS_DOMAINS = [
   'www.nownews.com',
   'www.taisounds.com',
   'www.upmedia.mg',
+  'tw.nextapple.com',
   'www.businesstoday.com.tw',
   'finance.ettoday.net',
   'www.peoplenews.tw',
