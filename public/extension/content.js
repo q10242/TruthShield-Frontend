@@ -54,6 +54,42 @@ const FALLBACK_NEWS_DOMAINS = [
   'www.mnews.tw',
   'www.cmmedia.com.tw',
 ]
+const DEFAULT_BLOCKED_PATH_PATTERN = '^/(?:$|search|tag|tags|tagging|category|categories|cat|cate|topic|topics|author|authors|member|login|register|privacy|about|rss|(?:list|lists|latest|realtime|realtimenews|breaking|breaknews|hot|popular|archive|archives|video|videos|photo|photos|live)/?$)'
+const FALLBACK_DOMAIN_CONFIGS = [
+  { domain: 'cna.com.tw', article_url_pattern: '^/news/.+\\.aspx$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.cna.com.tw', article_url_pattern: '^/news/.+\\.aspx$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'news.cts.com.tw', article_url_pattern: '\\.html$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'tw.news.yahoo.com', article_url_pattern: '\\.html$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.setn.com', article_url_pattern: '^/News\\.aspx$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'udn.com', article_url_pattern: '^/news/story/\\d+/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'news.ebc.net.tw', article_url_pattern: '^/news/[^/]+/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'news.tvbs.com.tw', article_url_pattern: '^/[^/]+/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.ftvnews.com.tw', article_url_pattern: '^/news/detail/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.nownews.com', article_url_pattern: '^/news/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.chinatimes.com', article_url_pattern: '^/(?:realtimenews|newspapers)/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'ctinews.com', article_url_pattern: '^/news/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.ctinews.com', article_url_pattern: '^/news/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'news.ltn.com.tw', article_url_pattern: '^/news/.+/(?:breakingnews/)?\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'news.pts.org.tw', article_url_pattern: '^/article/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.ettoday.net', article_url_pattern: '^/news/\\d+/.+\\.htm$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'finance.ettoday.net', article_url_pattern: '^/news/\\d+/.+\\.htm$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.storm.mg', article_url_pattern: '^/article/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.thenewslens.com', article_url_pattern: '^/(?:article|feature)/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.mirrormedia.mg', article_url_pattern: '^/story/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.rti.org.tw', article_url_pattern: '^/news/view/id/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.taisounds.com', article_url_pattern: '^/news/content/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.upmedia.mg', article_url_pattern: '^/news_info\\.php', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'tw.nextapple.com', article_url_pattern: '^/(?:realtime|local|politics|life|entertainment|international|finance|sports)/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.businesstoday.com.tw', article_url_pattern: '^/article/category/\\d+/post/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.businessweekly.com.tw', article_url_pattern: '^/(?:business|international|management|careers|style|health|archive)/blog/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.cw.com.tw', article_url_pattern: '^/article/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'english.cw.com.tw', article_url_pattern: '^/article/article\\.action', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.taipeitimes.com', article_url_pattern: '^/News/.+/archives/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.taiwannews.com.tw', article_url_pattern: '^/news/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.taiwanplus.com', article_url_pattern: '^/news/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.mnews.tw', article_url_pattern: '^/story/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.cmmedia.com.tw', article_url_pattern: '^/home/articles/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+]
 const FALLBACK_YOUTUBE_CHANNELS = [
   { handle: null, channelId: null, channelUrl: 'https://www.youtube.com/user/cnataiwan' },
   { handle: 'PNNPTS' },
@@ -85,7 +121,7 @@ const FALLBACK_YOUTUBE_CHANNELS = [
 ]
 
 let newsDomains = [...FALLBACK_NEWS_DOMAINS]
-let domainConfigs = []
+let domainConfigs = [...FALLBACK_DOMAIN_CONFIGS]
 let youtubeChannels = FALLBACK_YOUTUBE_CHANNELS.map(normalizeYoutubeChannelRecord).filter(Boolean)
 let extensionNonce = null
 let tooltipBox = null
@@ -521,16 +557,27 @@ async function loadNewsDomains() {
 
     if (domains.length > 0) {
       newsDomains = [...new Set([...FALLBACK_NEWS_DOMAINS, ...domains])]
-      domainConfigs = [
-        ...FALLBACK_NEWS_DOMAINS.map((domain) => ({ domain })),
-        ...payload.data,
-      ]
+      domainConfigs = mergeDomainConfigs(payload.data, FALLBACK_DOMAIN_CONFIGS, FALLBACK_NEWS_DOMAINS.map((domain) => ({ domain })))
       debugLog('loadNewsDomains:success', { count: newsDomains.length, matched: newsDomains.includes(window.location.hostname) })
     }
   } catch {
     newsDomains = [...FALLBACK_NEWS_DOMAINS]
+    domainConfigs = mergeDomainConfigs(FALLBACK_DOMAIN_CONFIGS, FALLBACK_NEWS_DOMAINS.map((domain) => ({ domain })))
     debugLog('loadNewsDomains:failed-fallback', { count: newsDomains.length, matched: newsDomains.includes(window.location.hostname) })
   }
+}
+
+function mergeDomainConfigs(...groups) {
+  const merged = new Map()
+
+  for (const group of groups) {
+    for (const config of group || []) {
+      if (!config?.domain || merged.has(config.domain)) continue
+      merged.set(config.domain, config)
+    }
+  }
+
+  return [...merged.values()]
 }
 
 async function loadYoutubeChannels() {
@@ -651,7 +698,9 @@ function isLikelyArticlePage() {
 
   const pathParts = window.location.pathname.split('/').filter(Boolean)
   const path = window.location.pathname.toLowerCase()
-  const listLikePath = /^\/?$/.test(path) || /\/(category|section|topics?|search|tag|author|latest|realtime|archive)(\/|$)/.test(path)
+  const listLikePath = /^\/?$/.test(path)
+    || /\/(category|categories|cat|cate|section|sections|topics?|search|tag|tags|tagging|author|authors|rss)(\/|$)/.test(path)
+    || /\/(latest|realtime|realtimenews|breaking|breaknews|hot|popular|archive|archives|list|lists|video|videos|photo|photos|live)\/?$/.test(path)
   if (listLikePath) {
     debugLog('isLikelyArticlePage:false-list-like-path', { path })
     return false
