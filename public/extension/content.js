@@ -31,6 +31,8 @@ const FALLBACK_NEWS_DOMAINS = [
   'www.ettoday.net',
   'www.setn.com',
   'news.ltn.com.tw',
+  'art.ltn.com.tw',
+  'def.ltn.com.tw',
   'tw.news.yahoo.com',
   'www.storm.mg',
   'www.thenewslens.com',
@@ -70,13 +72,15 @@ const FALLBACK_DOMAIN_CONFIGS = [
   { domain: 'ctinews.com', article_url_pattern: '^/news/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.ctinews.com', article_url_pattern: '^/news/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'news.ltn.com.tw', article_url_pattern: '^/news/.+/(?:breakingnews/)?\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'art.ltn.com.tw', article_url_pattern: '^/article/(?:breakingnews/)?\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'def.ltn.com.tw', article_url_pattern: '^/article/(?:breakingnews/)?\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'news.pts.org.tw', article_url_pattern: '^/article/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.ettoday.net', article_url_pattern: '^/news/\\d+/.+\\.htm$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'finance.ettoday.net', article_url_pattern: '^/news/\\d+/.+\\.htm$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.storm.mg', article_url_pattern: '^/article/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.thenewslens.com', article_url_pattern: '^/(?:article|feature)/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.mirrormedia.mg', article_url_pattern: '^/(?:story|external)/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
-  { domain: 'www.rti.org.tw', article_url_pattern: '^/news/view/id/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.rti.org.tw', article_url_pattern: '^(?:/news/view/id/\\d+|/news\\?pid=\\d+)', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.taisounds.com', article_url_pattern: '^/news/content/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.upmedia.mg', article_url_pattern: '^/news_info\\.php', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'tw.nextapple.com', article_url_pattern: '^/(?:realtime|local|politics|life|entertainment|international|finance|sports)/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
@@ -298,6 +302,22 @@ function sendRuntimeMessage(message) {
   })
 }
 
+async function fetchApiViaBackground(path, options = {}) {
+  const response = await sendRuntimeMessage({
+    type: 'TRUTH_SHIELD_FETCH_API',
+    path,
+    method: options.method || 'GET',
+    headers: options.headers || { Accept: 'application/json' },
+    body: options.body,
+  })
+
+  if (!response?.ok) {
+    throw new Error(response?.message || `status ${response?.status || 0}`)
+  }
+
+  return response.payload
+}
+
 async function syncWebAuthToExtensionStorage() {
   if (!isTruthShieldWebOrigin()) return
 
@@ -334,16 +354,7 @@ async function postStoredAuthToVotePanelFrame() {
 
 async function loadExtensionNonce() {
   try {
-    const response = await fetch(`${API_ORIGIN}/api/extension/nonce`, {
-      headers: { Accept: 'application/json' },
-    })
-
-    if (!response.ok) {
-      extensionNonce = null
-      return
-    }
-
-    extensionNonce = await response.json()
+    extensionNonce = await fetchApiViaBackground('/api/extension/nonce')
   } catch {
     extensionNonce = null
   }
@@ -541,16 +552,9 @@ function reportSelectorCheck(checkType, success, selector = null, metadata = {})
 async function loadNewsDomains() {
   debugLog('loadNewsDomains:start', { apiOrigin: API_ORIGIN })
   try {
-    const response = await fetch(`${API_ORIGIN}/api/news-domains`, {
+    const payload = await fetchApiViaBackground('/api/news-domains', {
       headers: extensionRequestHeaders({ Accept: 'application/json' }),
     })
-
-    if (!response.ok) {
-      debugLog('loadNewsDomains:bad-response', { status: response.status })
-      return
-    }
-
-    const payload = await response.json()
     const domains = Array.isArray(payload.data)
       ? payload.data.map((item) => item.domain).filter(Boolean)
       : []
@@ -588,15 +592,9 @@ function mergeDomainConfigs(...groups) {
 
 async function loadYoutubeChannels() {
   try {
-    const response = await fetch(`${API_ORIGIN}/api/youtube-channels`, {
+    const payload = await fetchApiViaBackground('/api/youtube-channels', {
       headers: extensionRequestHeaders({ Accept: 'application/json' }),
     })
-
-    if (!response.ok) {
-      return
-    }
-
-    const payload = await response.json()
     const remoteChannels = Array.isArray(payload.data)
       ? payload.data.map(normalizeYoutubeChannelRecord).filter(Boolean)
       : []
@@ -658,12 +656,22 @@ function isCurrentNewsPage() {
   return isNewsHostname(window.location.hostname)
 }
 
+function domainMatchesHostname(config, hostname = window.location.hostname) {
+  return hostname === config.domain || hostname.endsWith(`.${config.domain}`)
+}
+
+function matchedDomainConfig(hostname = window.location.hostname) {
+  return domainConfigs
+    .filter((config) => config?.domain && domainMatchesHostname(config, hostname))
+    .sort((a, b) => b.domain.length - a.domain.length)[0] || null
+}
+
 function isLikelyArticlePage() {
   if (isYouTubeVideoPage()) {
     return isCurrentYouTubeNewsPage()
   }
 
-  const matchedConfig = domainConfigs.find((config) => window.location.hostname === config.domain || window.location.hostname.endsWith(`.${config.domain}`))
+  const matchedConfig = matchedDomainConfig()
   debugLog('isLikelyArticlePage:start', {
     href: window.location.href,
     matchedConfig: matchedConfig?.domain || '',
@@ -693,7 +701,8 @@ function isLikelyArticlePage() {
 
   if (matchedConfig?.article_url_pattern) {
     try {
-      if (new RegExp(matchedConfig.article_url_pattern).test(window.location.pathname)) {
+      const articlePattern = new RegExp(matchedConfig.article_url_pattern)
+      if (articlePattern.test(window.location.pathname) || articlePattern.test(`${window.location.pathname}${window.location.search}`)) {
         debugLog('isLikelyArticlePage:true-article-pattern', { pattern: matchedConfig.article_url_pattern })
         return true
       }

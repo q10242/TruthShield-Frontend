@@ -278,6 +278,36 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true
   }
 
+  if (message?.type === 'TRUTH_SHIELD_FETCH_API' && message.path) {
+    getSettings()
+      .then(async (settings) => {
+        const target = new URL(String(message.path), settings.apiOrigin)
+        const init = {
+          method: message.method || 'GET',
+          headers: await extensionRequestHeaders(settings, {
+            Accept: 'application/json',
+            ...(message.headers || {}),
+          }),
+        }
+
+        if (message.body !== undefined && message.body !== null) {
+          init.body = typeof message.body === 'string' ? message.body : JSON.stringify(message.body)
+          init.headers['Content-Type'] = init.headers['Content-Type'] || 'application/json'
+        }
+
+        return fetch(target.toString(), init)
+      })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null)
+        sendResponse({ ok: response.ok, status: response.status, payload })
+      })
+      .catch((error) => {
+        sendResponse({ ok: false, status: 0, message: error?.message || 'fetch failed' })
+      })
+
+    return true
+  }
+
   if (message?.type !== 'TRUTH_SHIELD_FETCH_STATUS' || !message.url) {
     return false
   }
