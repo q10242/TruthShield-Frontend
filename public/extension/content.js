@@ -75,7 +75,7 @@ const FALLBACK_DOMAIN_CONFIGS = [
   { domain: 'finance.ettoday.net', article_url_pattern: '^/news/\\d+/.+\\.htm$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.storm.mg', article_url_pattern: '^/article/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.thenewslens.com', article_url_pattern: '^/(?:article|feature)/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
-  { domain: 'www.mirrormedia.mg', article_url_pattern: '^/story/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'www.mirrormedia.mg', article_url_pattern: '^/(?:story|external)/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.rti.org.tw', article_url_pattern: '^/news/view/id/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.taisounds.com', article_url_pattern: '^/news/content/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.upmedia.mg', article_url_pattern: '^/news_info\\.php', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
@@ -572,8 +572,14 @@ function mergeDomainConfigs(...groups) {
 
   for (const group of groups) {
     for (const config of group || []) {
-      if (!config?.domain || merged.has(config.domain)) continue
-      merged.set(config.domain, config)
+      if (!config?.domain) continue
+      const existing = merged.get(config.domain) || {}
+      merged.set(config.domain, {
+        ...existing,
+        ...Object.fromEntries(
+          Object.entries(config).filter(([, value]) => value !== null && value !== undefined && value !== ''),
+        ),
+      })
     }
   }
 
@@ -691,6 +697,8 @@ function isLikelyArticlePage() {
         debugLog('isLikelyArticlePage:true-article-pattern', { pattern: matchedConfig.article_url_pattern })
         return true
       }
+      debugLog('isLikelyArticlePage:false-article-pattern-miss', { pattern: matchedConfig.article_url_pattern })
+      return false
     } catch {
       // Invalid admin-provided patterns are ignored client-side.
     }
