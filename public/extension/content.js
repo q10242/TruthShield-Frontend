@@ -657,8 +657,8 @@ function isLikelyArticlePage() {
     return false
   }
 
-  const fileLikeArticle = /\.(?:html?|shtml)$/i.test(path)
-  const likely = fileLikeArticle || pathParts.length >= 2 || path.includes('news')
+  const fileLikeArticle = /\.(?:html?|shtml|aspx)$/i.test(path)
+  const likely = fileLikeArticle || pathParts.length >= 2
   debugLog('isLikelyArticlePage:fallback-result', { likely, fileLikeArticle, pathPartsLength: pathParts.length, path })
   return likely
 }
