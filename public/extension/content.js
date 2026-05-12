@@ -27,6 +27,7 @@ const FALLBACK_NEWS_DOMAINS = [
   'www.chinatimes.com',
   'ctinews.com',
   'www.ctinews.com',
+  'news.cts.com.tw',
   'www.ettoday.net',
   'www.setn.com',
   'news.ltn.com.tw',
@@ -655,8 +656,9 @@ function isLikelyArticlePage() {
     return false
   }
 
-  const likely = pathParts.length >= 2 || path.includes('news')
-  debugLog('isLikelyArticlePage:fallback-result', { likely, pathPartsLength: pathParts.length, path })
+  const fileLikeArticle = /\.(?:html?|shtml)$/i.test(path)
+  const likely = fileLikeArticle || pathParts.length >= 2 || path.includes('news')
+  debugLog('isLikelyArticlePage:fallback-result', { likely, fileLikeArticle, pathPartsLength: pathParts.length, path })
   return likely
 }
 
