@@ -324,6 +324,81 @@ export async function fetchCommunityTask(id) {
   })
 }
 
+export async function fetchEvents(params = {}) {
+  const query = toQuery(params)
+  return request(`/api/events${query ? `?${query}` : ''}`, {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
+export async function createEvent(token, payload) {
+  return request('/api/events', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function fetchEvent(id) {
+  return request(`/api/events/${encodeURIComponent(id)}`, {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
+export async function fetchEventTimeline(id) {
+  const payload = await request(`/api/events/${encodeURIComponent(id)}/timeline`, {
+    headers: { 'Content-Type': undefined },
+  })
+
+  return payload.data || []
+}
+
+export async function createEventTimelineEntry(token, id, payload) {
+  return request(`/api/events/${encodeURIComponent(id)}/timeline`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function fetchEventGraph(id) {
+  return request(`/api/events/${encodeURIComponent(id)}/graph`, {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
+export async function createEventEntity(token, id, payload) {
+  return request(`/api/events/${encodeURIComponent(id)}/entities`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function createEventRelationship(token, id, payload) {
+  return request(`/api/events/${encodeURIComponent(id)}/relationships`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function fetchEventEditLogs(id) {
+  const payload = await request(`/api/events/${encodeURIComponent(id)}/edit-logs`, {
+    headers: { 'Content-Type': undefined },
+  })
+
+  return payload.data || []
+}
+
 export async function sendCommunityTaskSignal(token, id, payload) {
   return request(`/api/community/tasks/${encodeURIComponent(id)}/signal`, {
     method: 'POST',

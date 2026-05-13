@@ -4,11 +4,11 @@ import { RouterLink } from 'vue-router'
 import { fetchBotProtectionConfig, fetchSystemHealth } from '../lib/api'
 import { trackEvent, trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
-import extensionManifest from '../../public/extension/manifest.json'
 
 const { t } = useI18n()
 const health = ref(null)
 const botConfig = ref(null)
+const extensionVersion = ref('0.1.0')
 const loading = ref(true)
 const zipGeneratedAt = new Date(import.meta.env.VITE_BUILD_TIME || document.lastModified || Date.now()).toLocaleString()
 
@@ -36,7 +36,7 @@ const installSteps = computed(() => [
 ])
 
 const capabilityCards = computed(() => [
-  { label: t('extensionInstall.extensionVersion'), value: extensionManifest.version },
+  { label: t('extensionInstall.extensionVersion'), value: extensionVersion.value },
   { label: t('extensionInstall.zipGeneratedAt'), value: zipGeneratedAt },
   { label: t('extensionInstall.tooltipStatus'), value: t('extensionInstall.enabled') },
   { label: t('extensionInstall.bannerStatus'), value: t('extensionInstall.enabled') },
@@ -64,12 +64,14 @@ const githubLinks = computed(() => [
 onMounted(async () => {
   trackPageView('extension_install')
   loading.value = true
-  const [healthPayload, botPayload] = await Promise.all([
+  const [healthPayload, botPayload, manifestPayload] = await Promise.all([
     fetchSystemHealth().catch(() => null),
     fetchBotProtectionConfig().catch(() => null),
+    fetch('/extension/manifest.json').then((response) => response.json()).catch(() => null),
   ])
   health.value = healthPayload
   botConfig.value = botPayload
+  extensionVersion.value = manifestPayload?.version || extensionVersion.value
   loading.value = false
 })
 

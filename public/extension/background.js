@@ -10,6 +10,10 @@ const menuDictionaries = {
     linkVote: 'TruthShield：我已閱讀此連結，提交評分',
     pageStatus: 'TruthShield：查看此頁評分',
     pageVote: 'TruthShield：我已閱讀此頁，提交評分',
+    linkPinTimeline: 'TruthShield：Pin 到事件時間線',
+    pagePinTimeline: 'TruthShield：Pin 此頁到事件時間線',
+    linkPinGraph: 'TruthShield：Pin 到人物/組織關係圖',
+    pagePinGraph: 'TruthShield：Pin 此頁到人物/組織關係圖',
     reportDomain: 'TruthShield：回報未收錄新聞站',
   },
   en: {
@@ -17,6 +21,10 @@ const menuDictionaries = {
     linkVote: 'TruthShield: I read this link, submit rating',
     pageStatus: 'TruthShield: View this page rating',
     pageVote: 'TruthShield: I read this page, submit rating',
+    linkPinTimeline: 'TruthShield: Pin to event timeline',
+    pagePinTimeline: 'TruthShield: Pin this page to event timeline',
+    linkPinGraph: 'TruthShield: Pin to people/org graph',
+    pagePinGraph: 'TruthShield: Pin this page to people/org graph',
     reportDomain: 'TruthShield: Report missing news site',
   },
 }
@@ -85,6 +93,10 @@ async function createMenusNow() {
     { id: 'truthshield-link-vote', title: dictionary.linkVote, contexts: ['link'] },
     { id: 'truthshield-page-status', title: dictionary.pageStatus, contexts: ['page'] },
     { id: 'truthshield-page-vote', title: dictionary.pageVote, contexts: ['page'] },
+    { id: 'truthshield-link-pin-timeline', title: dictionary.linkPinTimeline, contexts: ['link'] },
+    { id: 'truthshield-page-pin-timeline', title: dictionary.pagePinTimeline, contexts: ['page'] },
+    { id: 'truthshield-link-pin-graph', title: dictionary.linkPinGraph, contexts: ['link'] },
+    { id: 'truthshield-page-pin-graph', title: dictionary.pagePinGraph, contexts: ['page'] },
     { id: 'truthshield-report-domain', title: dictionary.reportDomain, contexts: ['page', 'link'] },
   ]
 
@@ -226,6 +238,33 @@ async function openReport(url, title = '') {
   openTruthShieldWindow(target.toString(), 540, 760)
 }
 
+async function openEventPin(url, mode, tab = null) {
+  if (tab?.id) {
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, { type: 'TRUTH_SHIELD_SHOW_EVENT_PIN', url, mode })
+      if (response?.ok) return
+    } catch {
+      const injected = await ensureContentScript(tab.id)
+      if (injected) {
+        try {
+          const response = await chrome.tabs.sendMessage(tab.id, { type: 'TRUTH_SHIELD_SHOW_EVENT_PIN', url, mode })
+          if (response?.ok) return
+        } catch {
+          // Fall through to popup for pages where scripted injection is unavailable.
+        }
+      }
+    }
+  }
+
+  const settings = await getSettings()
+  const target = new URL('/iframe-event-pin', settings.tooltipOrigin)
+  target.searchParams.set('mode', mode)
+  target.searchParams.set('news_url', url)
+  target.searchParams.set('page_title', tab?.title || '')
+  if (settings.locale === 'zh-TW' || settings.locale === 'en') target.searchParams.set('locale', settings.locale)
+  openTruthShieldWindow(target.toString(), 460, 720)
+}
+
 chrome.runtime.onInstalled.addListener(createMenus)
 chrome.runtime.onStartup.addListener(createMenus)
 chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -246,6 +285,16 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
   if (info.menuItemId === 'truthshield-link-vote' || info.menuItemId === 'truthshield-page-vote') {
     openVote(url, tab)
+    return
+  }
+
+  if (info.menuItemId === 'truthshield-link-pin-timeline' || info.menuItemId === 'truthshield-page-pin-timeline') {
+    openEventPin(url, 'timeline', tab)
+    return
+  }
+
+  if (info.menuItemId === 'truthshield-link-pin-graph' || info.menuItemId === 'truthshield-page-pin-graph') {
+    openEventPin(url, 'graph', tab)
     return
   }
 

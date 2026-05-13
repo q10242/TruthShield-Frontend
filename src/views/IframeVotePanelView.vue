@@ -10,6 +10,7 @@ import {
   fetchTags,
   fetchEvidenceReportReasons,
   fetchOfficialResponses,
+  fetchEvents,
   fetchProfile,
   recordReadSession,
   recordNewsSnapshot,
@@ -43,6 +44,7 @@ const status = ref(null)
 const tags = ref([])
 const evidence = ref([])
 const officialResponses = ref([])
+const relatedEvents = ref([])
 const officialResponseText = ref('')
 const officialResponseEvidenceUrl = ref('')
 const officialResponseType = ref('subject_clarification')
@@ -333,19 +335,21 @@ async function loadData() {
       fetchNewsEvidence(newsUrl.value),
       fetchEvidenceReportReasons(),
       fetchOfficialResponses(newsUrl.value),
+      fetchEvents({ q: pageSnapshot.value.title_snapshot || newsUrl.value, limit: 5 }).catch(() => ({ data: [] })),
     ]
 
     if (token.value) {
       requests.push(fetchMyVote(token.value, newsUrl.value).catch(() => ({ vote: null })))
     }
 
-    const [statusPayload, tagPayload, evidencePayload, reportReasonsPayload, officialResponsesPayload, myVotePayload] = await Promise.all(requests)
+    const [statusPayload, tagPayload, evidencePayload, reportReasonsPayload, officialResponsesPayload, eventPayload, myVotePayload] = await Promise.all(requests)
 
     status.value = statusPayload
     tags.value = tagPayload
     evidence.value = evidencePayload
     reportReasons.value = reportReasonsPayload
     officialResponses.value = officialResponsesPayload
+    relatedEvents.value = eventPayload?.data || []
     myVote.value = myVotePayload?.vote || null
 
     if (myVote.value) {
@@ -929,6 +933,15 @@ onMounted(async () => {
         >
           {{ t('votePanel.viewEvidence') }}
         </button>
+        <div v-if="relatedEvents.length" class="rounded-md border border-cyan-300/20 bg-cyan-300/10 p-3">
+          <p class="text-xs font-semibold text-cyan-100">{{ locale === 'en' ? 'Related events' : '相關事件' }}</p>
+          <div class="mt-2 space-y-2">
+            <a v-for="event in relatedEvents" :key="event.id" class="block rounded border border-cyan-300/20 bg-zinc-950/70 p-2 text-xs text-cyan-100 hover:border-cyan-300/60" :href="`/events/${event.id}`" target="_blank" rel="noopener noreferrer">
+              <span class="font-semibold">{{ event.name }}</span>
+              <span class="mt-1 block text-cyan-100/60">{{ locale === 'en' ? 'Timeline' : '時間線' }} {{ event.counts?.timeline ?? 0 }} · {{ locale === 'en' ? 'Graph' : '關係圖' }} {{ event.counts?.relationships ?? 0 }}</span>
+            </a>
+          </div>
+        </div>
         <div class="grid grid-cols-2 gap-2">
           <button class="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:border-orange-300/50 hover:text-orange-100" @click="submitChangeReport('title_changed')">
             {{ t('votePanel.reportChanged') }}

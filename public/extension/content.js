@@ -145,6 +145,8 @@ let votePanelFrame = null
 let votePanelBackdrop = null
 let votePanelShell = null
 let votePanelUrl = ''
+let votePanelPath = ''
+let votePanelExtraKey = ''
 let votePanelPosition = null
 let votePanelCollapsed = false
 let votePanelDrag = null
@@ -1416,6 +1418,10 @@ function ensureVotePanelFrame(url = window.location.href) {
   return openVotePanelModal(url)
 }
 
+function ensureEventPinFrame(url = window.location.href, mode = 'timeline') {
+  return openVotePanelModal(url, '/iframe-event-pin', { mode }, 'event_pin_opened')
+}
+
 async function loadVotePanelPosition() {
   try {
     const stored = await chrome.storage?.local?.get?.(VOTE_PANEL_POSITION_KEY)
@@ -1536,14 +1542,17 @@ function stopVotePanelDrag(event) {
   saveVotePanelPosition()
 }
 
-function openVotePanelModal(targetUrl = window.location.href) {
-  if (votePanelBackdrop && document.body.contains(votePanelBackdrop) && votePanelUrl === targetUrl) {
+function openVotePanelModal(targetUrl = window.location.href, panelPath = '/iframe-vote-panel', extraParams = {}, telemetryEvent = 'vote_panel_opened') {
+  const extraKey = JSON.stringify(extraParams || {})
+  if (votePanelBackdrop && document.body.contains(votePanelBackdrop) && votePanelUrl === targetUrl && votePanelPath === panelPath && votePanelExtraKey === extraKey) {
     return votePanelFrame
   }
 
   closeVotePanelModal()
 
   votePanelUrl = targetUrl
+  votePanelPath = panelPath
+  votePanelExtraKey = extraKey
   votePanelBackdrop = document.createElement('div')
   votePanelBackdrop.style.position = 'fixed'
   votePanelBackdrop.style.top = '72px'
@@ -1621,10 +1630,13 @@ function openVotePanelModal(targetUrl = window.location.href) {
   votePanelFrame.style.colorScheme = 'normal'
   votePanelFrame.addEventListener('load', postStoredAuthToVotePanelFrame)
 
-  const panelUrl = new URL('/iframe-vote-panel', TOOLTIP_ORIGIN)
+  const panelUrl = new URL(panelPath, TOOLTIP_ORIGIN)
   panelUrl.searchParams.set('news_url', targetUrl)
   panelUrl.searchParams.set('expanded', '1')
   panelUrl.searchParams.set('locale', contentLocale)
+  Object.entries(extraParams || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') panelUrl.searchParams.set(key, String(value))
+  })
   if (targetUrl === window.location.href) {
     panelUrl.searchParams.set('title_snapshot', document.title || '')
     const canonical = document.querySelector('link[rel="canonical"]')?.href || ''
@@ -1646,8 +1658,8 @@ function openVotePanelModal(targetUrl = window.location.href) {
   })
   updateVotePanelShellSize(620, false)
   postStoredAuthToVotePanelFrame()
-  reportExtensionEvent('vote_panel_opened', true, { mode: 'side_panel_from_banner' })
-  startArticleReadTimer()
+  reportExtensionEvent(telemetryEvent, true, { mode: panelPath === '/iframe-vote-panel' ? 'side_panel_from_banner' : extraParams.mode || 'side_panel' })
+  if (panelPath === '/iframe-vote-panel') startArticleReadTimer()
 
   return votePanelFrame
 }
@@ -1661,6 +1673,8 @@ function closeVotePanelModal() {
   votePanelFrame = null
   votePanelShell = null
   votePanelUrl = ''
+  votePanelPath = ''
+  votePanelExtraKey = ''
   votePanelCollapsed = false
   votePanelDrag = null
 }
@@ -1917,6 +1931,12 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'TRUTH_SHIELD_SHOW_VOTE_PANEL') {
     ensureVotePanelFrame(message.url || window.location.href)
     startArticleReadTimer()
+    sendResponse({ ok: true })
+    return true
+  }
+
+  if (message?.type === 'TRUTH_SHIELD_SHOW_EVENT_PIN') {
+    ensureEventPinFrame(message.url || window.location.href, message.mode === 'graph' ? 'graph' : 'timeline')
     sendResponse({ ok: true })
     return true
   }

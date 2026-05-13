@@ -39,6 +39,9 @@ import BugReportView from '../views/BugReportView.vue'
 import MobileHomeView from '../views/MobileHomeView.vue'
 import MobileShareView from '../views/MobileShareView.vue'
 import MobileCheckView from '../views/MobileCheckView.vue'
+import EventsView from '../views/EventsView.vue'
+import EventDetailView from '../views/EventDetailView.vue'
+import IframeEventPinView from '../views/IframeEventPinView.vue'
 
 const localRoutes = import.meta.env.DEV
   ? [
@@ -60,6 +63,8 @@ const router = createRouter({
     { path: '/transparency', name: 'transparency', component: TransparencyView },
     { path: '/profile', name: 'profile', component: ProfileView },
     { path: '/news-search', name: 'news-search', component: NewsSearchView },
+    { path: '/events', name: 'events', component: EventsView },
+    { path: '/events/:id', name: 'event-detail', component: EventDetailView },
     { path: '/media/:slug', name: 'media-detail', component: MediaDetailView },
     { path: '/health', name: 'health', component: HealthView },
     { path: '/algorithm', name: 'algorithm', component: AlgorithmView },
@@ -95,6 +100,7 @@ const router = createRouter({
     { path: '/report-domain', name: 'report-domain', component: ReportDomainView },
     { path: '/iframe-tooltip', name: 'iframe-tooltip', component: IframeTooltipView },
     { path: '/iframe-vote-panel', name: 'iframe-vote-panel', component: IframeVotePanelView },
+    { path: '/iframe-event-pin', name: 'iframe-event-pin', component: IframeEventPinView },
   ],
 })
 
