@@ -2,15 +2,17 @@
 import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { trackPageView } from '../lib/traffic'
-import { useI18n } from '../i18n'
+import { currentLocale, useI18n } from '../i18n'
 
 const { t } = useI18n()
+const zh = currentLocale() !== 'en'
 
 const chapters = computed(() => [
   { id: 'start', title: t('userGuide.chapterStart') },
   { id: 'extension', title: t('userGuide.chapterExtension') },
   { id: 'vote', title: t('userGuide.chapterVote') },
   { id: 'search', title: t('userGuide.chapterSearch') },
+  { id: 'events', title: zh ? '事件時間線與關係圖' : 'Event timelines and graphs' },
   { id: 'evidence', title: t('userGuide.chapterEvidence') },
   { id: 'response', title: t('userGuide.chapterResponse') },
   { id: 'trust', title: t('userGuide.chapterTrust') },
@@ -101,6 +103,7 @@ const featureGroups = computed(() => [
     description: t('userGuide.featureGroupReaderDesc'),
     links: [
       { to: '/news-search', label: t('common.newsSearch') },
+      { to: '/events', label: t('common.events') },
       { to: '/evidence-library', label: t('common.evidenceLibrary') },
       { to: '/ranking', label: t('common.ranking') },
       { to: '/trust-leaderboard', label: t('common.trustLeaderboard') },
@@ -259,6 +262,33 @@ onMounted(() => trackPageView('user_guide'))
               </RouterLink>
             </div>
             <img class="rounded-lg border border-white/10 object-cover object-top" src="/brand/export/manual-screenshots/manual-news-search.png" :alt="t('home.manualScreenshotSearchAlt')" loading="lazy" />
+          </section>
+
+          <section id="events" class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-5">
+            <p class="text-sm font-semibold text-cyan-300">{{ zh ? '事件時間線與關係圖' : 'Event timelines and relationship graphs' }}</p>
+            <h2 class="mt-2 text-2xl font-semibold text-white">{{ zh ? '把零散新聞整理成同一個事件脈絡' : 'Turn scattered articles into one shared event context' }}</h2>
+            <p class="mt-3 text-sm leading-7 text-zinc-300">
+              {{ zh
+                ? '當一件事被多家媒體連續報導時，使用者可以從新聞頁或新聞連結右鍵 Pin 到事件時間線或人物/組織關係圖。時間線記錄「何時發生什麼」，關係圖記錄「誰與誰有什麼關係」，每一筆新增、編輯、刪除、合併與拖曳位置都會留下編輯紀錄。'
+                : 'When multiple outlets cover the same issue, users can right-click an article or link and pin it to an event timeline or people/organization graph. Timelines record what happened and when; graphs record who is connected to whom. Every add, edit, delete, merge, and position change leaves an edit log.' }}
+            </p>
+            <div class="mt-5 grid gap-3 md:grid-cols-3">
+              <article class="rounded-md border border-white/10 bg-zinc-950 p-4">
+                <h3 class="text-sm font-semibold text-white">{{ zh ? '右鍵 Pin' : 'Right-click pinning' }}</h3>
+                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ zh ? '在新聞頁或新聞連結上選擇 Pin 到時間線 / 關係圖，側邊表單會帶入目前新聞 URL。' : 'Use the context menu on an article page or link; the side panel pre-fills the current article URL.' }}</p>
+              </article>
+              <article class="rounded-md border border-white/10 bg-zinc-950 p-4">
+                <h3 class="text-sm font-semibold text-white">{{ zh ? '關係圖可匯出' : 'Graph export' }}</h3>
+                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ zh ? '關係圖有方向箭頭、線上標示、節點拖曳、PNG/JPEG 下載，方便社群討論與報告引用。' : 'Graphs include directional arrows, labels on lines, draggable nodes, and PNG/JPEG export for community discussion and reports.' }}</p>
+              </article>
+              <article class="rounded-md border border-white/10 bg-zinc-950 p-4">
+                <h3 class="text-sm font-semibold text-white">{{ zh ? '公開編輯紀錄' : 'Public edit logs' }}</h3>
+                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ zh ? '使用者可以閱讀事件頁的編輯紀錄，確認誰新增、修改、刪除或合併了資料。' : 'Readers can inspect event edit logs to see who added, changed, deleted, or merged data.' }}</p>
+              </article>
+            </div>
+            <RouterLink class="mt-5 inline-flex rounded-md border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100" to="/events">
+              {{ zh ? '查看事件脈絡' : 'Browse events' }}
+            </RouterLink>
           </section>
 
           <section id="evidence" class="grid gap-4 rounded-lg border border-white/10 bg-white/[0.03] p-5 lg:grid-cols-[360px_minmax(0,1fr)]">

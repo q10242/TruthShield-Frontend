@@ -365,6 +365,25 @@ export async function createEventTimelineEntry(token, id, payload) {
   })
 }
 
+export async function updateEventTimelineEntry(token, id, entryId, payload) {
+  return request(`/api/events/${encodeURIComponent(id)}/timeline/${encodeURIComponent(entryId)}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteEventTimelineEntry(token, id, entryId) {
+  return request(`/api/events/${encodeURIComponent(id)}/timeline/${encodeURIComponent(entryId)}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
 export async function fetchEventGraph(id) {
   return request(`/api/events/${encodeURIComponent(id)}/graph`, {
     headers: { 'Content-Type': undefined },
@@ -381,6 +400,45 @@ export async function createEventEntity(token, id, payload) {
   })
 }
 
+export async function updateEventEntity(token, id, entityId, payload) {
+  return request(`/api/events/${encodeURIComponent(id)}/entities/${encodeURIComponent(entityId)}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateEventEntityPosition(token, id, entityId, payload) {
+  return request(`/api/events/${encodeURIComponent(id)}/entities/${encodeURIComponent(entityId)}/position`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteEventEntity(token, id, entityId) {
+  return request(`/api/events/${encodeURIComponent(id)}/entities/${encodeURIComponent(entityId)}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function mergeEventEntity(token, id, entityId, payload) {
+  return request(`/api/events/${encodeURIComponent(id)}/entities/${encodeURIComponent(entityId)}/merge`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function createEventRelationship(token, id, payload) {
   return request(`/api/events/${encodeURIComponent(id)}/relationships`, {
     method: 'POST',
@@ -388,6 +446,25 @@ export async function createEventRelationship(token, id, payload) {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(payload),
+  })
+}
+
+export async function updateEventRelationship(token, id, relationshipId, payload) {
+  return request(`/api/events/${encodeURIComponent(id)}/relationships/${encodeURIComponent(relationshipId)}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteEventRelationship(token, id, relationshipId) {
+  return request(`/api/events/${encodeURIComponent(id)}/relationships/${encodeURIComponent(relationshipId)}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   })
 }
 

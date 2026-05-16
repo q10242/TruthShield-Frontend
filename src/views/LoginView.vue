@@ -54,16 +54,7 @@ async function persistLogin(payload) {
   localStorage.setItem(TOKEN_KEY, payload.token)
   localStorage.setItem(USER_KEY, JSON.stringify(payload.user))
   sessionStorage.removeItem(LOGIN_REDIRECT_KEY)
-  window.postMessage({
-    type: 'TRUTH_SHIELD_AUTH_UPDATED',
-    token: payload.token,
-    user: payload.user,
-  }, window.location.origin)
-  window.opener?.postMessage({
-    type: 'TRUTH_SHIELD_AUTH_UPDATED',
-    token: payload.token,
-    user: payload.user,
-  }, window.location.origin)
+  publishAuth(payload.token, payload.user)
   done.value = true
 
   window.setTimeout(() => {
@@ -76,6 +67,45 @@ async function persistLogin(payload) {
   }, 600)
 }
 
+function publishAuth(token, user) {
+  window.postMessage({
+    type: 'TRUTH_SHIELD_AUTH_UPDATED',
+    token,
+    user,
+  }, window.location.origin)
+  window.opener?.postMessage({
+    type: 'TRUTH_SHIELD_AUTH_UPDATED',
+    token,
+    user,
+  }, window.location.origin)
+}
+
+function publishExistingLoginIfAvailable() {
+  const token = localStorage.getItem(TOKEN_KEY) || ''
+  if (!token) return false
+
+  let user = null
+  try {
+    user = JSON.parse(localStorage.getItem(USER_KEY) || 'null')
+  } catch {
+    user = null
+  }
+
+  publishAuth(token, user)
+  done.value = true
+
+  window.setTimeout(() => {
+    if (window.opener) {
+      window.close()
+      return
+    }
+
+    window.location.assign(String(redirectPath.value))
+  }, 600)
+
+  return true
+}
+
 onMounted(async () => {
   trackPageView('login')
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
@@ -86,7 +116,10 @@ onMounted(async () => {
     return
   }
 
-  if (hash.get('truthshield_oauth') !== '1') return
+  if (hash.get('truthshield_oauth') !== '1') {
+    publishExistingLoginIfAvailable()
+    return
+  }
 
   const token = hash.get('token')
   const encodedUser = hash.get('user')

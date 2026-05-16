@@ -324,10 +324,7 @@ async function syncWebAuthToExtensionStorage() {
   if (!isTruthShieldWebOrigin()) return
 
   const auth = readWebAuthFromLocalStorage()
-  if (!auth) {
-    requestPageAuthState()
-    return
-  }
+  if (!auth) return
 
   await sendRuntimeMessage({ type: 'TRUTH_SHIELD_SET_AUTH', auth })
 }

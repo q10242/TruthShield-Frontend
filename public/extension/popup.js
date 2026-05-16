@@ -51,7 +51,11 @@ function openTab(url) {
 }
 
 function openWindow(url, width = 460, height = 720) {
-  chrome.windows.create({ url, type: 'popup', width, height, focused: true })
+  chrome.windows.create({ url, type: 'popup', width, height, focused: true }, () => {
+    if (chrome.runtime.lastError) {
+      chrome.tabs.create({ url })
+    }
+  })
 }
 
 function sendRuntimeMessage(message) {
@@ -269,6 +273,327 @@ async function loadSummary() {
   }
 }
 
+// ─── Events tab state & helpers ───────────────────────────────────────────────
+
+const eventsState = {
+  query: '',
+  selectedEventId: null,
+  selectedEventName: '',
+  activeDetailTab: 'timeline',
+  cache: { timeline: {}, graph: {} },
+}
+
+async function apiGet(path) {
+  const res = await fetch(`${state.settings.apiOrigin}${path}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function setBodyWidth(px) {
+  document.body.style.width = `${px}px`
+}
+
+function showMainTab(name) {
+  byId('panel-status').hidden = name !== 'status'
+  byId('panel-events').hidden = name !== 'events'
+  byId('panel-event-detail').hidden = name !== 'event-detail'
+  byId('tab-status').classList.toggle('tab-active', name === 'status')
+  byId('tab-events').classList.toggle('tab-active', name === 'events' || name === 'event-detail')
+
+  if (name === 'status') setBodyWidth(330)
+  else if (name === 'events') setBodyWidth(380)
+  else if (name === 'event-detail') {
+    setBodyWidth(eventsState.activeDetailTab === 'graph' ? 540 : 420)
+  }
+}
+
+function showDetailTab(name) {
+  eventsState.activeDetailTab = name
+  byId('detail-timeline-content').hidden = name !== 'timeline'
+  byId('detail-graph-content').hidden = name !== 'graph'
+  byId('detail-tab-timeline').classList.toggle('tab-active', name === 'timeline')
+  byId('detail-tab-graph').classList.toggle('tab-active', name === 'graph')
+  setBodyWidth(name === 'graph' ? 540 : 420)
+}
+
+async function loadEvents() {
+  const container = byId('events-list-content')
+  container.innerHTML = `<p class="panel-msg">${t('eventsLoading')}</p>`
+  try {
+    const q = encodeURIComponent(eventsState.query)
+    const payload = await apiGet(`/api/events?q=${q}&limit=8`)
+    renderEventsList(payload.data || [])
+  } catch (err) {
+    container.innerHTML = `<p class="panel-err">${t('eventsError')}：${escapeHtml(err.message)}</p>`
+  }
+}
+
+function renderEventsList(events) {
+  const container = byId('events-list-content')
+  if (!events.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <p>找不到符合的事件。</p>
+        <p>試試其他關鍵字搜尋，或點「建立新事件」從目前頁面新增一個。</p>
+      </div>`
+    return
+  }
+  container.innerHTML = events.map((ev) => {
+    const c = ev.counts || {}
+    return `
+      <div class="event-item">
+        <div class="event-name">${escapeHtml(ev.name)}</div>
+        <div class="event-meta">時間線 ${c.timeline ?? 0} · 關係 ${c.relationships ?? 0} · 新聞 ${c.items ?? 0}</div>
+        <div class="event-actions">
+          <button class="btn-sm cyan" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="pin">＋ Pin 此文章</button>
+          <button class="btn-sm" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="timeline">${t('eventsTimeline')}</button>
+          <button class="btn-sm" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="graph">${t('eventsGraph')}</button>
+          <a class="btn-sm" href="${escapeHtml(state.settings.tooltipOrigin)}/events/${ev.id}" target="_blank" rel="noopener noreferrer">${t('eventsOpenPage')}</a>
+        </div>
+      </div>`
+  }).join('')
+
+  container.querySelectorAll('[data-act]').forEach((btn) => {
+    const { eid, ename, act } = btn.dataset
+    if (act === 'pin') btn.addEventListener('click', () => openPinToEvent(eid))
+    else btn.addEventListener('click', () => openEventDetail(eid, ename, act))
+  })
+}
+
+function openCreateEvent() {
+  openWindow(truthUrl('/iframe-event-pin', {
+    mode: 'timeline',
+    news_url: currentUrl(),
+    title_snapshot: currentTitle(),
+  }), 460, 680)
+}
+
+function openPinToEvent(eventId) {
+  openWindow(truthUrl('/iframe-event-pin', {
+    mode: 'timeline',
+    event_id: eventId,
+    news_url: currentUrl(),
+    title_snapshot: currentTitle(),
+  }), 460, 680)
+}
+
+function openAddTimeline(eventId) {
+  delete eventsState.cache.timeline[eventId]
+  openWindow(truthUrl('/iframe-event-pin', {
+    mode: 'timeline',
+    news_url: currentUrl(),
+    title_snapshot: currentTitle(),
+    event_id: eventId,
+  }), 460, 680)
+}
+
+function openAddGraph(eventId) {
+  delete eventsState.cache.graph[eventId]
+  openWindow(truthUrl('/iframe-event-pin', {
+    mode: 'graph',
+    news_url: currentUrl(),
+    title_snapshot: currentTitle(),
+    event_id: eventId,
+  }), 460, 680)
+}
+
+async function openEventDetail(eventId, eventName, tab) {
+  eventsState.selectedEventId = eventId
+  eventsState.selectedEventName = eventName
+  byId('detail-event-name').textContent = eventName
+  showMainTab('event-detail')
+  showDetailTab(tab)
+
+  if (tab === 'timeline') await renderTimeline(eventId)
+  else await renderGraph(eventId)
+}
+
+function formatEntryDate(value) {
+  if (!value) return ''
+  try {
+    const d = new Date(value)
+    if (isNaN(d.getTime())) return String(value).slice(0, 16)
+    return d.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  } catch { return String(value).slice(0, 16) }
+}
+
+async function renderTimeline(eventId) {
+  const container = byId('detail-timeline-content')
+  if (eventsState.cache.timeline[eventId]) {
+    container.innerHTML = eventsState.cache.timeline[eventId]
+    bindTimelineAddBtn(eventId)
+    return
+  }
+  container.innerHTML = `<p class="panel-msg">${t('eventsLoading')}</p>`
+  try {
+    const payload = await apiGet(`/api/events/${encodeURIComponent(eventId)}/timeline`)
+    const entries = payload.data || []
+    const listHtml = entries.length
+      ? `<div class="tl-list">${entries.map((entry) => `
+          <div class="tl-entry">
+            <div class="tl-time">${escapeHtml(formatEntryDate(entry.occurred_at))} · ${escapeHtml(entry.source_type || '')}</div>
+            <div class="tl-title">${escapeHtml(entry.title || '')}</div>
+            ${entry.summary ? `<div class="tl-summary">${escapeHtml(entry.summary)}</div>` : ''}
+            ${entry.source_url ? `<a class="tl-link" href="${escapeHtml(entry.source_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(entry.source_url.length > 60 ? entry.source_url.slice(0, 60) + '…' : entry.source_url)}</a>` : ''}
+          </div>`).join('')}</div>`
+      : `<p class="panel-msg">${t('detailTimelineEmpty')}</p>`
+    const html = `<button class="btn-sm cyan add-btn" id="add-timeline-btn">＋ 新增時間線項目</button>${listHtml}`
+    eventsState.cache.timeline[eventId] = html
+    container.innerHTML = html
+    bindTimelineAddBtn(eventId)
+  } catch (err) {
+    container.innerHTML = `<p class="panel-err">${t('eventsError')}：${escapeHtml(err.message)}</p>`
+  }
+}
+
+function bindTimelineAddBtn(eventId) {
+  const btn = byId('add-timeline-btn')
+  if (btn) btn.addEventListener('click', () => openAddTimeline(eventId))
+}
+
+async function renderGraph(eventId) {
+  const container = byId('detail-graph-content')
+  if (eventsState.cache.graph[eventId]) {
+    container.innerHTML = ''
+    container.appendChild(buildAddGraphBtn(eventId))
+    container.appendChild(eventsState.cache.graph[eventId].cloneNode(true))
+    return
+  }
+  container.innerHTML = `<p class="panel-msg">${t('eventsLoading')}</p>`
+  try {
+    const payload = await apiGet(`/api/events/${encodeURIComponent(eventId)}/graph`)
+    const entities = payload.entities || []
+    const relationships = payload.relationships || []
+    container.innerHTML = ''
+    container.appendChild(buildAddGraphBtn(eventId))
+    if (!entities.length) {
+      const msg = document.createElement('p')
+      msg.className = 'panel-msg'
+      msg.textContent = t('detailGraphEmpty')
+      container.appendChild(msg)
+      return
+    }
+    const svg = buildGraphSvg(entities, relationships)
+    eventsState.cache.graph[eventId] = svg
+    container.appendChild(svg)
+  } catch (err) {
+    container.innerHTML = `<p class="panel-err">${t('eventsError')}：${escapeHtml(err.message)}</p>`
+  }
+}
+
+function buildAddGraphBtn(eventId) {
+  const btn = document.createElement('button')
+  btn.className = 'btn-sm cyan add-btn'
+  btn.textContent = '＋ 新增人物／組織'
+  btn.addEventListener('click', () => openAddGraph(eventId))
+  return btn
+}
+
+function graphCirclePosition(index, total) {
+  const angle = (Math.PI * 2 * index) / Math.max(total, 1) - Math.PI / 2
+  return { x: 250 + Math.cos(angle) * 175, y: 185 + Math.sin(angle) * 145 }
+}
+
+function graphHeat(ratio, isOrg) {
+  if (ratio >= 0.75) return { fill: '#be123c', stroke: '#fecdd3' }
+  if (ratio >= 0.5) return { fill: '#b45309', stroke: '#fde68a' }
+  if (ratio >= 0.25) return { fill: '#0f766e', stroke: '#99f6e4' }
+  return { fill: isOrg ? '#1e3a5f' : '#27272a', stroke: '#67e8f9' }
+}
+
+function buildGraphSvg(entities, relationships) {
+  const positions = entities.map((entity, index) => {
+    const saved = entity.metadata?.graph_position
+    if (saved && isFinite(+saved.x) && isFinite(+saved.y)) return { x: +saved.x, y: +saved.y }
+    return graphCirclePosition(index, entities.length)
+  })
+
+  const degrees = new Map()
+  for (const e of entities) degrees.set(e.id, 0)
+  for (const rel of relationships) {
+    degrees.set(rel.from_entity_id, (degrees.get(rel.from_entity_id) || 0) + 1)
+    degrees.set(rel.to_entity_id, (degrees.get(rel.to_entity_id) || 0) + 1)
+  }
+  const maxDeg = Math.max(1, ...Array.from(degrees.values()))
+
+  const ns = 'http://www.w3.org/2000/svg'
+  const el = (tag, attrs = {}, text) => {
+    const node = document.createElementNS(ns, tag)
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v)
+    if (text != null) node.textContent = text
+    return node
+  }
+
+  const svg = el('svg', { viewBox: '0 0 500 370', width: '500', height: '370' })
+  svg.style.cssText = 'background:#09090b;border-radius:8px;border:1px solid #27272a;display:block'
+
+  const defs = el('defs')
+  const makeMarker = (id, color) => {
+    const m = el('marker', { id, viewBox: '0 0 8 8', refX: '6.8', refY: '4', markerWidth: '4', markerHeight: '4', orient: 'auto-start-reverse' })
+    m.appendChild(el('path', { d: 'M 0 0 L 8 4 L 0 8 z', fill: color }))
+    return m
+  }
+  defs.appendChild(makeMarker('pg-arrow-cyan', '#67e8f9'))
+  defs.appendChild(makeMarker('pg-arrow-orange', '#f97316'))
+  svg.appendChild(defs)
+  svg.appendChild(el('rect', { width: '500', height: '370', fill: '#09090b' }))
+
+  for (const rel of relationships) {
+    const fi = entities.findIndex((e) => e.id === rel.from_entity_id)
+    const ti = entities.findIndex((e) => e.id === rel.to_entity_id)
+    if (fi < 0 || ti < 0) continue
+    const from = positions[fi]
+    const to = positions[ti]
+    const fromR = (entities[fi].entity_type === 'organization' ? 28 : 22) + 3
+    const toR = (entities[ti].entity_type === 'organization' ? 28 : 22) + 8
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1
+    const x1 = from.x + (dx / dist) * fromR
+    const y1 = from.y + (dy / dist) * fromR
+    const x2 = to.x - (dx / dist) * toR
+    const y2 = to.y - (dy / dist) * toR
+    const mx = (x1 + x2) / 2
+    const my = (y1 + y2) / 2
+    const isRisk = rel.is_high_risk
+    const markerId = isRisk ? 'pg-arrow-orange' : 'pg-arrow-cyan'
+
+    svg.appendChild(el('line', { x1, y1, x2, y2, stroke: isRisk ? '#f97316' : '#67e8f9', 'stroke-width': '2', opacity: '0.65', 'marker-end': `url(#${markerId})` }))
+
+    const label = String(rel.relationship_type || '').slice(0, 10)
+    if (label) {
+      const lw = label.length * 7 + 14
+      svg.appendChild(el('rect', { x: mx - lw / 2, y: my - 9, width: lw, height: 18, rx: '4', fill: '#09090b', stroke: isRisk ? '#f97316' : '#155e75', opacity: '0.95' }))
+      svg.appendChild(el('text', { x: mx, y: my + 1, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: isRisk ? '#fed7aa' : '#cffafe', 'font-size': '10', 'font-weight': '700' }, label))
+    }
+  }
+
+  for (let i = 0; i < entities.length; i++) {
+    const entity = entities[i]
+    const pos = positions[i]
+    const isOrg = entity.entity_type === 'organization'
+    const r = isOrg ? 28 : 22
+    const degree = degrees.get(entity.id) || 0
+    const { fill, stroke } = graphHeat(degree / maxDeg, isOrg)
+
+    svg.appendChild(el('circle', { cx: pos.x, cy: pos.y, r, fill, stroke, 'stroke-width': '2' }))
+    svg.appendChild(el('text', { x: pos.x, y: pos.y + 4, 'text-anchor': 'middle', fill: '#fff', 'font-size': '11', 'pointer-events': 'none' }, entity.name.slice(0, 7)))
+    svg.appendChild(el('text', { x: pos.x, y: pos.y + r + 13, 'text-anchor': 'middle', fill: '#a1a1aa', 'font-size': '9', 'pointer-events': 'none' }, String(degree)))
+  }
+
+  return svg
+}
+
+// ─── End of events tab ─────────────────────────────────────────────────────────
+
 function bindActions() {
   byId('openHub').addEventListener('click', (event) => {
     trackPopupEvent('popup_action', 'open_hub')
@@ -276,7 +601,7 @@ function bindActions() {
   })
   byId('openLogin').addEventListener('click', () => {
     trackPopupEvent('popup_action', 'open_login')
-    openTab(truthUrl('/login'))
+    openWindow(truthUrl('/login', { redirect: '/extension-auth-sync?close=1' }), 460, 720)
   })
   byId('signOut').addEventListener('click', () => {
     signOut()
@@ -323,6 +648,49 @@ function bindActions() {
   byId('openInstall').addEventListener('click', () => {
     trackPopupEvent('popup_action', 'open_install')
     openTab(truthUrl('/extension-install'))
+  })
+
+  // Tab switching
+  byId('tab-status').addEventListener('click', () => showMainTab('status'))
+  byId('tab-events').addEventListener('click', () => {
+    showMainTab('events')
+    eventsState.query = ''
+    byId('event-search-input').value = ''
+    loadEvents()
+  })
+
+  // Events panel actions
+  byId('events-create-btn').addEventListener('click', () => openCreateEvent())
+  byId('events-refresh-btn').addEventListener('click', () => loadEvents())
+
+  // Events search
+  byId('event-search-btn').addEventListener('click', () => {
+    eventsState.query = byId('event-search-input').value
+    loadEvents()
+  })
+  byId('event-search-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      eventsState.query = e.target.value
+      loadEvents()
+    }
+  })
+
+  // Event detail navigation
+  byId('detail-back').addEventListener('click', () => showMainTab('events'))
+  byId('detail-refresh-btn').addEventListener('click', async () => {
+    const id = eventsState.selectedEventId
+    delete eventsState.cache.timeline[id]
+    delete eventsState.cache.graph[id]
+    if (eventsState.activeDetailTab === 'timeline') await renderTimeline(id)
+    else await renderGraph(id)
+  })
+  byId('detail-tab-timeline').addEventListener('click', async () => {
+    showDetailTab('timeline')
+    await renderTimeline(eventsState.selectedEventId)
+  })
+  byId('detail-tab-graph').addEventListener('click', async () => {
+    showDetailTab('graph')
+    await renderGraph(eventsState.selectedEventId)
   })
 }
 

@@ -11,6 +11,8 @@ import {
   fetchEvidenceReportReasons,
   fetchOfficialResponses,
   fetchEvents,
+  fetchEventTimeline,
+  fetchEventGraph,
   fetchProfile,
   recordReadSession,
   recordNewsSnapshot,
@@ -45,6 +47,11 @@ const tags = ref([])
 const evidence = ref([])
 const officialResponses = ref([])
 const relatedEvents = ref([])
+const eventDetailTab = ref(null) // { eventId, mode: 'timeline'|'graph' }
+const eventTimeline = ref([])
+const eventGraph = ref({ entities: [], relationships: [] })
+const eventDetailLoading = ref(false)
+const eventDetailError = ref('')
 const officialResponseText = ref('')
 const officialResponseEvidenceUrl = ref('')
 const officialResponseType = ref('subject_clarification')
@@ -335,7 +342,7 @@ async function loadData() {
       fetchNewsEvidence(newsUrl.value),
       fetchEvidenceReportReasons(),
       fetchOfficialResponses(newsUrl.value),
-      fetchEvents({ q: pageSnapshot.value.title_snapshot || newsUrl.value, limit: 5 }).catch(() => ({ data: [] })),
+      fetchEvents({ news_url: newsUrl.value, limit: 5 }).catch(() => ({ data: [] })),
     ]
 
     if (token.value) {
@@ -721,6 +728,93 @@ function evidenceTrustLabel(item) {
   return item.is_trusted_evidence ? t('evidence.trustedSource') : t('evidence.communityPending')
 }
 
+async function openEventDetail(ev, mode) {
+  if (eventDetailTab.value?.eventId === ev.id && eventDetailTab.value?.mode === mode) {
+    eventDetailTab.value = null
+    notifyHeight()
+    return
+  }
+  eventDetailTab.value = { eventId: ev.id, mode }
+  eventDetailLoading.value = true
+  eventDetailError.value = ''
+  notifyHeight()
+  try {
+    if (mode === 'timeline') {
+      eventTimeline.value = await fetchEventTimeline(ev.id)
+    } else {
+      eventGraph.value = await fetchEventGraph(ev.id)
+    }
+  } catch (err) {
+    eventDetailError.value = err.message || (locale.value === 'en' ? 'Failed to load' : '載入失敗')
+  } finally {
+    eventDetailLoading.value = false
+    notifyHeight()
+  }
+}
+
+function openPinWindow(eventId = null) {
+  const url = new URL('/iframe-event-pin', window.location.origin)
+  url.searchParams.set('mode', 'timeline')
+  url.searchParams.set('news_url', newsUrl.value)
+  if (route.query.title_snapshot) url.searchParams.set('title_snapshot', route.query.title_snapshot)
+  if (eventId) url.searchParams.set('event_id', String(eventId))
+  window.open(url.toString(), 'truthshield-pin', 'width=460,height=680')
+}
+
+const graphLayout = computed(() => {
+  const entities = eventGraph.value.entities || []
+  const relationships = eventGraph.value.relationships || []
+  const positions = entities.map((entity, index) => {
+    const saved = entity.metadata?.graph_position
+    if (saved && isFinite(+saved.x) && isFinite(+saved.y)) {
+      return { x: +saved.x * 320 / 500, y: +saved.y * 240 / 370 }
+    }
+    const angle = (Math.PI * 2 * index) / Math.max(entities.length, 1) - Math.PI / 2
+    return { x: 160 + Math.cos(angle) * 110, y: 120 + Math.sin(angle) * 85 }
+  })
+  const degrees = new Map()
+  for (const e of entities) degrees.set(e.id, 0)
+  for (const rel of relationships) {
+    degrees.set(rel.from_entity_id, (degrees.get(rel.from_entity_id) || 0) + 1)
+    degrees.set(rel.to_entity_id, (degrees.get(rel.to_entity_id) || 0) + 1)
+  }
+  const maxDeg = Math.max(1, ...Array.from(degrees.values()))
+  const idxMap = new Map(entities.map((e, i) => [e.id, i]))
+  const nodeLayouts = entities.map((entity, i) => {
+    const { x, y } = positions[i]
+    const ratio = (degrees.get(entity.id) || 0) / maxDeg
+    const isOrg = entity.entity_type === 'organization'
+    const fill = ratio >= 0.75 ? '#be123c' : ratio >= 0.5 ? '#b45309' : ratio >= 0.25 ? '#0f766e' : (isOrg ? '#1e3a5f' : '#27272a')
+    const stroke = ratio >= 0.75 ? '#fecdd3' : ratio >= 0.5 ? '#fde68a' : ratio >= 0.25 ? '#99f6e4' : '#67e8f9'
+    return { id: entity.id, x, y, r: isOrg ? 22 : 17, fill, stroke, name: entity.name.slice(0, 6), degree: degrees.get(entity.id) || 0 }
+  })
+  const edgeLayouts = relationships.map((rel) => {
+    const fi = idxMap.get(rel.from_entity_id)
+    const ti = idxMap.get(rel.to_entity_id)
+    if (fi === undefined || ti === undefined) return null
+    const from = positions[fi]
+    const to = positions[ti]
+    const fromR = nodeLayouts[fi].r + 3
+    const toR = nodeLayouts[ti].r + 7
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1
+    const mx = (from.x + to.x) / 2
+    const my = (from.y + to.y) / 2
+    return {
+      id: rel.id,
+      x1: from.x + (dx / dist) * fromR,
+      y1: from.y + (dy / dist) * fromR,
+      x2: to.x - (dx / dist) * toR,
+      y2: to.y - (dy / dist) * toR,
+      mx, my,
+      label: String(rel.relationship_type || '').slice(0, 8),
+      isRisk: rel.is_high_risk,
+    }
+  }).filter(Boolean)
+  return { nodeLayouts, edgeLayouts }
+})
+
 watch(selectedTagId, (tagId) => {
   selectedSecondaryTagIds.value = selectedSecondaryTagIds.value.filter((id) => id !== tagId)
 })
@@ -933,14 +1027,71 @@ onMounted(async () => {
         >
           {{ t('votePanel.viewEvidence') }}
         </button>
-        <div v-if="relatedEvents.length" class="rounded-md border border-cyan-300/20 bg-cyan-300/10 p-3">
-          <p class="text-xs font-semibold text-cyan-100">{{ locale === 'en' ? 'Related events' : '相關事件' }}</p>
-          <div class="mt-2 space-y-2">
-            <a v-for="event in relatedEvents" :key="event.id" class="block rounded border border-cyan-300/20 bg-zinc-950/70 p-2 text-xs text-cyan-100 hover:border-cyan-300/60" :href="`/events/${event.id}`" target="_blank" rel="noopener noreferrer">
-              <span class="font-semibold">{{ event.name }}</span>
-              <span class="mt-1 block text-cyan-100/60">{{ locale === 'en' ? 'Timeline' : '時間線' }} {{ event.counts?.timeline ?? 0 }} · {{ locale === 'en' ? 'Graph' : '關係圖' }} {{ event.counts?.relationships ?? 0 }}</span>
-            </a>
+        <div class="rounded-md border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
+          <p class="text-xs font-semibold text-cyan-100">{{ locale === 'en' ? 'Events & Timeline' : '事件時間線與關係圖' }}</p>
+          <div v-if="relatedEvents.length" class="mt-2 space-y-2">
+            <div v-for="ev in relatedEvents" :key="ev.id" class="rounded border border-cyan-300/20 bg-zinc-950/70 p-2">
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-xs font-semibold text-cyan-100 truncate">{{ ev.name }}</p>
+                <a :href="`/events/${ev.id}`" target="_blank" rel="noopener noreferrer" class="shrink-0 text-[11px] text-zinc-500 hover:text-cyan-100">↗</a>
+              </div>
+              <p class="mt-0.5 text-[11px] text-zinc-500">{{ locale === 'en' ? 'Timeline' : '時間線' }} {{ ev.counts?.timeline ?? 0 }} · {{ locale === 'en' ? 'Graph' : '關係圖' }} {{ ev.counts?.relationships ?? 0 }}</p>
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                <button
+                  class="rounded px-2 py-1 text-[11px] font-semibold"
+                  :class="eventDetailTab?.eventId === ev.id && eventDetailTab?.mode === 'timeline' ? 'bg-cyan-300 text-zinc-950' : 'bg-cyan-300/15 text-cyan-100'"
+                  @click="openEventDetail(ev, 'timeline')"
+                >{{ locale === 'en' ? 'Timeline' : '時間線' }}</button>
+                <button
+                  class="rounded px-2 py-1 text-[11px] font-semibold"
+                  :class="eventDetailTab?.eventId === ev.id && eventDetailTab?.mode === 'graph' ? 'bg-cyan-300 text-zinc-950' : 'bg-cyan-300/15 text-cyan-100'"
+                  @click="openEventDetail(ev, 'graph')"
+                >{{ locale === 'en' ? 'Graph' : '關係圖' }}</button>
+                <button class="rounded border border-cyan-300/30 px-2 py-1 text-[11px] font-semibold text-cyan-100" @click="openPinWindow(ev.id)">＋ Pin 此文章</button>
+              </div>
+              <div v-if="eventDetailTab?.eventId === ev.id" class="mt-2">
+                <div v-if="eventDetailLoading" class="text-[11px] text-zinc-400">{{ locale === 'en' ? 'Loading...' : '載入中...' }}</div>
+                <div v-else-if="eventDetailError" class="text-[11px] text-red-300">{{ eventDetailError }}</div>
+                <template v-else-if="eventDetailTab.mode === 'timeline'">
+                  <div v-if="!eventTimeline.length" class="text-[11px] text-zinc-500">{{ locale === 'en' ? 'No timeline entries yet.' : '尚無時間線資料。' }}</div>
+                  <div v-else class="space-y-2 border-l-2 border-cyan-300/20 pl-3">
+                    <div v-for="entry in eventTimeline" :key="entry.id">
+                      <p class="text-[10px] text-zinc-500">{{ entry.occurred_at ? formatDateTime(entry.occurred_at) : '' }} · {{ entry.source_type }}</p>
+                      <p class="text-[11px] font-semibold text-zinc-200 leading-snug">{{ entry.title }}</p>
+                      <p v-if="entry.summary" class="mt-0.5 text-[11px] text-zinc-400 leading-relaxed">{{ entry.summary }}</p>
+                      <a v-if="entry.source_url" :href="entry.source_url" target="_blank" rel="noopener noreferrer" class="block mt-0.5 text-[10px] text-cyan-300 truncate">{{ entry.source_url }}</a>
+                    </div>
+                  </div>
+                </template>
+                <template v-else-if="eventDetailTab.mode === 'graph'">
+                  <div v-if="!eventGraph.entities?.length" class="text-[11px] text-zinc-500">{{ locale === 'en' ? 'No nodes yet.' : '尚無節點。' }}</div>
+                  <svg v-else viewBox="0 0 320 240" class="w-full rounded border border-white/10" style="background:#09090b">
+                    <defs>
+                      <marker id="vp-arrow" viewBox="0 0 8 8" refX="6.8" refY="4" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                        <path d="M 0 0 L 8 4 L 0 8 z" fill="#67e8f9" />
+                      </marker>
+                    </defs>
+                    <g v-for="edge in graphLayout.edgeLayouts" :key="edge.id">
+                      <line :x1="edge.x1" :y1="edge.y1" :x2="edge.x2" :y2="edge.y2" :stroke="edge.isRisk ? '#f97316' : '#67e8f9'" stroke-width="1.5" opacity="0.65" marker-end="url(#vp-arrow)" />
+                      <template v-if="edge.label">
+                        <rect :x="edge.mx - edge.label.length * 3.5 - 4" :y="edge.my - 7" :width="edge.label.length * 7 + 8" height="14" rx="3" fill="#09090b" :stroke="edge.isRisk ? '#f97316' : '#155e75'" opacity="0.95" />
+                        <text :x="edge.mx" :y="edge.my + 1" text-anchor="middle" dominant-baseline="middle" :fill="edge.isRisk ? '#fed7aa' : '#cffafe'" font-size="8" font-weight="700">{{ edge.label }}</text>
+                      </template>
+                    </g>
+                    <g v-for="node in graphLayout.nodeLayouts" :key="node.id">
+                      <circle :cx="node.x" :cy="node.y" :r="node.r" :fill="node.fill" :stroke="node.stroke" stroke-width="1.5" />
+                      <text :x="node.x" :y="node.y + 3" text-anchor="middle" fill="#fff" font-size="9" pointer-events="none">{{ node.name }}</text>
+                      <text :x="node.x" :y="node.y + node.r + 9" text-anchor="middle" fill="#a1a1aa" font-size="8" pointer-events="none">{{ node.degree }}</text>
+                    </g>
+                  </svg>
+                </template>
+              </div>
+            </div>
           </div>
+          <p v-else class="mt-1.5 text-[11px] text-zinc-500">{{ locale === 'en' ? 'No events linked to this article yet.' : '此文章尚未關聯任何事件。' }}</p>
+          <button class="mt-2 w-full rounded-md border border-cyan-300/30 px-3 py-2 text-xs font-semibold text-cyan-100 hover:border-cyan-300/70" @click="openPinWindow(null)">
+            {{ locale === 'en' ? 'Pin this article to an event →' : '選擇或建立事件，Pin 此文章 →' }}
+          </button>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <button class="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:border-orange-300/50 hover:text-orange-100" @click="submitChangeReport('title_changed')">

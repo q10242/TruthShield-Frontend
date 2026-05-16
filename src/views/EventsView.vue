@@ -21,6 +21,8 @@ const text = {
   timeline: zh ? '時間線' : 'Timeline',
   graph: zh ? '關係圖' : 'Graph',
   items: zh ? '資料' : 'Items',
+  views: zh ? '觀看' : 'Views',
+  updated: zh ? '更新' : 'Updated',
 }
 
 async function load() {
@@ -81,11 +83,12 @@ onMounted(load)
             </div>
             <RouterLink class="rounded-md border border-cyan-300/40 px-3 py-2 text-sm font-semibold text-cyan-100" :to="`/events/${event.id}`">{{ text.open }}</RouterLink>
           </div>
-          <div class="mt-4 grid gap-2 text-sm sm:grid-cols-4">
+          <div class="mt-4 grid gap-2 text-sm sm:grid-cols-5">
             <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.items }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.items ?? 0 }}</p></div>
             <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.timeline }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.timeline ?? 0 }}</p></div>
             <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.graph }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.relationships ?? 0 }}</p></div>
-            <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ zh ? '更新' : 'Updated' }}</p><p class="mt-1 text-xs font-semibold">{{ event.last_activity_at || event.created_at }}</p></div>
+            <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.views }}</p><p class="mt-1 text-lg font-semibold">{{ event.view_count ?? 0 }}</p></div>
+            <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.updated }}</p><p class="mt-1 text-xs font-semibold">{{ event.last_activity_at || event.created_at }}</p></div>
           </div>
         </article>
       </div>

@@ -30,6 +30,7 @@ const createdEventId = ref(null)
 const mode = computed(() => route.query.mode === 'graph' ? 'graph' : 'timeline')
 const newsUrl = computed(() => route.query.news_url || '')
 const pageTitle = computed(() => route.query.title_snapshot || route.query.page_title || '')
+const eventSearch = ref(pageTitle.value || '')
 const isLoggedIn = computed(() => Boolean(token.value && user.value))
 const eventOptions = computed(() => events.value || [])
 const selectedEvent = computed(() => eventOptions.value.find((event) => String(event.id) === String(selectedEventId.value)))
@@ -55,6 +56,8 @@ const text = {
   graphTitle: zh ? 'Pin 到人物/組織關係圖' : 'Pin to People/Org Graph',
   login: zh ? '登入後才能提交事件編輯。' : 'Sign in to submit event edits.',
   selectEvent: zh ? '選擇既有事件' : 'Select existing event',
+  searchEvent: zh ? '搜尋事件' : 'Search events',
+  searchEventPlaceholder: zh ? '輸入事件、人物、組織或新聞關鍵字' : 'Search events, people, organizations, or articles',
   createEvent: zh ? '或建立新事件' : 'Or create a new event',
   eventName: zh ? '事件名稱' : 'Event name',
   eventSummary: zh ? '事件摘要' : 'Event summary',
@@ -89,9 +92,14 @@ async function loadEvents() {
   loading.value = true
   error.value = ''
   try {
-    const payload = await fetchEvents({ q: pageTitle.value || '', limit: 30 })
+    const payload = await fetchEvents({ q: eventSearch.value || pageTitle.value || '', limit: 30 })
     events.value = payload.data || []
-    if (!selectedEventId.value && events.value[0]) selectedEventId.value = String(events.value[0].id)
+    const preselect = route.query.event_id ? String(route.query.event_id) : null
+    if (preselect && events.value.some((e) => String(e.id) === preselect)) {
+      selectedEventId.value = preselect
+    } else if (!selectedEventId.value && events.value[0]) {
+      selectedEventId.value = String(events.value[0].id)
+    }
     await loadGraph()
   } catch (err) {
     error.value = err.message || 'Failed to load events'
@@ -230,9 +238,13 @@ onMounted(() => {
     <form v-else class="mt-4 space-y-4" @submit.prevent="submit">
       <label class="block">
         <span class="text-xs font-semibold text-zinc-500">{{ text.selectEvent }}</span>
+        <div class="mt-1 grid gap-2 sm:grid-cols-[1fr_auto]">
+          <input v-model="eventSearch" class="min-w-0 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :placeholder="text.searchEventPlaceholder" @keydown.enter.prevent="loadEvents" />
+          <button type="button" class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100" @click="loadEvents">{{ text.searchEvent }}</button>
+        </div>
         <select v-model="selectedEventId" class="mt-1 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
           <option value="">{{ text.createEvent }}</option>
-          <option v-for="item in eventOptions" :key="item.id" :value="String(item.id)">{{ item.name }}</option>
+          <option v-for="item in eventOptions" :key="item.id" :value="String(item.id)">{{ item.name }} · {{ zh ? '觀看' : 'views' }} {{ item.view_count ?? 0 }}</option>
         </select>
       </label>
 

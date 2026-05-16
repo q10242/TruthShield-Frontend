@@ -168,6 +168,10 @@ function openTruthShieldWindow(url, width = 440, height = 680) {
     width,
     height,
     focused: true,
+  }, () => {
+    if (chrome.runtime.lastError) {
+      chrome.tabs.create({ url })
+    }
   })
 }
 
