@@ -2,6 +2,8 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
+  createEvent,
+  createEventTimelineEntry,
   createVote,
   fetchCurrentUser,
   fetchMyVote,
@@ -52,6 +54,18 @@ const eventTimeline = ref([])
 const eventGraph = ref({ entities: [], relationships: [] })
 const eventDetailLoading = ref(false)
 const eventDetailError = ref('')
+const pinEventSearch = ref('')
+const pinSearchEvents = ref([])
+const pinSelectedEventId = ref('')
+const pinNewEventName = ref('')
+const pinNewEventSummary = ref('')
+const pinEntryTitle = ref(route.query.title_snapshot || '')
+const pinEntrySummary = ref('')
+const pinOccurredAt = ref(new Date().toISOString().slice(0, 16))
+const pinSourceUrl = ref(route.query.news_url || '')
+const pinSubmitting = ref(false)
+const pinMessage = ref('')
+const pinError = ref('')
 const officialResponseText = ref('')
 const officialResponseEvidenceUrl = ref('')
 const officialResponseType = ref('subject_clarification')
@@ -80,6 +94,7 @@ const tabSteps = computed(() => [
   { key: 'results', number: 1, label: t('votePanel.tabs.results') },
   { key: 'vote', number: 2, label: t('votePanel.tabs.vote') },
   { key: 'evidence', number: 3, label: t('votePanel.tabs.evidence') },
+  { key: 'events', number: 4, label: locale.value === 'en' ? 'Events' : '事件' },
 ])
 
 const newsUrl = computed(() => route.query.news_url || '')
@@ -752,13 +767,55 @@ async function openEventDetail(ev, mode) {
   }
 }
 
-function openPinWindow(eventId = null) {
-  const url = new URL('/iframe-event-pin', window.location.origin)
-  url.searchParams.set('mode', 'timeline')
-  url.searchParams.set('news_url', newsUrl.value)
-  if (route.query.title_snapshot) url.searchParams.set('title_snapshot', route.query.title_snapshot)
-  if (eventId) url.searchParams.set('event_id', String(eventId))
-  window.open(url.toString(), 'truthshield-pin', 'width=460,height=680')
+async function searchPinEvents() {
+  try {
+    const payload = await fetchEvents({ q: pinEventSearch.value, limit: 20 })
+    pinSearchEvents.value = payload.data || []
+  } catch {
+    // silent
+  } finally {
+    notifyHeight()
+  }
+}
+
+async function submitPinEntry() {
+  if (!isLoggedIn.value) { openLogin(); return }
+  pinError.value = ''
+  pinMessage.value = ''
+  pinSubmitting.value = true
+  try {
+    let eventId = pinSelectedEventId.value
+    if (!eventId) {
+      if (!pinNewEventName.value.trim()) throw new Error(locale.value === 'en' ? 'Enter an event name.' : '請填寫事件名稱。')
+      const created = await createEvent(token.value, {
+        name: pinNewEventName.value.trim(),
+        summary: pinNewEventSummary.value.trim() || undefined,
+        news_url: newsUrl.value,
+        title_snapshot: route.query.title_snapshot || undefined,
+      })
+      eventId = created.data?.id
+      pinSelectedEventId.value = String(eventId)
+    }
+    await createEventTimelineEntry(token.value, eventId, {
+      title: pinEntryTitle.value.trim() || route.query.title_snapshot || newsUrl.value,
+      summary: pinEntrySummary.value.trim() || undefined,
+      occurred_at: new Date(pinOccurredAt.value).toISOString(),
+      source_type: 'news',
+      source_url: pinSourceUrl.value.trim() || newsUrl.value,
+      news_url: newsUrl.value,
+    })
+    pinMessage.value = locale.value === 'en' ? 'Pinned to event.' : '已加入事件時間線。'
+    pinEntrySummary.value = ''
+    pinNewEventName.value = ''
+    pinNewEventSummary.value = ''
+    await loadData()
+    pinSearchEvents.value = relatedEvents.value
+  } catch (err) {
+    pinError.value = err.message || (locale.value === 'en' ? 'Failed to pin.' : '提交失敗。')
+  } finally {
+    pinSubmitting.value = false
+    notifyHeight()
+  }
 }
 
 const graphLayout = computed(() => {
@@ -817,6 +874,13 @@ const graphLayout = computed(() => {
 
 watch(selectedTagId, (tagId) => {
   selectedSecondaryTagIds.value = selectedSecondaryTagIds.value.filter((id) => id !== tagId)
+})
+
+watch(activeTab, (tab) => {
+  if (tab === 'events') {
+    if (!pinSearchEvents.value.length) pinSearchEvents.value = [...relatedEvents.value]
+    notifyHeight()
+  }
 })
 
 watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, evidenceUploading, evidenceUploadMessage, voteError, voteMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, readSeconds], notifyHeight)
@@ -891,7 +955,7 @@ onMounted(async () => {
         </button>
       </div>
 
-      <div class="grid grid-cols-3 rounded-md border border-white/10 bg-white/[0.03] p-1 text-xs font-semibold">
+      <div class="grid grid-cols-4 rounded-md border border-white/10 bg-white/[0.03] p-1 text-xs font-semibold">
         <button
           v-for="step in tabSteps"
           :key="step.key"
@@ -1027,72 +1091,6 @@ onMounted(async () => {
         >
           {{ t('votePanel.viewEvidence') }}
         </button>
-        <div class="rounded-md border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
-          <p class="text-xs font-semibold text-cyan-100">{{ locale === 'en' ? 'Events & Timeline' : '事件時間線與關係圖' }}</p>
-          <div v-if="relatedEvents.length" class="mt-2 space-y-2">
-            <div v-for="ev in relatedEvents" :key="ev.id" class="rounded border border-cyan-300/20 bg-zinc-950/70 p-2">
-              <div class="flex items-center justify-between gap-2">
-                <p class="text-xs font-semibold text-cyan-100 truncate">{{ ev.name }}</p>
-                <a :href="`/events/${ev.id}`" target="_blank" rel="noopener noreferrer" class="shrink-0 text-[11px] text-zinc-500 hover:text-cyan-100">↗</a>
-              </div>
-              <p class="mt-0.5 text-[11px] text-zinc-500">{{ locale === 'en' ? 'Timeline' : '時間線' }} {{ ev.counts?.timeline ?? 0 }} · {{ locale === 'en' ? 'Graph' : '關係圖' }} {{ ev.counts?.relationships ?? 0 }}</p>
-              <div class="mt-2 flex flex-wrap gap-1.5">
-                <button
-                  class="rounded px-2 py-1 text-[11px] font-semibold"
-                  :class="eventDetailTab?.eventId === ev.id && eventDetailTab?.mode === 'timeline' ? 'bg-cyan-300 text-zinc-950' : 'bg-cyan-300/15 text-cyan-100'"
-                  @click="openEventDetail(ev, 'timeline')"
-                >{{ locale === 'en' ? 'Timeline' : '時間線' }}</button>
-                <button
-                  class="rounded px-2 py-1 text-[11px] font-semibold"
-                  :class="eventDetailTab?.eventId === ev.id && eventDetailTab?.mode === 'graph' ? 'bg-cyan-300 text-zinc-950' : 'bg-cyan-300/15 text-cyan-100'"
-                  @click="openEventDetail(ev, 'graph')"
-                >{{ locale === 'en' ? 'Graph' : '關係圖' }}</button>
-                <button class="rounded border border-cyan-300/30 px-2 py-1 text-[11px] font-semibold text-cyan-100" @click="openPinWindow(ev.id)">＋ Pin 此文章</button>
-              </div>
-              <div v-if="eventDetailTab?.eventId === ev.id" class="mt-2">
-                <div v-if="eventDetailLoading" class="text-[11px] text-zinc-400">{{ locale === 'en' ? 'Loading...' : '載入中...' }}</div>
-                <div v-else-if="eventDetailError" class="text-[11px] text-red-300">{{ eventDetailError }}</div>
-                <template v-else-if="eventDetailTab.mode === 'timeline'">
-                  <div v-if="!eventTimeline.length" class="text-[11px] text-zinc-500">{{ locale === 'en' ? 'No timeline entries yet.' : '尚無時間線資料。' }}</div>
-                  <div v-else class="space-y-2 border-l-2 border-cyan-300/20 pl-3">
-                    <div v-for="entry in eventTimeline" :key="entry.id">
-                      <p class="text-[10px] text-zinc-500">{{ entry.occurred_at ? formatDateTime(entry.occurred_at) : '' }} · {{ entry.source_type }}</p>
-                      <p class="text-[11px] font-semibold text-zinc-200 leading-snug">{{ entry.title }}</p>
-                      <p v-if="entry.summary" class="mt-0.5 text-[11px] text-zinc-400 leading-relaxed">{{ entry.summary }}</p>
-                      <a v-if="entry.source_url" :href="entry.source_url" target="_blank" rel="noopener noreferrer" class="block mt-0.5 text-[10px] text-cyan-300 truncate">{{ entry.source_url }}</a>
-                    </div>
-                  </div>
-                </template>
-                <template v-else-if="eventDetailTab.mode === 'graph'">
-                  <div v-if="!eventGraph.entities?.length" class="text-[11px] text-zinc-500">{{ locale === 'en' ? 'No nodes yet.' : '尚無節點。' }}</div>
-                  <svg v-else viewBox="0 0 320 240" class="w-full rounded border border-white/10" style="background:#09090b">
-                    <defs>
-                      <marker id="vp-arrow" viewBox="0 0 8 8" refX="6.8" refY="4" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
-                        <path d="M 0 0 L 8 4 L 0 8 z" fill="#67e8f9" />
-                      </marker>
-                    </defs>
-                    <g v-for="edge in graphLayout.edgeLayouts" :key="edge.id">
-                      <line :x1="edge.x1" :y1="edge.y1" :x2="edge.x2" :y2="edge.y2" :stroke="edge.isRisk ? '#f97316' : '#67e8f9'" stroke-width="1.5" opacity="0.65" marker-end="url(#vp-arrow)" />
-                      <template v-if="edge.label">
-                        <rect :x="edge.mx - edge.label.length * 3.5 - 4" :y="edge.my - 7" :width="edge.label.length * 7 + 8" height="14" rx="3" fill="#09090b" :stroke="edge.isRisk ? '#f97316' : '#155e75'" opacity="0.95" />
-                        <text :x="edge.mx" :y="edge.my + 1" text-anchor="middle" dominant-baseline="middle" :fill="edge.isRisk ? '#fed7aa' : '#cffafe'" font-size="8" font-weight="700">{{ edge.label }}</text>
-                      </template>
-                    </g>
-                    <g v-for="node in graphLayout.nodeLayouts" :key="node.id">
-                      <circle :cx="node.x" :cy="node.y" :r="node.r" :fill="node.fill" :stroke="node.stroke" stroke-width="1.5" />
-                      <text :x="node.x" :y="node.y + 3" text-anchor="middle" fill="#fff" font-size="9" pointer-events="none">{{ node.name }}</text>
-                      <text :x="node.x" :y="node.y + node.r + 9" text-anchor="middle" fill="#a1a1aa" font-size="8" pointer-events="none">{{ node.degree }}</text>
-                    </g>
-                  </svg>
-                </template>
-              </div>
-            </div>
-          </div>
-          <p v-else class="mt-1.5 text-[11px] text-zinc-500">{{ locale === 'en' ? 'No events linked to this article yet.' : '此文章尚未關聯任何事件。' }}</p>
-          <button class="mt-2 w-full rounded-md border border-cyan-300/30 px-3 py-2 text-xs font-semibold text-cyan-100 hover:border-cyan-300/70" @click="openPinWindow(null)">
-            {{ locale === 'en' ? 'Pin this article to an event →' : '選擇或建立事件，Pin 此文章 →' }}
-          </button>
-        </div>
         <div class="grid grid-cols-2 gap-2">
           <button class="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:border-orange-300/50 hover:text-orange-100" @click="submitChangeReport('title_changed')">
             {{ t('votePanel.reportChanged') }}
@@ -1257,6 +1255,88 @@ onMounted(async () => {
         >
           {{ !isVotingOpen ? t('votePanel.voteClosed') : submitting ? t('votePanel.submitting') : isLoggedIn ? (hasReadEnough ? t('votePanel.submitOrUpdate') : t('votePanel.waitRead')) : t('common.signIn') }}
         </button>
+      </section>
+
+      <section v-else-if="activeTab === 'events'" class="mt-4 space-y-3">
+        <div>
+          <p class="text-xs font-semibold text-zinc-400">{{ locale === 'en' ? 'Linked events' : '關聯事件' }}</p>
+          <div v-if="relatedEvents.length" class="mt-2 space-y-2">
+            <div v-for="ev in relatedEvents" :key="ev.id" class="rounded border border-cyan-300/20 bg-zinc-950/70 p-2">
+              <div class="flex items-center justify-between gap-2">
+                <p class="truncate text-xs font-semibold text-cyan-100">{{ ev.name }}</p>
+                <a :href="`/events/${ev.id}`" target="_blank" rel="noopener noreferrer" class="shrink-0 text-[11px] text-zinc-500 hover:text-cyan-100">↗</a>
+              </div>
+              <p class="mt-0.5 text-[11px] text-zinc-500">{{ locale === 'en' ? 'Timeline' : '時間線' }} {{ ev.counts?.timeline ?? 0 }} · {{ locale === 'en' ? 'Graph' : '關係圖' }} {{ ev.counts?.relationships ?? 0 }}</p>
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                <button class="rounded px-2 py-1 text-[11px] font-semibold" :class="eventDetailTab?.eventId === ev.id && eventDetailTab?.mode === 'timeline' ? 'bg-cyan-300 text-zinc-950' : 'bg-cyan-300/15 text-cyan-100'" @click="openEventDetail(ev, 'timeline')">{{ locale === 'en' ? 'Timeline' : '時間線' }}</button>
+                <button class="rounded px-2 py-1 text-[11px] font-semibold" :class="eventDetailTab?.eventId === ev.id && eventDetailTab?.mode === 'graph' ? 'bg-cyan-300 text-zinc-950' : 'bg-cyan-300/15 text-cyan-100'" @click="openEventDetail(ev, 'graph')">{{ locale === 'en' ? 'Graph' : '關係圖' }}</button>
+              </div>
+              <div v-if="eventDetailTab?.eventId === ev.id" class="mt-2">
+                <div v-if="eventDetailLoading" class="text-[11px] text-zinc-400">{{ locale === 'en' ? 'Loading...' : '載入中...' }}</div>
+                <div v-else-if="eventDetailError" class="text-[11px] text-red-300">{{ eventDetailError }}</div>
+                <template v-else-if="eventDetailTab.mode === 'timeline'">
+                  <div v-if="!eventTimeline.length" class="text-[11px] text-zinc-500">{{ locale === 'en' ? 'No timeline entries yet.' : '尚無時間線資料。' }}</div>
+                  <div v-else class="space-y-2 border-l-2 border-cyan-300/20 pl-3">
+                    <div v-for="entry in eventTimeline" :key="entry.id">
+                      <p class="text-[10px] text-zinc-500">{{ entry.occurred_at ? formatDateTime(entry.occurred_at) : '' }} · {{ entry.source_type }}</p>
+                      <p class="text-[11px] font-semibold leading-snug text-zinc-200">{{ entry.title }}</p>
+                      <p v-if="entry.summary" class="mt-0.5 text-[11px] leading-relaxed text-zinc-400">{{ entry.summary }}</p>
+                      <a v-if="entry.source_url" :href="entry.source_url" target="_blank" rel="noopener noreferrer" class="mt-0.5 block truncate text-[10px] text-cyan-300">{{ entry.source_url }}</a>
+                    </div>
+                  </div>
+                </template>
+                <template v-else-if="eventDetailTab.mode === 'graph'">
+                  <div v-if="!eventGraph.entities?.length" class="text-[11px] text-zinc-500">{{ locale === 'en' ? 'No nodes yet.' : '尚無節點。' }}</div>
+                  <svg v-else viewBox="0 0 320 240" class="w-full rounded border border-white/10" style="background:#09090b">
+                    <defs>
+                      <marker id="vp-arrow" viewBox="0 0 8 8" refX="6.8" refY="4" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                        <path d="M 0 0 L 8 4 L 0 8 z" fill="#67e8f9" />
+                      </marker>
+                    </defs>
+                    <g v-for="edge in graphLayout.edgeLayouts" :key="edge.id">
+                      <line :x1="edge.x1" :y1="edge.y1" :x2="edge.x2" :y2="edge.y2" :stroke="edge.isRisk ? '#f97316' : '#67e8f9'" stroke-width="1.5" opacity="0.65" marker-end="url(#vp-arrow)" />
+                      <template v-if="edge.label">
+                        <rect :x="edge.mx - edge.label.length * 3.5 - 4" :y="edge.my - 7" :width="edge.label.length * 7 + 8" height="14" rx="3" fill="#09090b" :stroke="edge.isRisk ? '#f97316' : '#155e75'" opacity="0.95" />
+                        <text :x="edge.mx" :y="edge.my + 1" text-anchor="middle" dominant-baseline="middle" :fill="edge.isRisk ? '#fed7aa' : '#cffafe'" font-size="8" font-weight="700">{{ edge.label }}</text>
+                      </template>
+                    </g>
+                    <g v-for="node in graphLayout.nodeLayouts" :key="node.id">
+                      <circle :cx="node.x" :cy="node.y" :r="node.r" :fill="node.fill" :stroke="node.stroke" stroke-width="1.5" />
+                      <text :x="node.x" :y="node.y + 3" text-anchor="middle" fill="#fff" font-size="9" pointer-events="none">{{ node.name }}</text>
+                    </g>
+                  </svg>
+                </template>
+              </div>
+            </div>
+          </div>
+          <p v-else class="mt-1 text-[11px] text-zinc-500">{{ locale === 'en' ? 'No events linked to this article yet.' : '此文章尚未關聯任何事件。' }}</p>
+        </div>
+
+        <div class="space-y-2 rounded-md border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
+          <p class="text-xs font-semibold text-cyan-100">{{ locale === 'en' ? 'Pin this article to an event' : 'Pin 此文章到事件' }}</p>
+          <div v-if="!isLoggedIn" class="text-[11px] text-amber-200">{{ locale === 'en' ? 'Sign in to pin articles to events.' : '登入後才能 Pin 文章。' }}</div>
+          <div class="flex gap-1.5">
+            <input v-model="pinEventSearch" class="min-w-0 flex-1 rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Search events...' : '搜尋事件...'" @keydown.enter.prevent="searchPinEvents" />
+            <button type="button" class="rounded border border-white/10 px-2 py-1.5 text-xs font-semibold text-zinc-200" @click="searchPinEvents">{{ locale === 'en' ? 'Search' : '搜尋' }}</button>
+          </div>
+          <select v-model="pinSelectedEventId" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300">
+            <option value="">{{ locale === 'en' ? '+ Create new event' : '＋ 建立新事件' }}</option>
+            <option v-for="ev in pinSearchEvents" :key="ev.id" :value="String(ev.id)">{{ ev.name }}</option>
+          </select>
+          <template v-if="!pinSelectedEventId">
+            <input v-model="pinNewEventName" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Event name *' : '事件名稱 *'" />
+            <textarea v-model="pinNewEventSummary" rows="2" class="w-full resize-none rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Event summary' : '事件摘要'"></textarea>
+          </template>
+          <input v-model="pinEntryTitle" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Entry title *' : '時間線標題 *'" />
+          <textarea v-model="pinEntrySummary" rows="2" class="w-full resize-none rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Summary' : '摘要'"></textarea>
+          <input v-model="pinOccurredAt" type="datetime-local" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" />
+          <input v-model="pinSourceUrl" type="url" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Source URL' : '參考資料 URL'" />
+          <p v-if="pinError" class="text-[11px] text-red-300">{{ pinError }}</p>
+          <p v-if="pinMessage" class="text-[11px] text-emerald-300">{{ pinMessage }}</p>
+          <button class="w-full rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950 disabled:opacity-50" :disabled="pinSubmitting || !isLoggedIn" @click="submitPinEntry">
+            {{ pinSubmitting ? (locale === 'en' ? 'Submitting...' : '送出中...') : (locale === 'en' ? 'Submit Pin' : '提交 Pin') }}
+          </button>
+        </div>
       </section>
 
       <section v-else class="mt-4 space-y-3 border-t border-white/10 pt-4">

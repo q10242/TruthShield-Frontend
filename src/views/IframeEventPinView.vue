@@ -61,6 +61,7 @@ const text = {
   createEvent: zh ? '或建立新事件' : 'Or create a new event',
   eventName: zh ? '事件名稱' : 'Event name',
   eventSummary: zh ? '事件摘要' : 'Event summary',
+  entryTitle: zh ? '時間線標題' : 'Entry title',
   summary: zh ? '摘要' : 'Summary',
   time: zh ? '時間點' : 'Time',
   sourceUrl: zh ? '參考資料 URL' : 'Source URL',
@@ -261,7 +262,7 @@ onMounted(() => {
 
       <template v-if="mode === 'timeline'">
         <label class="block">
-          <span class="text-xs font-semibold text-zinc-500">{{ text.eventName }}</span>
+          <span class="text-xs font-semibold text-zinc-500">{{ text.entryTitle }}</span>
           <input v-model="timelineTitle" required class="mt-1 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" />
         </label>
         <label class="block">
