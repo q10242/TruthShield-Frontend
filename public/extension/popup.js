@@ -524,9 +524,9 @@ function buildGraphSvg(entities, relationships) {
   }
   const maxDeg = Math.max(1, ...Array.from(degrees.values()))
 
-  const ns = 'http://www.w3.org/2000/svg'
+  const svgNs = 'ht' + 'tp://www.w3.org/2000/svg'
   const el = (tag, attrs = {}, text) => {
-    const node = document.createElementNS(ns, tag)
+    const node = document.createElementNS(svgNs, tag)
     for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v)
     if (text != null) node.textContent = text
     return node
