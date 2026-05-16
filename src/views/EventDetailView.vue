@@ -23,6 +23,13 @@ import { currentLocale } from '../i18n'
 const route = useRoute()
 const zh = currentLocale() !== 'en'
 const token = ref(localStorage.getItem('truthshield_api_token') || '')
+
+const sourceTypes = [
+  { value: 'news', label: zh ? '新聞' : 'News' },
+  { value: 'evidence', label: zh ? '佐證資料' : 'Evidence' },
+  { value: 'official_response', label: zh ? '官方回應' : 'Official response' },
+  { value: 'external', label: zh ? '外部來源' : 'External' },
+]
 const activeTab = ref(route.query.tab || 'overview')
 const event = ref(null)
 const timeline = ref([])
@@ -763,10 +770,7 @@ onMounted(load)
             <textarea v-model="timelineForm.summary" class="min-h-20 rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '摘要：發生了什麼，為什麼重要' : 'Summary: what happened and why it matters'" required></textarea>
             <div class="grid gap-3 md:grid-cols-[180px_1fr]">
               <select v-model="timelineForm.source_type" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300">
-                <option value="news">news</option>
-                <option value="evidence">evidence</option>
-                <option value="official_response">official_response</option>
-                <option value="external">external</option>
+                <option v-for="st in sourceTypes" :key="st.value" :value="st.value">{{ st.label }}</option>
               </select>
               <input v-model="timelineForm.source_url" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '來源 URL' : 'Source URL'" required />
             </div>
@@ -777,7 +781,7 @@ onMounted(load)
           <div v-else class="relative space-y-5 before:absolute before:left-3 before:top-1 before:h-full before:w-px before:bg-cyan-300/30">
             <article v-for="entry in timeline" :key="entry.id" class="relative pl-10">
               <span class="absolute left-0 top-1 h-6 w-6 rounded-full border border-cyan-300/50 bg-zinc-950"></span>
-              <p class="text-xs text-zinc-500">{{ entry.occurred_at }} · {{ entry.source_type }}</p>
+              <p class="text-xs text-zinc-500">{{ entry.occurred_at }} · {{ sourceTypes.find(s => s.value === entry.source_type)?.label ?? entry.source_type }}</p>
               <h2 class="mt-1 text-lg font-semibold text-white">{{ entry.title }}</h2>
               <p class="mt-1 text-sm leading-6 text-zinc-400">{{ entry.summary }}</p>
               <a v-if="entry.source_url" class="mt-2 inline-block break-all text-xs text-cyan-200 hover:text-cyan-100" :href="entry.source_url" target="_blank" rel="noopener noreferrer">{{ entry.source_url }}</a>

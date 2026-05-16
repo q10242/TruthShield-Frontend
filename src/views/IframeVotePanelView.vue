@@ -1364,7 +1364,7 @@ onMounted(async () => {
                   <div v-if="!eventTimeline.length" class="text-[11px] text-zinc-500">{{ locale === 'en' ? 'No timeline entries yet.' : '尚無時間線資料。' }}</div>
                   <div v-else class="space-y-2 border-l-2 border-cyan-300/20 pl-3">
                     <div v-for="entry in eventTimeline" :key="entry.id">
-                      <p class="text-[10px] text-zinc-500">{{ entry.occurred_at ? formatDateTime(entry.occurred_at) : '' }} · {{ entry.source_type }}</p>
+                      <p class="text-[10px] text-zinc-500">{{ entry.occurred_at ? formatDateTime(entry.occurred_at) : '' }} · {{ { news: locale === 'en' ? 'News' : '新聞', evidence: locale === 'en' ? 'Evidence' : '佐證', official_response: locale === 'en' ? 'Official' : '官方回應', external: locale === 'en' ? 'External' : '外部' }[entry.source_type] ?? entry.source_type }}</p>
                       <p class="text-[11px] font-semibold leading-snug text-zinc-200">{{ entry.title }}</p>
                       <p v-if="entry.summary" class="mt-0.5 text-[11px] leading-relaxed text-zinc-400">{{ entry.summary }}</p>
                       <a v-if="entry.source_url" :href="entry.source_url" target="_blank" rel="noopener noreferrer" class="mt-0.5 block truncate text-[10px] text-cyan-300">{{ entry.source_url }}</a>
