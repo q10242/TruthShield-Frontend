@@ -41,6 +41,7 @@ import MobileShareView from '../views/MobileShareView.vue'
 import MobileCheckView from '../views/MobileCheckView.vue'
 import EventsView from '../views/EventsView.vue'
 import EventDetailView from '../views/EventDetailView.vue'
+import GlobalEntitiesView from '../views/GlobalEntitiesView.vue'
 import IframeEventPinView from '../views/IframeEventPinView.vue'
 
 const localRoutes = import.meta.env.DEV
@@ -65,6 +66,7 @@ const router = createRouter({
     { path: '/news-search', name: 'news-search', component: NewsSearchView },
     { path: '/events', name: 'events', component: EventsView },
     { path: '/events/:id', name: 'event-detail', component: EventDetailView },
+    { path: '/global-entities', name: 'global-entities', component: GlobalEntitiesView },
     { path: '/media/:slug', name: 'media-detail', component: MediaDetailView },
     { path: '/health', name: 'health', component: HealthView },
     { path: '/algorithm', name: 'algorithm', component: AlgorithmView },

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import {
   createEventEntity,
@@ -43,6 +43,10 @@ const error = ref('')
 const graphSvg = ref(null)
 const localEntityPositions = ref({})
 const draggingEntity = ref(null)
+const graphPan = ref({ x: 0, y: 0 })
+const graphScale = ref(1)
+const isPanning = ref(false)
+const panAnchor = ref(null)
 const submitting = ref(false)
 const formMessage = ref('')
 const formError = ref('')
@@ -124,6 +128,22 @@ const tabs = computed(() => [
   { key: 'logs', label: zh ? '編輯紀錄' : 'Edit Logs' },
 ])
 
+function setMeta(title, description) {
+  document.title = title
+  for (const [attr, name, content] of [
+    ['property', 'og:title', title],
+    ['property', 'og:description', description],
+    ['property', 'og:type', 'article'],
+    ['name', 'twitter:title', title],
+    ['name', 'twitter:description', description],
+    ['name', 'description', description],
+  ]) {
+    let el = document.querySelector(`meta[${attr}="${name}"]`)
+    if (!el) { el = document.createElement('meta'); el.setAttribute(attr, name); document.head.appendChild(el) }
+    el.setAttribute('content', content)
+  }
+}
+
 async function load() {
   loading.value = true
   error.value = ''
@@ -136,6 +156,7 @@ async function load() {
       fetchEventEditLogs(id),
     ])
     event.value = eventPayload.data
+    setMeta(event.value.name + ' — TruthShield', event.value.summary || event.value.name)
     timeline.value = timelinePayload
     graph.value = graphPayload
     logs.value = logPayload
@@ -175,18 +196,68 @@ function clampGraphPosition(point, radius = 34) {
   }
 }
 
-function graphPoint(event) {
+function svgRootPoint(event) {
   if (!graphSvg.value) return { x: 0, y: 0 }
-  const point = graphSvg.value.createSVGPoint()
-  point.x = event.clientX
-  point.y = event.clientY
-  const transformed = point.matrixTransform(graphSvg.value.getScreenCTM().inverse())
+  const pt = graphSvg.value.createSVGPoint()
+  pt.x = event.clientX
+  pt.y = event.clientY
+  return pt.matrixTransform(graphSvg.value.getScreenCTM().inverse())
+}
 
-  return { x: transformed.x, y: transformed.y }
+function graphPoint(event) {
+  const svgP = svgRootPoint(event)
+  return {
+    x: (svgP.x - graphPan.value.x) / graphScale.value,
+    y: (svgP.y - graphPan.value.y) / graphScale.value,
+  }
+}
+
+function handleGraphWheel(event) {
+  event.preventDefault()
+  const factor = event.deltaY > 0 ? 0.85 : 1.18
+  const newScale = Math.min(6, Math.max(0.15, graphScale.value * factor))
+  const svgP = svgRootPoint(event)
+  graphPan.value = {
+    x: svgP.x - (svgP.x - graphPan.value.x) * newScale / graphScale.value,
+    y: svgP.y - (svgP.y - graphPan.value.y) * newScale / graphScale.value,
+  }
+  graphScale.value = newScale
+}
+
+function startGraphPan(event) {
+  if (draggingEntity.value) return
+  const isBackground = event.target === graphSvg.value || event.target.tagName === 'rect'
+  if (!isBackground) return
+  isPanning.value = true
+  const svgP = svgRootPoint(event)
+  panAnchor.value = { svgX: svgP.x, svgY: svgP.y, panX: graphPan.value.x, panY: graphPan.value.y }
+  event.currentTarget.setPointerCapture?.(event.pointerId)
+}
+
+function handleGraphMove(event) {
+  if (draggingEntity.value) { dragEntity(event); return }
+  if (!isPanning.value || !panAnchor.value) return
+  const svgP = svgRootPoint(event)
+  graphPan.value = {
+    x: panAnchor.value.panX + (svgP.x - panAnchor.value.svgX),
+    y: panAnchor.value.panY + (svgP.y - panAnchor.value.svgY),
+  }
+}
+
+function endGraphInteraction(event) {
+  if (draggingEntity.value) endDragEntity(event)
+  isPanning.value = false
+  panAnchor.value = null
+}
+
+function resetGraphView() {
+  graphPan.value = { x: 0, y: 0 }
+  graphScale.value = 1
 }
 
 function startDragEntity(entity, event) {
   if (!token.value) return
+  event.stopPropagation()
 
   const position = entityPosition(entity.id)
   const point = graphPoint(event)
@@ -754,6 +825,7 @@ async function removeRelationship(rel) {
 }
 
 onMounted(load)
+onUnmounted(() => { document.title = 'TruthShield' })
 </script>
 
 <template>
@@ -939,7 +1011,7 @@ onMounted(load)
                   {{ item.label }}
                 </span>
               </div>
-              <svg ref="graphSvg" class="h-[460px] w-full rounded-lg border border-white/10 bg-zinc-950" viewBox="-30 -30 580 500" role="img" @pointermove="dragEntity" @pointerup="endDragEntity" @pointerleave="endDragEntity">
+              <svg ref="graphSvg" class="h-[460px] w-full rounded-lg border border-white/10 bg-zinc-950" :class="isPanning ? 'cursor-grabbing' : 'cursor-grab'" viewBox="-30 -30 580 500" role="img" @pointerdown="startGraphPan" @pointermove="handleGraphMove" @pointerup="endGraphInteraction" @pointerleave="endGraphInteraction" @wheel.prevent="handleGraphWheel">
                 <rect x="-30" y="-30" width="580" height="500" fill="#09090b" />
                 <defs>
                   <marker id="truthshield-arrow-cyan" viewBox="0 0 8 8" refX="6.8" refY="4" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
@@ -949,6 +1021,7 @@ onMounted(load)
                     <path d="M 0 0 L 8 4 L 0 8 z" fill="#f97316" />
                   </marker>
                 </defs>
+                <g :transform="`translate(${graphPan.x},${graphPan.y}) scale(${graphScale})`">
                 <g v-for="rel in graph.relationships" :key="rel.id">
                   <path
                     :d="relationshipCurve(rel).path"
@@ -987,7 +1060,12 @@ onMounted(load)
                   <text :x="entityPosition(entity.id).x" :y="entityPosition(entity.id).y + entityRadius(entity.id) + 14" text-anchor="middle" fill="#a1a1aa" font-size="10" pointer-events="none">{{ entityDegree(entity) }}</text>
                   <circle v-if="entity.global_entity_id" :cx="entityPosition(entity.id).x + entityRadius(entity.id) - 4" :cy="entityPosition(entity.id).y - entityRadius(entity.id) + 4" r="5" fill="#67e8f9" stroke="#09090b" stroke-width="1.5" pointer-events="none" />
                 </g>
+                </g>
               </svg>
+              <div class="mt-1 flex items-center justify-between text-xs text-zinc-600">
+                <span>{{ zh ? '滾輪縮放・拖曳平移' : 'Scroll to zoom · drag to pan' }}</span>
+                <button class="hover:text-zinc-300" @click="resetGraphView">{{ zh ? '重設視圖' : 'Reset view' }}</button>
+              </div>
             </div>
             <div class="space-y-3">
               <section class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
