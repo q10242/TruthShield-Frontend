@@ -7,6 +7,7 @@ import AppNav from '../components/AppNav.vue'
 
 const zh = currentLocale() !== 'en'
 const q = ref('')
+const sort = ref('updated')
 const loading = ref(false)
 const error = ref('')
 const events = ref([])
@@ -22,21 +23,33 @@ const text = {
   timeline: zh ? '時間線' : 'Timeline',
   graph: zh ? '關係圖' : 'Graph',
   items: zh ? '資料' : 'Items',
-  views: zh ? '觀看' : 'Views',
+  views: zh ? '瀏覽' : 'Views',
   updated: zh ? '更新' : 'Updated',
 }
+
+const sortOptions = [
+  { value: 'updated', label: zh ? '最新更新' : 'Recently updated' },
+  { value: 'created', label: zh ? '最新建立' : 'Newest' },
+  { value: 'views',   label: zh ? '瀏覽次數' : 'Most viewed' },
+  { value: 'recent',  label: zh ? '近期瀏覽' : 'Recently viewed' },
+]
 
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    const payload = await fetchEvents({ q: q.value, limit: 50 })
+    const payload = await fetchEvents({ q: q.value, sort: sort.value, limit: 50 })
     events.value = payload.data || []
   } catch (err) {
     error.value = err.message || 'Failed to load events'
   } finally {
     loading.value = false
   }
+}
+
+function formatDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString(zh ? 'zh-TW' : 'en', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 onMounted(load)
@@ -65,9 +78,26 @@ onMounted(load)
         </form>
       </div>
 
-      <div v-if="error" class="mt-6 rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{{ error }}</div>
-      <div v-else-if="loading" class="mt-6 rounded-lg border border-white/10 p-4 text-sm text-zinc-400">{{ zh ? '載入中...' : 'Loading...' }}</div>
-      <div v-else class="mt-6 grid gap-4">
+      <!-- sort bar -->
+      <div class="mt-6 flex items-center gap-2">
+        <span class="text-xs text-zinc-500">{{ zh ? '排序：' : 'Sort:' }}</span>
+        <button
+          v-for="opt in sortOptions"
+          :key="opt.value"
+          type="button"
+          class="rounded-md border px-3 py-1 text-xs font-semibold transition-colors"
+          :class="sort === opt.value
+            ? 'border-cyan-300 bg-cyan-300/10 text-cyan-100'
+            : 'border-white/10 text-zinc-400 hover:border-cyan-300/40 hover:text-zinc-200'"
+          @click="sort = opt.value; load()"
+        >
+          {{ opt.label }}
+        </button>
+      </div>
+
+      <div v-if="error" class="mt-4 rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{{ error }}</div>
+      <div v-else-if="loading" class="mt-4 rounded-lg border border-white/10 p-4 text-sm text-zinc-400">{{ zh ? '載入中...' : 'Loading...' }}</div>
+      <div v-else class="mt-4 grid gap-4">
         <div v-if="events.length === 0" class="rounded-lg border border-white/10 bg-white/[0.03] p-5 text-sm text-zinc-400">{{ text.empty }}</div>
         <article v-for="event in events" :key="event.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
           <div class="flex flex-wrap items-start justify-between gap-4">
@@ -85,8 +115,14 @@ onMounted(load)
             <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.items }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.items ?? 0 }}</p></div>
             <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.timeline }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.timeline ?? 0 }}</p></div>
             <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.graph }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.relationships ?? 0 }}</p></div>
-            <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.views }}</p><p class="mt-1 text-lg font-semibold">{{ event.view_count ?? 0 }}</p></div>
-            <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.updated }}</p><p class="mt-1 text-xs font-semibold">{{ event.last_activity_at || event.created_at }}</p></div>
+            <div
+              class="rounded-md border p-3 transition-colors"
+              :class="sort === 'views' || sort === 'recent' ? 'border-cyan-300/30 bg-cyan-300/5' : 'border-white/10 bg-zinc-950/70'"
+            >
+              <p class="text-zinc-500">{{ text.views }}</p>
+              <p class="mt-1 text-lg font-semibold">{{ (event.view_count ?? 0).toLocaleString() }}</p>
+            </div>
+            <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.updated }}</p><p class="mt-1 text-xs font-semibold">{{ formatDate(event.last_activity_at || event.created_at) }}</p></div>
           </div>
         </article>
       </div>
