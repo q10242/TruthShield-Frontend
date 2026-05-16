@@ -222,9 +222,16 @@ async function endDragEntity() {
   if (!token.value || !position) return
 
   try {
-    await updateEventEntityPosition(token.value, route.params.id, id, position)
-    formMessage.value = zh ? '節點位置已保存，編輯紀錄也已保存。' : 'Node position saved and logged.'
-    await load()
+    const updated = await updateEventEntityPosition(token.value, route.params.id, id, position)
+    // Patch only the affected entity in graph.value so we avoid a full page reload
+    const entities = graph.value.entities || []
+    const idx = entities.findIndex((e) => String(e.id) === String(id))
+    if (idx !== -1 && updated?.data) {
+      graph.value = {
+        ...graph.value,
+        entities: entities.map((e, i) => (i === idx ? { ...e, metadata: updated.data.metadata } : e)),
+      }
+    }
   } catch (err) {
     formError.value = err.message || (zh ? '位置保存失敗。' : 'Failed to save position.')
   }
