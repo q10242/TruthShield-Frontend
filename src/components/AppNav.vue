@@ -15,7 +15,7 @@ async function toggle() {
   open.value = !open.value
   if (open.value && !loaded.value) {
     try {
-      const res = await fetchEvents({ per_page: 7 })
+      const res = await fetchEvents({ per_page: 7, sort: 'recent' })
       events.value = (res.data || []).slice(0, 7)
       loaded.value = true
     } catch {}

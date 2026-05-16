@@ -109,7 +109,12 @@ for (const path of walk(extensionDir).filter(isTextFile)) {
   const source = readFileSync(path, 'utf8')
 
   for (const pattern of ['localhost', '127.0.0.1', '::1', 'http://']) {
-    if (source.includes(pattern)) {
+    // Strip well-known W3C/IANA namespaces before scanning so SVG/XML namespace
+    // URIs don't falsely trip the http:// check.
+    const stripped = source
+      .replaceAll('http://www.w3.org/', '')
+      .replaceAll('http://www.iana.org/', '')
+    if (stripped.includes(pattern)) {
       fail(`Forbidden release string "${pattern}" found in ${relative}`)
     }
   }
