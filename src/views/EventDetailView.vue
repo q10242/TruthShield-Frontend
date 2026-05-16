@@ -5,6 +5,7 @@ import {
   createEventEntity,
   createEventRelationship,
   createEventTimelineEntry,
+  createGlobalEntity,
   deleteEventEntity,
   deleteEventRelationship,
   deleteEventTimelineEntry,
@@ -13,6 +14,7 @@ import {
   fetchEventGraph,
   fetchEventTimeline,
   mergeEventEntity,
+  searchGlobalEntities,
   updateEventEntity,
   updateEventEntityPosition,
   updateEventRelationship,
@@ -55,7 +57,39 @@ const entityForm = ref({
   entity_type: 'person',
   description: '',
   source_url: '',
+  global_entity_id: null,
 })
+const globalEntitySearch = ref('')
+const globalEntityResults = ref([])
+const globalEntitySearching = ref(false)
+
+async function searchGlobal() {
+  if (!globalEntitySearch.value.trim()) { globalEntityResults.value = []; return }
+  globalEntitySearching.value = true
+  try {
+    const payload = await searchGlobalEntities({ q: globalEntitySearch.value, limit: 10 })
+    globalEntityResults.value = payload.data || []
+  } catch {
+    globalEntityResults.value = []
+  } finally {
+    globalEntitySearching.value = false
+  }
+}
+
+function selectGlobalEntity(ge) {
+  entityForm.value.global_entity_id = ge.id
+  entityForm.value.name = ge.name
+  entityForm.value.entity_type = ge.entity_type
+  entityForm.value.description = entityForm.value.description || ge.description || ''
+  globalEntityResults.value = []
+  globalEntitySearch.value = ge.name
+}
+
+function clearGlobalEntity() {
+  entityForm.value.global_entity_id = null
+  globalEntitySearch.value = ''
+  globalEntityResults.value = []
+}
 const relationshipForm = ref({
   from_entity_name: '',
   from_entity_type: 'person',
@@ -569,7 +603,8 @@ async function submitEntity() {
   submitting.value = true
   try {
     await createEventEntity(token.value, route.params.id, entityForm.value)
-    entityForm.value = { name: '', entity_type: 'person', description: '', source_url: '' }
+    entityForm.value = { name: '', entity_type: 'person', description: '', source_url: '', global_entity_id: null }
+    clearGlobalEntity()
     formMessage.value = zh ? '節點已新增，編輯紀錄也已保存。' : 'Node added and logged.'
     await load()
     activeTab.value = 'graph'
@@ -824,6 +859,21 @@ onMounted(load)
                 </div>
                 <RouterLink v-if="!token" class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100" to="/login">{{ zh ? '登入' : 'Sign in' }}</RouterLink>
               </div>
+              <!-- Global entity search -->
+              <div class="relative">
+                <div class="flex gap-2">
+                  <input v-model="globalEntitySearch" class="min-w-0 flex-1 rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '搜尋全域人物/組織（選填）' : 'Search global entities (optional)'" @keydown.enter.prevent="searchGlobal" />
+                  <button type="button" class="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300" @click="searchGlobal">{{ globalEntitySearching ? '…' : (zh ? '搜尋' : 'Search') }}</button>
+                  <button v-if="entityForm.global_entity_id" type="button" class="rounded-md border border-red-400/30 px-2 py-2 text-xs text-red-300" @click="clearGlobalEntity">✕</button>
+                </div>
+                <div v-if="globalEntityResults.length" class="absolute z-10 mt-1 w-full rounded-md border border-white/10 bg-zinc-900 shadow-xl">
+                  <button v-for="ge in globalEntityResults" :key="ge.id" type="button" class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-white/5" @click="selectGlobalEntity(ge)">
+                    <span class="font-semibold text-white">{{ ge.name }}</span>
+                    <span class="shrink-0 text-xs text-zinc-500">{{ ge.entity_type }} · {{ ge.event_entities_count ?? 0 }} {{ zh ? '個事件' : 'events' }}</span>
+                  </button>
+                </div>
+                <p v-if="entityForm.global_entity_id" class="mt-1 text-xs text-cyan-300">{{ zh ? '✓ 已連結全域人物' : '✓ Linked to global entity' }} #{{ entityForm.global_entity_id }}</p>
+              </div>
               <div class="grid gap-3 md:grid-cols-[1fr_150px]">
                 <input v-model="entityForm.name" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '人名或組織名' : 'Name'" required />
                 <select v-model="entityForm.entity_type" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300">
@@ -931,6 +981,7 @@ onMounted(load)
                   />
                   <text :x="entityPosition(entity.id).x" :y="entityPosition(entity.id).y + 4" text-anchor="middle" fill="#fff" font-size="12" pointer-events="none">{{ entity.name.slice(0, 8) }}</text>
                   <text :x="entityPosition(entity.id).x" :y="entityPosition(entity.id).y + entityRadius(entity.id) + 14" text-anchor="middle" fill="#a1a1aa" font-size="10" pointer-events="none">{{ entityDegree(entity) }}</text>
+                  <circle v-if="entity.global_entity_id" :cx="entityPosition(entity.id).x + entityRadius(entity.id) - 4" :cy="entityPosition(entity.id).y - entityRadius(entity.id) + 4" r="5" fill="#67e8f9" stroke="#09090b" stroke-width="1.5" pointer-events="none" />
                 </g>
               </svg>
             </div>
@@ -968,6 +1019,11 @@ onMounted(load)
                       </div>
                     </div>
                     <p v-if="entity.description" class="mt-2 text-xs leading-5 text-zinc-400">{{ entity.description }}</p>
+                    <div v-if="entity.global_entity" class="mt-2 flex items-center gap-1.5 text-xs text-cyan-300/80">
+                      <span class="inline-block h-2 w-2 rounded-full bg-cyan-400"></span>
+                      <span>{{ zh ? '共用實體：' : 'Global entity: ' }}{{ entity.global_entity.name }}</span>
+                      <a v-if="entity.global_entity.wikipedia_url" :href="entity.global_entity.wikipedia_url" target="_blank" rel="noopener noreferrer" class="ml-1 underline hover:text-cyan-100">Wiki</a>
+                    </div>
                     <form v-if="entityEditId === String(entity.id)" class="mt-3 grid gap-2 rounded-md border border-cyan-300/20 bg-zinc-950 p-3" @submit.prevent="submitEntityEdit">
                       <div class="grid gap-2 md:grid-cols-[1fr_130px]">
                         <input v-model="entityEditForm.name" class="rounded-md border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-cyan-300" required />
@@ -995,7 +1051,7 @@ onMounted(load)
               </section>
               <article v-for="rel in graph.relationships" :key="rel.id" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
                 <div class="flex items-start justify-between gap-3">
-                  <p class="text-sm font-semibold text-white">{{ rel.from_entity?.name }} → {{ rel.to_entity?.name }}</p>
+                  <p class="text-sm font-semibold text-white">{{ rel.from_entity?.name }} {{ rel.is_bidirectional ? '↔' : '→' }} {{ rel.to_entity?.name }}</p>
                   <div v-if="token" class="flex gap-2">
                     <button class="rounded-md border border-white/10 px-2 py-1 text-xs font-semibold text-zinc-300 hover:border-cyan-300/60" :disabled="!token" @click="startEditRelationship(rel)">{{ zh ? '編輯' : 'Edit' }}</button>
                     <button class="rounded-md border border-red-400/30 px-2 py-1 text-xs font-semibold text-red-100 hover:border-red-300/70" :disabled="!token" @click="removeRelationship(rel)">{{ zh ? '刪除' : 'Delete' }}</button>
@@ -1017,10 +1073,7 @@ onMounted(load)
                   <textarea v-model="relationshipEditForm.description" class="min-h-16 rounded-md border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-cyan-300"></textarea>
                   <div class="grid gap-2 md:grid-cols-[150px_1fr]">
                     <select v-model="relationshipEditForm.source_type" class="rounded-md border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-cyan-300">
-                      <option value="news">news</option>
-                      <option value="evidence">evidence</option>
-                      <option value="official_response">official_response</option>
-                      <option value="external">external</option>
+                      <option v-for="st in sourceTypes" :key="st.value" :value="st.value">{{ st.label }}</option>
                     </select>
                     <input v-model="relationshipEditForm.source_url" class="rounded-md border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-cyan-300" required />
                   </div>

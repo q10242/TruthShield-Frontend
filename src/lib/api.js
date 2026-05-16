@@ -390,6 +390,27 @@ export async function fetchEventGraph(id) {
   })
 }
 
+export async function searchGlobalEntities(params = {}) {
+  const query = toQuery(params)
+  return request(`/api/global-entities${query ? `?${query}` : ''}`, {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
+export async function createGlobalEntity(token, payload) {
+  return request('/api/global-entities', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function fetchGlobalEntity(id) {
+  return request(`/api/global-entities/${encodeURIComponent(id)}`, {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
 export async function createEventEntity(token, id, payload) {
   return request(`/api/events/${encodeURIComponent(id)}/entities`, {
     method: 'POST',
