@@ -74,6 +74,7 @@ const pinFromEntityId = ref('')
 const pinToEntityId = ref('')
 const pinRelType = ref('')
 const pinRelDesc = ref('')
+const pinIsBidirectional = ref(false)
 const pinSubmitting = ref(false)
 const pinMessage = ref('')
 const pinError = ref('')
@@ -837,6 +838,7 @@ async function submitPinEntry() {
           to_entity_id: pinToEntityId.value,
           relationship_type: pinRelType.value.trim(),
           description: pinRelDesc.value.trim() || undefined,
+          is_bidirectional: pinIsBidirectional.value || undefined,
           source_type: 'news',
           source_url: pinSourceUrl.value.trim() || newsUrl.value,
           news_url: newsUrl.value,
@@ -859,6 +861,7 @@ async function submitPinEntry() {
             to_entity_id: pinToEntityId.value,
             relationship_type: pinRelType.value.trim(),
             description: pinRelDesc.value.trim() || undefined,
+            is_bidirectional: pinIsBidirectional.value || undefined,
             source_type: 'news',
             source_url: pinSourceUrl.value.trim() || newsUrl.value,
             news_url: newsUrl.value,
@@ -869,6 +872,7 @@ async function submitPinEntry() {
       pinEntityName.value = ''
       pinRelType.value = ''
       pinRelDesc.value = ''
+      pinIsBidirectional.value = false
       await loadPinEventGraph(eventId)
     } else {
       await createEventTimelineEntry(token.value, eventId, {
@@ -934,15 +938,17 @@ const graphLayout = computed(() => {
     const dist = Math.sqrt(dx * dx + dy * dy) || 1
     const mx = (from.x + to.x) / 2
     const my = (from.y + to.y) / 2
+    const bidir = Boolean(rel.is_bidirectional)
     return {
       id: rel.id,
-      x1: from.x + (dx / dist) * fromR,
-      y1: from.y + (dy / dist) * fromR,
+      x1: from.x + (dx / dist) * (bidir ? toR : fromR),
+      y1: from.y + (dy / dist) * (bidir ? toR : fromR),
       x2: to.x - (dx / dist) * toR,
       y2: to.y - (dy / dist) * toR,
       mx, my,
       label: String(rel.relationship_type || '').slice(0, 8),
       isRisk: rel.is_high_risk,
+      isBidirectional: bidir,
     }
   }).filter(Boolean)
   return { nodeLayouts, edgeLayouts }
@@ -1374,7 +1380,7 @@ onMounted(async () => {
                       </marker>
                     </defs>
                     <g v-for="edge in graphLayout.edgeLayouts" :key="edge.id">
-                      <line :x1="edge.x1" :y1="edge.y1" :x2="edge.x2" :y2="edge.y2" :stroke="edge.isRisk ? '#f97316' : '#67e8f9'" stroke-width="1.5" opacity="0.65" marker-end="url(#vp-arrow)" />
+                      <line :x1="edge.x1" :y1="edge.y1" :x2="edge.x2" :y2="edge.y2" :stroke="edge.isRisk ? '#f97316' : '#67e8f9'" stroke-width="1.5" opacity="0.65" marker-end="url(#vp-arrow)" :marker-start="edge.isBidirectional ? 'url(#vp-arrow)' : undefined" />
                       <template v-if="edge.label">
                         <rect :x="edge.mx - edge.label.length * 3.5 - 4" :y="edge.my - 7" :width="edge.label.length * 7 + 8" height="14" rx="3" fill="#09090b" :stroke="edge.isRisk ? '#f97316' : '#155e75'" opacity="0.95" />
                         <text :x="edge.mx" :y="edge.my + 1" text-anchor="middle" dominant-baseline="middle" :fill="edge.isRisk ? '#fed7aa' : '#cffafe'" font-size="8" font-weight="700">{{ edge.label }}</text>
@@ -1442,6 +1448,10 @@ onMounted(async () => {
                   <option v-for="e in pinEventGraph.entities" :key="e.id" :value="String(e.id)">{{ e.name }} · {{ e.entity_type }}</option>
                 </select>
                 <input v-model="pinRelType" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Relationship label * (e.g. works for)' : '關係標籤 *（任職於、指控、隸屬...）'" />
+                <label class="flex items-center gap-2 text-[11px] text-zinc-400 cursor-pointer">
+                  <input v-model="pinIsBidirectional" type="checkbox" class="rounded border-white/20 bg-zinc-900" />
+                  {{ locale === 'en' ? 'Bidirectional (↔)' : '雙向關係（↔）' }}
+                </label>
               </template>
             </template>
 
@@ -1455,6 +1465,10 @@ onMounted(async () => {
                 <option v-for="e in pinEventGraph.entities" :key="e.id" :value="String(e.id)">{{ e.name }} · {{ e.entity_type }}</option>
               </select>
               <input v-model="pinRelType" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Relationship label * (e.g. works for)' : '關係標籤 *（任職於、指控、隸屬...）'" />
+              <label class="flex items-center gap-2 text-[11px] text-zinc-400 cursor-pointer">
+                <input v-model="pinIsBidirectional" type="checkbox" class="rounded border-white/20 bg-zinc-900" />
+                {{ locale === 'en' ? 'Bidirectional (↔)' : '雙向關係（↔）' }}
+              </label>
             </template>
 
             <textarea v-model="pinRelDesc" rows="2" class="w-full resize-none rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Description' : '說明'"></textarea>
