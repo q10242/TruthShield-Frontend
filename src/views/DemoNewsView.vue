@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const { t } = useI18n()
 
@@ -16,17 +17,14 @@ onMounted(() => trackPageView('demo_news'))
 <template>
   <main class="min-h-screen bg-[#eceff1] text-zinc-950">
     <section class="mx-auto max-w-7xl px-4 py-5">
-      <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 shadow-sm">
-        <BrandLink />
-        <div class="flex flex-wrap gap-2">
-          <RouterLink class="rounded-md bg-zinc-950 px-3 py-2 text-sm font-semibold text-white" to="/extension-install">
-            {{ t('common.extensionInstall') }}
-          </RouterLink>
-          <RouterLink class="rounded-md border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700" to="/user-guide">
-            {{ t('common.userGuide') }}
-          </RouterLink>
-        </div>
-      </div>
+      <AppNav>
+        <RouterLink class="rounded-md bg-zinc-950 px-3 py-2 text-sm font-semibold text-white" to="/extension-install">
+          {{ t('common.extensionInstall') }}
+        </RouterLink>
+        <RouterLink class="rounded-md border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700" to="/user-guide">
+          {{ t('common.userGuide') }}
+        </RouterLink>
+      </AppNav>
 
       <section class="overflow-hidden rounded-xl border border-zinc-300 bg-white shadow-sm">
         <div class="border-b border-zinc-200 bg-zinc-50 px-4 py-2 text-xs text-zinc-500">

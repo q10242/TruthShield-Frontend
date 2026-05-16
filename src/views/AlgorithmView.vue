@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchAlgorithm } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const payload = ref(null)
 const { locale, t } = useI18n()
@@ -91,9 +92,7 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-4xl">
-      <nav class="mb-8 border-b border-white/10 pb-5">
-        <BrandLink />
-      </nav>
+      <AppNav />
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.algorithmTitle') }}</h1>
       <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('remaining.algorithmIntro') }}</p>
       <div v-if="payload" class="mt-6 grid gap-4">

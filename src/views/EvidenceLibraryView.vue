@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchEvidenceLibrary } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const items = ref([])
 const meta = ref(null)
@@ -57,10 +58,9 @@ onMounted(load)
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
+      <AppNav>
         <RouterLink class="text-sm text-zinc-400" to="/ranking">{{ t('common.ranking') }}</RouterLink>
-      </nav>
+      </AppNav>
 
       <div class="flex flex-wrap items-end justify-between gap-4">
         <div>

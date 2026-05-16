@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchApiDocs } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const docs = ref(null)
 const { locale, t } = useI18n()
@@ -82,9 +83,7 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-4xl">
-      <nav class="mb-8 border-b border-white/10 pb-5">
-        <BrandLink />
-      </nav>
+      <AppNav />
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.apiDocsTitle') }}</h1>
       <p class="mt-3 text-sm leading-6 text-zinc-400">{{ t('remaining.apiDocsIntro') }}</p>
       <div v-if="docs" class="mt-6 space-y-2">

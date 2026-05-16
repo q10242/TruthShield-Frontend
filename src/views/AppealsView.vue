@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { createAppeal, fetchMyAppeals } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const route = useRoute()
@@ -43,10 +44,9 @@ onMounted(() => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
+      <AppNav>
         <RouterLink class="text-sm text-zinc-400" to="/profile">{{ t('common.profile') }}</RouterLink>
-      </nav>
+      </AppNav>
 
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.appealsTitle') }}</h1>
       <p class="mt-2 text-sm text-zinc-400">{{ t('remaining.appealsIntro') }}</p>

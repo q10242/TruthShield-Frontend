@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchNewsSearch } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const q = ref('')
 const domain = ref('')
@@ -27,10 +28,9 @@ onMounted(search)
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
+      <AppNav>
         <RouterLink class="text-sm text-zinc-400" to="/ranking">{{ t('common.ranking') }}</RouterLink>
-      </nav>
+      </AppNav>
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.newsSearchTitle') }}</h1>
       <form class="mt-5 grid gap-2 md:grid-cols-[1fr_180px_150px_auto]" @submit.prevent="search">
         <input v-model="q" class="min-w-0 flex-1 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300" :placeholder="t('remaining.searchUrlTitle')" />

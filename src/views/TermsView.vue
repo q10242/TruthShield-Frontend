@@ -2,6 +2,7 @@
 import { RouterLink } from 'vue-router'
 import { useI18n } from '../i18n'
 import { legalDocument } from '../legalContent'
+import AppNav from '../components/AppNav.vue'
 
 const { locale, t } = useI18n()
 const doc = legalDocument(locale.value, 'terms')
@@ -10,7 +11,7 @@ const doc = legalDocument(locale.value, 'terms')
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-4xl">
-      <BrandLink />
+      <AppNav />
       <p class="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">{{ doc.subtitle }}</p>
       <h1 class="mt-3 text-3xl font-semibold text-white">{{ doc.title }}</h1>
       <p class="mt-2 text-xs text-zinc-500">{{ t('remaining.effectiveDate') }} {{ doc.effectiveDate }}</p>

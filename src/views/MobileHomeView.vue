@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import { fetchCurrentUser, fetchNewsSearch } from '../lib/api'
 import { trackEvent } from '../lib/traffic'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const TOKEN_KEY = 'truthshield_api_token'
 
@@ -40,15 +41,14 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 pb-24 text-zinc-100">
     <section class="px-4 pb-6 pt-5">
-      <div class="flex items-center justify-between gap-3">
-        <BrandLink compact />
+      <AppNav>
         <RouterLink
           :to="token ? '/profile' : '/login?redirect=/mobile'"
           class="rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-cyan-100"
         >
           {{ token ? t('mobile.profile') : t('common.signIn') }}
         </RouterLink>
-      </div>
+      </AppNav>
 
       <div class="mt-8">
         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">{{ t('mobile.eyebrow') }}</p>

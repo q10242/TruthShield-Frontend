@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchModerationEvents } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const rows = ref([])
 const { locale, t } = useI18n()
@@ -15,10 +16,9 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
+      <AppNav>
         <RouterLink class="text-sm text-zinc-400" to="/transparency">{{ t('common.transparency') }}</RouterLink>
-      </nav>
+      </AppNav>
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.moderationTitle') }}</h1>
       <p class="mt-2 text-sm text-zinc-400">{{ t('remaining.moderationIntro') }}</p>
       <div class="mt-6 space-y-3">

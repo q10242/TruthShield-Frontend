@@ -4,6 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import { beginOauth, devLogin, oauthCallback } from '../lib/api'
 import { trackEvent, trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
@@ -200,7 +201,7 @@ async function realProviderLogin(provider) {
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_420px]">
       <div class="rounded-lg border border-white/10 bg-white/[0.03] p-6">
-        <BrandLink />
+        <AppNav />
         <h1 class="mt-8 text-3xl font-semibold text-white">{{ t('auth.title') }}</h1>
         <p class="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
           {{ t('auth.intro') }}

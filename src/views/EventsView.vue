@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchEvents } from '../lib/api'
 import { currentLocale } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const zh = currentLocale() !== 'en'
 const q = ref('')
@@ -44,13 +45,10 @@ onMounted(load)
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-6xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
-        <div class="flex gap-3 text-sm">
-          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/news-search">{{ zh ? '新聞搜尋' : 'News Search' }}</RouterLink>
-          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/community-tasks">{{ zh ? '社群任務' : 'Community Tasks' }}</RouterLink>
-        </div>
-      </nav>
+      <AppNav>
+        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/news-search">{{ zh ? '新聞搜尋' : 'News Search' }}</RouterLink>
+        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/community-tasks">{{ zh ? '社群任務' : 'Community Tasks' }}</RouterLink>
+      </AppNav>
 
       <div class="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <div>

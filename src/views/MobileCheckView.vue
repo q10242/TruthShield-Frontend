@@ -13,6 +13,7 @@ import {
 } from '../lib/api'
 import { trackEvent } from '../lib/traffic'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
@@ -348,12 +349,11 @@ onUnmounted(() => {
 <template>
   <main class="min-h-screen bg-zinc-950 pb-24 text-zinc-100">
     <section class="px-4 pb-6 pt-5">
-      <div class="flex items-center justify-between gap-3">
-        <BrandLink compact />
+      <AppNav>
         <RouterLink class="rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-cyan-100" to="/mobile">
           {{ t('mobile.mobileHome') }}
         </RouterLink>
-      </div>
+      </AppNav>
 
       <form class="mt-5 flex gap-2" @submit.prevent="goCheck">
         <input

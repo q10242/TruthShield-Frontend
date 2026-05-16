@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchTrustLeaderboard } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const users = ref([])
 const { t } = useI18n()
@@ -15,10 +16,9 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-4xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
+      <AppNav>
         <RouterLink class="text-sm text-zinc-400" to="/ranking">{{ t('common.ranking') }}</RouterLink>
-      </nav>
+      </AppNav>
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.trustLeaderboardTitle') }}</h1>
       <div class="mt-6 overflow-hidden rounded-lg border border-white/10">
         <table class="w-full text-left">

@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchMediaLeaderboard } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const rankings = ref([])
 const loading = ref(true)
@@ -29,13 +30,10 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="mb-10 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
-        <div class="flex gap-4 text-sm text-zinc-400">
-          <RouterLink to="/evidence-library">{{ t('common.evidenceLibrary') }}</RouterLink>
-          <RouterLink to="/transparency">{{ t('common.transparency') }}</RouterLink>
-        </div>
-      </nav>
+      <AppNav>
+        <RouterLink class="text-sm text-zinc-400" to="/evidence-library">{{ t('common.evidenceLibrary') }}</RouterLink>
+        <RouterLink class="text-sm text-zinc-400" to="/transparency">{{ t('common.transparency') }}</RouterLink>
+      </AppNav>
 
       <div class="mb-8">
         <h1 class="text-4xl font-semibold text-white">{{ t('ranking.title') }}</h1>

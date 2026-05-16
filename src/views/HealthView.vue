@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchSystemHealth } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const health = ref(null)
 const { t } = useI18n()
@@ -48,9 +49,7 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-3xl">
-      <nav class="mb-8 border-b border-white/10 pb-5">
-        <BrandLink />
-      </nav>
+      <AppNav />
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.healthTitle') }}</h1>
       <div v-if="health" class="mt-6 grid gap-3 sm:grid-cols-3">
         <div v-for="key in ['ok', 'database', 'cache']" :key="key" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">

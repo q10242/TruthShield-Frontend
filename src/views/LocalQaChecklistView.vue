@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const STORAGE_KEY = 'truthshield_local_qa_checked'
 const { t } = useI18n()
@@ -96,10 +97,9 @@ watch(checkedIds, (value) => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
+      <AppNav>
         <RouterLink class="text-sm text-zinc-400" to="/vision-readiness">{{ t('common.visionReadiness') }}</RouterLink>
-      </nav>
+      </AppNav>
 
       <header>
         <p class="text-sm font-semibold text-cyan-300">{{ t('qa.eyebrow') }}</p>

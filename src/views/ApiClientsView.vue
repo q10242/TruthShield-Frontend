@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { createApiClient, fetchApiClients, revokeApiClient } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
@@ -40,10 +41,9 @@ onMounted(loadClients)
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-4xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
+      <AppNav>
         <RouterLink class="text-sm text-zinc-400" to="/api-docs">{{ t('remaining.apiDocsTitle') }}</RouterLink>
-      </nav>
+      </AppNav>
 
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.apiKeysTitle') }}</h1>
       <p class="mt-2 text-sm text-zinc-400">{{ t('remaining.apiKeysIntro') }}</p>

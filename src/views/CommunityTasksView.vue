@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchCommunityTasks, fetchCommunityTaskStats } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const { t } = useI18n()
 const loading = ref(true)
@@ -78,13 +79,10 @@ onMounted(load)
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-6xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
-        <div class="flex gap-3 text-sm">
-          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/report-domain">{{ t('common.reportDomain') }}</RouterLink>
-          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/transparency">{{ t('common.transparency') }}</RouterLink>
-        </div>
-      </nav>
+      <AppNav>
+        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/report-domain">{{ t('common.reportDomain') }}</RouterLink>
+        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/transparency">{{ t('common.transparency') }}</RouterLink>
+      </AppNav>
 
       <div class="grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)]">
         <div>

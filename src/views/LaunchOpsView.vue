@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchRateLimitPolicies, fetchSelectorChecks, fetchTrustedEvidenceSources, fetchVisionReadiness } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const sources = ref([])
 const policies = ref([])
@@ -40,10 +41,9 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-6xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
+      <AppNav>
         <RouterLink class="text-sm text-zinc-400" to="/transparency">{{ t('common.transparency') }}</RouterLink>
-      </nav>
+      </AppNav>
 
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.launchOpsTitle') }}</h1>
       <section class="mt-6 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-4">

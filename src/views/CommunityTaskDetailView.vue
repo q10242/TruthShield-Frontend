@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { fetchCommunityTask, sendCommunityTaskSignal } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const route = useRoute()
@@ -60,13 +61,10 @@ onMounted(load)
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="mb-8 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
-        <BrandLink />
-        <div class="flex flex-wrap items-center gap-4 text-sm">
-          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/community-tasks">{{ t('common.communityTasks') }}</RouterLink>
-          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/moderation-events">{{ t('common.moderationEvents') }}</RouterLink>
-        </div>
-      </nav>
+      <AppNav>
+        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/community-tasks">{{ t('common.communityTasks') }}</RouterLink>
+        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/moderation-events">{{ t('common.moderationEvents') }}</RouterLink>
+      </AppNav>
 
       <div v-if="error" class="rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{{ error }}</div>
       <div v-else-if="loading" class="rounded-lg border border-white/10 p-4 text-sm text-zinc-400">{{ t('common.loading') }}</div>

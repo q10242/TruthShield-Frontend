@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { fetchMediaOutlet } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const route = useRoute()
 const payload = ref(null)
@@ -16,13 +17,10 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="mb-8 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
-        <BrandLink />
-        <div class="flex flex-wrap items-center gap-4 text-sm">
-          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/ranking">{{ t('common.ranking') }}</RouterLink>
-          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/evidence-library">{{ t('common.evidenceLibrary') }}</RouterLink>
-        </div>
-      </nav>
+      <AppNav>
+        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/ranking">{{ t('common.ranking') }}</RouterLink>
+        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/evidence-library">{{ t('common.evidenceLibrary') }}</RouterLink>
+      </AppNav>
 
       <template v-if="payload">
         <h1 class="text-3xl font-semibold text-white">{{ payload.media.name }}</h1>

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { createDonation, fetchDonation, fetchDonationConfig, fetchDonationMonthly, fetchDonationSummary, fetchDonationSupporters } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -106,13 +107,10 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-8 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="mb-8 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
-        <BrandLink />
-        <div class="flex flex-wrap gap-2">
-          <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/transparency">{{ t('common.transparency') }}</RouterLink>
-          <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/profile">{{ t('common.profile') }}</RouterLink>
-        </div>
-      </nav>
+      <AppNav>
+        <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/transparency">{{ t('common.transparency') }}</RouterLink>
+        <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/profile">{{ t('common.profile') }}</RouterLink>
+      </AppNav>
 
       <div class="grid gap-8 lg:grid-cols-[1fr_360px]">
         <section>

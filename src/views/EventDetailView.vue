@@ -21,6 +21,7 @@ import {
   updateEventTimelineEntry,
 } from '../lib/api'
 import { currentLocale } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const route = useRoute()
 const zh = currentLocale() !== 'en'
@@ -758,13 +759,9 @@ onMounted(load)
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-6xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
-        <div class="flex gap-3 text-sm">
-          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/events">{{ zh ? '事件列表' : 'Events' }}</RouterLink>
-          <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/community-tasks">{{ zh ? '社群任務' : 'Community Tasks' }}</RouterLink>
-        </div>
-      </nav>
+      <AppNav>
+        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/community-tasks">{{ zh ? '社群任務' : 'Community Tasks' }}</RouterLink>
+      </AppNav>
 
       <div v-if="error" class="rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{{ error }}</div>
       <div v-else-if="loading" class="rounded-lg border border-white/10 p-4 text-sm text-zinc-400">{{ zh ? '載入中...' : 'Loading...' }}</div>

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchTags } from '../lib/api'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const { t } = useI18n()
 const tags = ref([])
@@ -41,10 +42,9 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-6xl">
-      <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-        <BrandLink />
+      <AppNav>
         <RouterLink class="text-sm text-cyan-200" to="/platform-rules">{{ t('common.platformRules') }}</RouterLink>
-      </nav>
+      </AppNav>
 
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">{{ t('labelGuide.eyebrow') }}</p>
       <h1 class="mt-3 text-3xl font-semibold text-white">{{ t('labelGuide.title') }}</h1>

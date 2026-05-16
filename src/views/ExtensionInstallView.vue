@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { fetchBotProtectionConfig, fetchSystemHealth } from '../lib/api'
 import { trackEvent, trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const { t } = useI18n()
 const health = ref(null)
@@ -83,22 +84,19 @@ function trackDownload() {
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-8 text-zinc-100">
     <section class="mx-auto max-w-5xl">
-      <nav class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
-        <BrandLink />
-        <div class="flex flex-wrap gap-2">
-          <a
-            class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100"
-            href="https://github.com/q10242/TruthShield-Frontend"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {{ t('common.github') }}
-          </a>
-          <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/extension-coverage">
-            {{ t('common.extensionCoverage') }}
-          </RouterLink>
-        </div>
-      </nav>
+      <AppNav>
+        <a
+          class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100"
+          href="https://github.com/q10242/TruthShield-Frontend"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {{ t('common.github') }}
+        </a>
+        <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100" to="/extension-coverage">
+          {{ t('common.extensionCoverage') }}
+        </RouterLink>
+      </AppNav>
 
       <section class="grid gap-8 py-10 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div>

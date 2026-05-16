@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { trackPageView } from '../lib/traffic'
 import { currentLocale, useI18n } from '../i18n'
+import AppNav from '../components/AppNav.vue'
 
 const { t } = useI18n()
 const zh = currentLocale() !== 'en'
@@ -157,7 +158,7 @@ onMounted(() => trackPageView('user_guide'))
 <template>
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-6xl">
-      <BrandLink />
+      <AppNav />
 
       <section class="mt-10 grid gap-6 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
         <aside class="lg:sticky lg:top-6 lg:self-start">
