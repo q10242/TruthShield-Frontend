@@ -3,6 +3,8 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   createEvent,
+  createEventEntity,
+  createEventRelationship,
   createEventTimelineEntry,
   createVote,
   fetchCurrentUser,
@@ -59,10 +61,17 @@ const pinSearchEvents = ref([])
 const pinSelectedEventId = ref('')
 const pinNewEventName = ref('')
 const pinNewEventSummary = ref('')
+const pinMode = ref('timeline')
 const pinEntryTitle = ref(route.query.title_snapshot || '')
 const pinEntrySummary = ref('')
 const pinOccurredAt = ref(new Date().toISOString().slice(0, 16))
 const pinSourceUrl = ref(route.query.news_url || '')
+const pinEntityName = ref('')
+const pinEntityType = ref('person')
+const pinEventGraph = ref({ entities: [], relationships: [] })
+const pinToEntityId = ref('')
+const pinRelType = ref('')
+const pinRelDesc = ref('')
 const pinSubmitting = ref(false)
 const pinMessage = ref('')
 const pinError = ref('')
@@ -778,6 +787,20 @@ async function searchPinEvents() {
   }
 }
 
+async function loadPinEventGraph(eventId) {
+  if (!eventId) { pinEventGraph.value = { entities: [], relationships: [] }; return }
+  try {
+    pinEventGraph.value = await fetchEventGraph(eventId)
+    if (!pinToEntityId.value && pinEventGraph.value.entities?.[0]) {
+      pinToEntityId.value = String(pinEventGraph.value.entities[0].id)
+    }
+  } catch {
+    pinEventGraph.value = { entities: [], relationships: [] }
+  } finally {
+    notifyHeight()
+  }
+}
+
 async function submitPinEntry() {
   if (!isLoggedIn.value) { openLogin(); return }
   pinError.value = ''
@@ -796,16 +819,46 @@ async function submitPinEntry() {
       eventId = created.data?.id
       pinSelectedEventId.value = String(eventId)
     }
-    await createEventTimelineEntry(token.value, eventId, {
-      title: pinEntryTitle.value.trim() || route.query.title_snapshot || newsUrl.value,
-      summary: pinEntrySummary.value.trim() || undefined,
-      occurred_at: new Date(pinOccurredAt.value).toISOString(),
-      source_type: 'news',
-      source_url: pinSourceUrl.value.trim() || newsUrl.value,
-      news_url: newsUrl.value,
-    })
-    pinMessage.value = locale.value === 'en' ? 'Pinned to event.' : '已加入事件時間線。'
-    pinEntrySummary.value = ''
+    if (pinMode.value === 'graph') {
+      if (!pinEntityName.value.trim()) throw new Error(locale.value === 'en' ? 'Enter a person or organization name.' : '請填寫人名或組織名。')
+      await loadPinEventGraph(eventId)
+      if (!pinEventGraph.value.entities?.length) {
+        await createEventEntity(token.value, eventId, {
+          name: pinEntityName.value.trim(),
+          entity_type: pinEntityType.value,
+          description: pinRelDesc.value.trim() || undefined,
+          source_url: pinSourceUrl.value.trim() || newsUrl.value,
+        })
+      } else {
+        if (!pinRelType.value.trim()) throw new Error(locale.value === 'en' ? 'Enter a relationship type.' : '請填寫關係類型。')
+        await createEventRelationship(token.value, eventId, {
+          from_entity_name: pinEntityName.value.trim(),
+          from_entity_type: pinEntityType.value,
+          to_entity_id: pinToEntityId.value,
+          relationship_type: pinRelType.value.trim(),
+          description: pinRelDesc.value.trim() || undefined,
+          source_type: 'news',
+          source_url: pinSourceUrl.value.trim() || newsUrl.value,
+          news_url: newsUrl.value,
+        })
+      }
+      pinMessage.value = locale.value === 'en' ? 'Added to graph.' : '已加入關係圖。'
+      pinEntityName.value = ''
+      pinRelType.value = ''
+      pinRelDesc.value = ''
+      await loadPinEventGraph(eventId)
+    } else {
+      await createEventTimelineEntry(token.value, eventId, {
+        title: pinEntryTitle.value.trim() || route.query.title_snapshot || newsUrl.value,
+        summary: pinEntrySummary.value.trim() || undefined,
+        occurred_at: new Date(pinOccurredAt.value).toISOString(),
+        source_type: 'news',
+        source_url: pinSourceUrl.value.trim() || newsUrl.value,
+        news_url: newsUrl.value,
+      })
+      pinMessage.value = locale.value === 'en' ? 'Pinned to event.' : '已加入事件時間線。'
+      pinEntrySummary.value = ''
+    }
     pinNewEventName.value = ''
     pinNewEventSummary.value = ''
     await loadData()
@@ -881,6 +934,10 @@ watch(activeTab, (tab) => {
     if (!pinSearchEvents.value.length) pinSearchEvents.value = [...relatedEvents.value]
     notifyHeight()
   }
+})
+
+watch([pinSelectedEventId, pinMode], ([eventId, mode]) => {
+  if (mode === 'graph') loadPinEventGraph(eventId)
 })
 
 watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, evidenceUploading, evidenceUploadMessage, voteError, voteMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, readSeconds], notifyHeight)
@@ -1315,6 +1372,12 @@ onMounted(async () => {
         <div class="space-y-2 rounded-md border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
           <p class="text-xs font-semibold text-cyan-100">{{ locale === 'en' ? 'Pin this article to an event' : 'Pin 此文章到事件' }}</p>
           <div v-if="!isLoggedIn" class="text-[11px] text-amber-200">{{ locale === 'en' ? 'Sign in to pin articles to events.' : '登入後才能 Pin 文章。' }}</div>
+
+          <div class="flex rounded border border-white/10 bg-zinc-900 p-0.5 text-xs font-semibold">
+            <button class="flex-1 rounded py-1.5 transition-colors" :class="pinMode === 'timeline' ? 'bg-cyan-300 text-zinc-950' : 'text-zinc-400 hover:text-zinc-200'" @click="pinMode = 'timeline'">{{ locale === 'en' ? 'Timeline' : '時間線' }}</button>
+            <button class="flex-1 rounded py-1.5 transition-colors" :class="pinMode === 'graph' ? 'bg-cyan-300 text-zinc-950' : 'text-zinc-400 hover:text-zinc-200'" @click="pinMode = 'graph'">{{ locale === 'en' ? 'Graph' : '關係圖' }}</button>
+          </div>
+
           <div class="flex gap-1.5">
             <input v-model="pinEventSearch" class="min-w-0 flex-1 rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Search events...' : '搜尋事件...'" @keydown.enter.prevent="searchPinEvents" />
             <button type="button" class="rounded border border-white/10 px-2 py-1.5 text-xs font-semibold text-zinc-200" @click="searchPinEvents">{{ locale === 'en' ? 'Search' : '搜尋' }}</button>
@@ -1327,10 +1390,33 @@ onMounted(async () => {
             <input v-model="pinNewEventName" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Event name *' : '事件名稱 *'" />
             <textarea v-model="pinNewEventSummary" rows="2" class="w-full resize-none rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Event summary' : '事件摘要'"></textarea>
           </template>
-          <input v-model="pinEntryTitle" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Entry title *' : '時間線標題 *'" />
-          <textarea v-model="pinEntrySummary" rows="2" class="w-full resize-none rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Summary' : '摘要'"></textarea>
-          <input v-model="pinOccurredAt" type="datetime-local" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" />
-          <input v-model="pinSourceUrl" type="url" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Source URL' : '參考資料 URL'" />
+
+          <template v-if="pinMode === 'timeline'">
+            <input v-model="pinEntryTitle" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Entry title *' : '時間線標題 *'" />
+            <textarea v-model="pinEntrySummary" rows="2" class="w-full resize-none rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Summary' : '摘要'"></textarea>
+            <input v-model="pinOccurredAt" type="datetime-local" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" />
+            <input v-model="pinSourceUrl" type="url" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Source URL' : '參考資料 URL'" />
+          </template>
+
+          <template v-else>
+            <p v-if="pinSelectedEventId && !pinEventGraph.entities?.length" class="rounded border border-cyan-300/20 bg-cyan-300/10 px-2 py-1.5 text-[11px] text-cyan-200">
+              {{ locale === 'en' ? 'No nodes yet — this will create the first node.' : '此圖尚無節點，將建立第一個節點。' }}
+            </p>
+            <input v-model="pinEntityName" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Person or org name *' : '人名或組織名 *'" />
+            <select v-model="pinEntityType" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300">
+              <option value="person">{{ locale === 'en' ? 'Person' : '人物' }}</option>
+              <option value="organization">{{ locale === 'en' ? 'Organization' : '組織' }}</option>
+            </select>
+            <template v-if="pinEventGraph.entities?.length">
+              <select v-model="pinToEntityId" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300">
+                <option v-for="e in pinEventGraph.entities" :key="e.id" :value="String(e.id)">{{ e.name }} · {{ e.entity_type }}</option>
+              </select>
+              <input v-model="pinRelType" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Relationship type * (e.g. works for)' : '關係 *（任職於、指控、隸屬...）'" />
+            </template>
+            <textarea v-model="pinRelDesc" rows="2" class="w-full resize-none rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Description' : '說明'"></textarea>
+            <input v-model="pinSourceUrl" type="url" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="locale === 'en' ? 'Source URL' : '參考資料 URL'" />
+          </template>
+
           <p v-if="pinError" class="text-[11px] text-red-300">{{ pinError }}</p>
           <p v-if="pinMessage" class="text-[11px] text-emerald-300">{{ pinMessage }}</p>
           <button class="w-full rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950 disabled:opacity-50" :disabled="pinSubmitting || !isLoggedIn" @click="submitPinEntry">
