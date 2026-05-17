@@ -82,6 +82,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         </div>
       </div>
 
+      <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/global-entities">{{ zh ? '人物/組織' : 'Entities' }}</RouterLink>
+
       <!-- slot for view-specific links -->
       <slot />
     </div>

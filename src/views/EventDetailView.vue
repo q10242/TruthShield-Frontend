@@ -561,6 +561,17 @@ function toDatetimeLocal(value) {
   return local.toISOString().slice(0, 16)
 }
 
+function fmtDate(value, opts = {}) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10)
+  return date.toLocaleString(zh ? 'zh-TW' : 'en', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+    ...opts,
+  })
+}
+
 function startEditTimeline(entry) {
   timelineEditId.value = String(entry.id)
   timelineEditForm.value = {
@@ -846,7 +857,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
             <span class="rounded bg-cyan-300/10 px-2 py-1 font-semibold text-cyan-100">{{ event.status }}</span>
             <span v-if="event.is_disputed" class="rounded bg-amber-500/10 px-2 py-1 font-semibold text-amber-100">{{ zh ? '爭議中' : 'Disputed' }}</span>
             <span class="rounded bg-white/10 px-2 py-1 text-zinc-300">{{ zh ? '觀看' : 'Views' }} {{ event.view_count ?? 0 }}</span>
-            <span class="rounded bg-white/10 px-2 py-1 text-zinc-300">{{ zh ? '最後活動' : 'Last activity' }} {{ event.last_activity_at || event.created_at }}</span>
+            <span class="rounded bg-white/10 px-2 py-1 text-zinc-300">{{ zh ? '最後活動' : 'Last activity' }} {{ fmtDate(event.last_activity_at || event.created_at) }}</span>
           </div>
         </div>
 
@@ -892,7 +903,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
           <div v-else class="relative space-y-5 before:absolute before:left-3 before:top-1 before:h-full before:w-px before:bg-cyan-300/30">
             <article v-for="entry in timeline" :key="entry.id" class="relative pl-10">
               <span class="absolute left-0 top-1 h-6 w-6 rounded-full border border-cyan-300/50 bg-zinc-950"></span>
-              <p class="text-xs text-zinc-500">{{ entry.occurred_at }} · {{ sourceTypes.find(s => s.value === entry.source_type)?.label ?? entry.source_type }}</p>
+              <p class="text-xs text-zinc-500">{{ fmtDate(entry.occurred_at) }} · {{ sourceTypes.find(s => s.value === entry.source_type)?.label ?? entry.source_type }}</p>
               <h2 class="mt-1 text-lg font-semibold text-white">{{ entry.title }}</h2>
               <p class="mt-1 text-sm leading-6 text-zinc-400">{{ entry.summary }}</p>
               <a v-if="entry.source_url" class="mt-2 inline-block break-all text-xs text-cyan-200 hover:text-cyan-100" :href="entry.source_url" target="_blank" rel="noopener noreferrer">{{ entry.source_url }}</a>
@@ -1048,6 +1059,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
                   </g>
                 </g>
                 <g v-for="(entity, index) in graph.entities" :key="entity.id" :class="token ? 'cursor-move' : 'cursor-default'" @pointerdown.prevent="startDragEntity(entity, $event)">
+                  <title>{{ entity.name }} ({{ entity.entity_type }})</title>
                   <circle
                     :cx="entityPosition(entity.id).x"
                     :cy="entityPosition(entity.id).y"
@@ -1182,7 +1194,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
             <div class="flex flex-wrap gap-2 text-xs">
               <span class="rounded bg-white/10 px-2 py-1 text-zinc-300">{{ log.action }}</span>
               <span class="rounded bg-white/10 px-2 py-1 text-zinc-300">{{ log.subject_type }} #{{ log.subject_id }}</span>
-              <span class="text-zinc-500">{{ log.created_at }}</span>
+              <span class="text-zinc-500">{{ fmtDate(log.created_at) }}</span>
             </div>
             <p class="mt-2 text-sm text-zinc-400">{{ log.reason }}</p>
             <div v-if="log.changes?.length" class="mt-3 grid gap-2">
