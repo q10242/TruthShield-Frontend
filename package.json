@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check:extension": "node scripts/check-extension-release.mjs dist/extension-package",
+    "package:extension:local": "node scripts/package-extension-local.mjs",
     "package:extension": "node scripts/package-extension.mjs",
     "build:release": "npm run package:extension && npm run build"
   },

@@ -7,7 +7,7 @@ const vp = inject('votePanel')
 <template>
   <section class="mt-4 space-y-3">
     <div>
-      <p class="text-xs font-semibold text-zinc-400">{{ vp.locale.value === 'en' ? 'Linked events' : '關聯事件' }}</p>
+      <p class="text-xs font-semibold text-zinc-400">{{ vp.t('votePanel.contextTabTitle') }}</p>
       <div v-if="vp.relatedEvents.value.length" class="mt-2 space-y-2">
         <div v-for="ev in vp.relatedEvents.value" :key="ev.id" class="rounded border border-cyan-300/20 bg-zinc-950/70 p-2">
           <div class="flex items-center justify-between gap-2">
@@ -57,12 +57,16 @@ const vp = inject('votePanel')
           </div>
         </div>
       </div>
-      <p v-else class="mt-1 text-[11px] text-zinc-500">{{ vp.locale.value === 'en' ? 'No events linked to this article yet.' : '此文章尚未關聯任何事件。' }}</p>
+      <div v-else class="mt-1 rounded-md border border-white/10 bg-white/[0.03] p-3">
+        <p class="text-[11px] leading-5 text-zinc-500">{{ vp.t('votePanel.noContextYet') }}</p>
+        <p class="mt-2 text-[11px] leading-5 text-zinc-400">{{ vp.t('votePanel.contextExplain') }}</p>
+      </div>
     </div>
 
     <div class="space-y-2 rounded-md border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
-      <p class="text-xs font-semibold text-cyan-100">{{ vp.locale.value === 'en' ? 'Pin this article to an event' : 'Pin 此文章到事件' }}</p>
-      <div v-if="!vp.isLoggedIn.value" class="text-[11px] text-amber-200">{{ vp.locale.value === 'en' ? 'Sign in to pin articles to events.' : '登入後才能 Pin 文章。' }}</div>
+      <p class="text-xs font-semibold text-cyan-100">{{ vp.t('votePanel.contextAddTitle') }}</p>
+      <p class="text-[11px] leading-5 text-zinc-500">{{ vp.t('votePanel.contextAddDesc') }}</p>
+      <div v-if="!vp.isLoggedIn.value" class="text-[11px] text-amber-200">{{ vp.locale.value === 'en' ? 'Sign in to add articles to events.' : '登入後才能加入事件。' }}</div>
 
       <div class="flex rounded border border-white/10 bg-zinc-900 p-0.5 text-xs font-semibold">
         <button class="flex-1 rounded py-1.5 transition-colors" :class="vp.pinMode.value === 'timeline' ? 'bg-cyan-300 text-zinc-950' : 'text-zinc-400 hover:text-zinc-200'" @click="vp.pinMode.value = 'timeline'">{{ vp.locale.value === 'en' ? 'Timeline' : '時間線' }}</button>
@@ -140,7 +144,7 @@ const vp = inject('votePanel')
       <p v-if="vp.pinError.value" class="text-[11px] text-red-300">{{ vp.pinError.value }}</p>
       <p v-if="vp.pinMessage.value" class="text-[11px] text-emerald-300">{{ vp.pinMessage.value }}</p>
       <button class="w-full rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950 disabled:opacity-50" :disabled="vp.pinSubmitting.value || !vp.isLoggedIn.value" @click="vp.submitPinEntry()">
-        {{ vp.pinSubmitting.value ? (vp.locale.value === 'en' ? 'Submitting...' : '送出中...') : (vp.locale.value === 'en' ? 'Submit Pin' : '提交 Pin') }}
+        {{ vp.pinSubmitting.value ? (vp.locale.value === 'en' ? 'Submitting...' : '送出中...') : (vp.locale.value === 'en' ? 'Add to event' : '加入事件') }}
       </button>
     </div>
   </section>

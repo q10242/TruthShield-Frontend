@@ -8,6 +8,7 @@ const state = {
   settings: defaults,
   tab: null,
   auth: null,
+  pageContext: null,
 }
 const t = window.truthShieldT || ((key) => key)
 
@@ -44,6 +45,26 @@ function currentUrl() {
 
 function currentTitle() {
   return state.tab?.title || ''
+}
+
+function reportParamsFromContext(context = {}) {
+  let domain = context.hostname || ''
+  try {
+    domain ||= new URL(currentUrl()).hostname
+  } catch {
+    domain = ''
+  }
+
+  const classificationIssue = Boolean(context.isTrackedNews && !context.isLikelyArticle)
+
+  return {
+    url: currentUrl(),
+    page_title: currentTitle(),
+    domain,
+    tab: classificationIssue ? 'classification' : 'domain',
+    report_type: classificationIssue ? 'classification' : 'missing_domain',
+    youtube_channel_url: context.youtubeChannelUrl,
+  }
 }
 
 function openTab(url) {
@@ -143,6 +164,7 @@ async function loadAuthSummary() {
     authUser.textContent = user.display_name || user.name || user.email || t('authHint')
     openLogin.hidden = true
     signOut.hidden = false
+    await loadAchievementSummary(auth)
     return
   }
 
@@ -151,6 +173,47 @@ async function loadAuthSummary() {
   authUser.textContent = t('authOpenHub')
   openLogin.hidden = false
   signOut.hidden = true
+  byId('achievementCard').hidden = true
+}
+
+async function loadAchievementSummary(auth) {
+  const card = byId('achievementCard')
+  const text = byId('achievementText')
+  if (!auth?.token) {
+    card.hidden = true
+    return
+  }
+
+  try {
+    const res = await fetch(`${state.settings.apiOrigin}/api/me/profile`, {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${auth.token}` },
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const profile = await res.json()
+    const next = (profile.achievements || []).find((item) => !item.unlocked)
+    const count = profile.achievement_summary?.unlocked_count ?? 0
+    const total = profile.achievement_summary?.total_count ?? profile.achievements?.length ?? 0
+    text.textContent = next
+      ? t('achievementNext', { count, total, name: next.name, current: next.current, target: next.target })
+      : t('achievementDone', { count, total })
+    card.hidden = false
+  } catch {
+    card.hidden = true
+  }
+}
+
+async function resyncAuth() {
+  const btn = byId('resyncAuth')
+  btn.disabled = true
+  setStatus(t('authSyncing'))
+
+  try {
+    await syncAuthFromActiveTab()
+    await loadAuthSummary()
+    setStatus(state.auth?.token ? t('authSynced') : t('authSyncNeedsLogin'), !state.auth?.token)
+  } finally {
+    btn.disabled = false
+  }
 }
 
 async function notifyActiveTabLogout() {
@@ -212,27 +275,38 @@ async function loadPageDebug() {
   const debug = byId('pageDebug')
   if (!state.tab?.id || !debug) return
 
+  const pill = (ok, labelOk, labelBad, warn = false) => {
+    const cls = ok ? 'ok' : warn ? 'warn' : 'bad'
+    return `<span class="debug-pill ${cls}">${escapeHtml(ok ? labelOk : labelBad)}</span>`
+  }
+  const row = (label, valueHtml) => `<div class="debug-row"><span>${escapeHtml(label)}</span>${valueHtml}</div>`
+
   try {
     const context = await currentPageContext()
-    debug.style.color = context?.ok ? '#a7f3d0' : '#fca5a5'
-    debug.textContent = context?.ok
-      ? JSON.stringify({
-          content_script: true,
-          hostname: context.hostname,
-          matched_domain: context.matchedDomain,
-          tracked_news: context.isTrackedNews,
-          likely_article: context.isLikelyArticle,
-          panel_enabled: context.enablePanel,
-          tooltip_enabled: context.enableTooltip,
-          domain_count: context.domainCount,
-          banner_present: context.hasArticleBanner,
-          banner_dismissed: context.articleBannerDismissed,
-          banner_url: context.articleBannerUrl,
-        }, null, 2)
-      : 'content_script: false'
+    state.pageContext = context
+    const isSupported = Boolean(context?.ok)
+    const isTracked = Boolean(context?.isTrackedNews)
+    const isArticle = Boolean(context?.isLikelyArticle)
+    const bannerVisible = Boolean(context?.hasArticleBanner)
+    const bannerDismissed = Boolean(context?.articleBannerDismissed)
+
+    debug.innerHTML = [
+      row(t('diagContentScript'), pill(isSupported, t('diagOk'), t('diagNotRunning'))),
+      row(t('diagTrackedDomain'), pill(isTracked, t('diagTracked'), t('diagNotTracked'), isSupported && !isTracked)),
+      row(t('diagArticlePage'), pill(isArticle, t('diagArticle'), t('diagNotArticle'), isSupported && isTracked && !isArticle)),
+      row(t('diagBanner'), pill(bannerVisible, t('diagShown'), bannerDismissed ? t('diagDismissed') : t('diagNotShown'), isSupported && isTracked && isArticle && !bannerVisible)),
+    ].join('')
+
+    byId('pageDebugHint').textContent = isSupported
+      ? [
+          context.hostname || '',
+          context.matchedDomain ? `${t('diagMatched')}: ${context.matchedDomain}` : '',
+          context.domainCount ? `${t('diagDomainCount')}: ${context.domainCount}` : '',
+        ].filter(Boolean).join(' · ')
+      : t('diagNoContentHint')
   } catch (error) {
-    debug.style.color = '#fca5a5'
-    debug.textContent = `content_script: false\n${error.message || 'No response from content script'}`
+    debug.innerHTML = row(t('diagContentScript'), pill(false, t('diagOk'), t('diagNotRunning')))
+    byId('pageDebugHint').textContent = error.message || t('diagNoContentHint')
   }
 }
 
@@ -250,6 +324,17 @@ async function openVotePanel() {
   }
 
   openWindow(truthUrl('/iframe-vote-panel', { news_url: currentUrl(), expanded: '1' }), 460, 720)
+}
+
+async function reshowBanner() {
+  if (!state.tab?.id) return
+  try {
+    const response = await chrome.tabs.sendMessage(state.tab.id, { type: 'TRUTH_SHIELD_RESHOW_BANNER', url: currentUrl() })
+    setStatus(response?.ok ? t('bannerReshown') : t('bannerReshowFailed'), !response?.ok)
+    await loadPageDebug()
+  } catch {
+    setStatus(t('bannerReshowFailed'), true)
+  }
 }
 
 async function loadSummary() {
@@ -353,7 +438,7 @@ function renderEventsList(events) {
         <div class="event-name">${escapeHtml(ev.name)}</div>
         <div class="event-meta">時間線 ${c.timeline ?? 0} · 關係 ${c.relationships ?? 0} · 新聞 ${c.items ?? 0}</div>
         <div class="event-actions">
-          <button class="btn-sm cyan" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="pin">＋ Pin 此文章</button>
+          <button class="btn-sm cyan" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="pin">＋ 加入事件</button>
           <button class="btn-sm" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="timeline">${t('eventsTimeline')}</button>
           <button class="btn-sm" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="graph">${t('eventsGraph')}</button>
           <a class="btn-sm" href="${escapeHtml(state.settings.tooltipOrigin)}/events/${ev.id}" target="_blank" rel="noopener noreferrer">${t('eventsOpenPage')}</a>
@@ -603,6 +688,10 @@ function bindActions() {
     trackPopupEvent('popup_action', 'open_login')
     openWindow(truthUrl('/login', { redirect: '/extension-auth-sync?close=1' }), 460, 720)
   })
+  byId('resyncAuth').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'resync_auth')
+    resyncAuth()
+  })
   byId('signOut').addEventListener('click', () => {
     signOut()
   })
@@ -621,11 +710,7 @@ function bindActions() {
   byId('openReport').addEventListener('click', async () => {
     trackPopupEvent('popup_action', 'open_report')
     const context = await currentPageContext()
-    openWindow(truthUrl('/report-domain', {
-      url: currentUrl(),
-      page_title: currentTitle(),
-      youtube_channel_url: context.youtubeChannelUrl,
-    }), 540, 760)
+    openWindow(truthUrl('/report-domain', reportParamsFromContext(context)), 540, 760)
   })
   byId('openReadiness').addEventListener('click', () => {
     trackPopupEvent('popup_action', 'open_readiness')
@@ -648,6 +733,43 @@ function bindActions() {
   byId('openInstall').addEventListener('click', () => {
     trackPopupEvent('popup_action', 'open_install')
     openTab(truthUrl('/extension-install'))
+  })
+  byId('openMobile').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'open_mobile')
+    openTab(truthUrl('/mobile', { url: currentUrl() }))
+  })
+  byId('openProfile').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'open_profile')
+    openTab(truthUrl('/profile'))
+  })
+  byId('repairReport').addEventListener('click', async () => {
+    trackPopupEvent('popup_action', 'repair_report')
+    const context = state.pageContext || await currentPageContext()
+    openWindow(truthUrl('/report-domain', reportParamsFromContext(context)), 540, 760)
+  })
+  byId('repairShowBanner').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'repair_show_banner')
+    reshowBanner()
+  })
+  byId('repairHealth').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'repair_health')
+    openTab(truthUrl('/health'))
+  })
+  byId('repairGuide').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'repair_guide')
+    openTab(truthUrl('/user-guide', { section: 'extension-settings' }) + '#extension-settings')
+  })
+  byId('openDemo').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'open_demo')
+    openTab(truthUrl('/demo-news'))
+  })
+  byId('openGuide').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'open_guide')
+    openTab(truthUrl('/user-guide'))
+  })
+  byId('dismissOnboarding').addEventListener('click', () => {
+    chrome.storage.local.set({ truthshield_onboarding_dismissed: true })
+    byId('onboarding').hidden = true
   })
 
   // Tab switching
@@ -710,6 +832,9 @@ async function initPopup() {
     setStatus(disabled ? t('unsupportedTab') : t('readyStatus'))
 
     bindActions()
+    chrome.storage.local.get({ truthshield_onboarding_dismissed: false }, (local) => {
+      byId('onboarding').hidden = Boolean(local.truthshield_onboarding_dismissed)
+    })
     trackPopupEvent('popup_opened', 'popup')
     await loadPageDebug()
     await loadAuthSummary()

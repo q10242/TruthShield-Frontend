@@ -51,9 +51,9 @@ const relationshipDescription = ref('')
 const relationshipSourceUrl = ref(newsUrl.value)
 
 const text = {
-  title: zh ? 'Pin 到事件' : 'Pin to Event',
-  timelineTitle: zh ? 'Pin 到事件時間線' : 'Pin to Event Timeline',
-  graphTitle: zh ? 'Pin 到人物/組織關係圖' : 'Pin to People/Org Graph',
+  title: zh ? '加入事件' : 'Add to Event',
+  timelineTitle: zh ? '加入事件時間線' : 'Add to Event Timeline',
+  graphTitle: zh ? '加入人物/組織關係圖' : 'Add to People/Org Graph',
   login: zh ? '登入後才能提交事件編輯。' : 'Sign in to submit event edits.',
   selectEvent: zh ? '選擇既有事件' : 'Select existing event',
   searchEvent: zh ? '搜尋事件' : 'Search events',
@@ -70,7 +70,7 @@ const text = {
   relatedTo: zh ? '跟誰有關係' : 'Related to',
   relationship: zh ? '關係' : 'Relationship',
   description: zh ? '說明' : 'Description',
-  submit: zh ? '提交 Pin' : 'Submit Pin',
+  submit: zh ? '加入事件' : 'Add to Event',
   loading: zh ? '載入中...' : 'Loading...',
   firstNode: zh ? '這張圖還沒有節點，這次會先建立第一個人物/組織節點。' : 'This graph has no nodes yet. This submission will create the first node.',
   viewEvent: zh ? '查看事件頁' : 'Open event page',
@@ -191,7 +191,7 @@ async function submit() {
     } else {
       await submitTimeline()
     }
-    message.value = zh ? '已加入事件。' : 'Pinned to event.'
+    message.value = zh ? '已加入事件，編輯紀錄已保存。' : 'Added to event. The edit log was saved.'
     await loadEvents()
   } catch (err) {
     error.value = err.message || 'Submit failed'

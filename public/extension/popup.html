@@ -41,6 +41,18 @@
       .auth-actions { display:flex; gap:8px; margin-top:10px; }
       .auth-actions button { margin-top:0; padding:8px; text-align:center; }
       .auth-actions .danger { border-color:#7f1d1d; background:rgba(127,29,29,.35); color:#fecaca; }
+      .onboarding {
+        margin-top: 12px;
+        border: 1px solid rgba(103,232,249,.25);
+        border-radius: 8px;
+        padding: 10px;
+        background: rgba(8,145,178,.08);
+      }
+      .onboarding-title { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#cffafe; font-weight:700; font-size:12px; }
+      .onboarding ol { margin: 8px 0 0; padding-left: 18px; color:#d4d4d8; font-size:12px; line-height:1.55; }
+      .onboarding-actions { display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px; }
+      .onboarding-actions button { margin-top:0; padding:8px; font-size:12px; text-align:center; }
+      .dismiss { width:auto; margin:0; border:0; background:transparent; color:#67e8f9; padding:0; font-size:11px; }
       .debug {
         margin-top: 12px;
         border: 1px solid #27272a;
@@ -49,7 +61,25 @@
         padding: 10px;
       }
       .debug strong { display:block; color:#cffafe; font-size:12px; }
-      .debug pre { margin:8px 0 0; max-height:150px; overflow:auto; white-space:pre-wrap; word-break:break-word; color:#a7f3d0; font:11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .debug-grid { display:grid; gap:6px; margin-top:8px; }
+      .debug-row { display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid #27272a; border-radius:6px; padding:7px 8px; background:#18181b; }
+      .debug-row span:first-child { color:#a1a1aa; font-size:11px; }
+      .debug-pill { border-radius:999px; padding:2px 7px; font-size:11px; font-weight:700; white-space:nowrap; }
+      .debug-pill.ok { background:rgba(16,185,129,.16); color:#a7f3d0; }
+      .debug-pill.warn { background:rgba(245,158,11,.16); color:#fde68a; }
+      .debug-pill.bad { background:rgba(239,68,68,.16); color:#fecaca; }
+      .debug small { display:block; margin-top:8px; color:#71717a; line-height:1.45; word-break:break-word; }
+      .repair-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+      .repair-actions button { margin-top:0; padding:8px; font-size:12px; text-align:center; }
+      .achievement {
+        margin-top:12px;
+        border:1px solid rgba(103,232,249,.22);
+        border-radius:8px;
+        padding:10px;
+        background:rgba(255,255,255,.035);
+      }
+      .achievement strong { display:block; color:#cffafe; font-size:12px; }
+      .achievement p { font-size:12px; }
       button {
         width: 100%;
         margin-top: 8px;
@@ -227,6 +257,22 @@
       <div id="panel-status">
         <p data-i18n="popupIntro">新聞頁會顯示頂部橫幅；點擊橫幅可開啟投票與證據面板。連結也可用右鍵查看或回報。</p>
 
+        <div id="onboarding" class="onboarding" hidden>
+          <div class="onboarding-title">
+            <span data-i18n="onboardingTitle">第一次使用 TruthShield</span>
+            <button id="dismissOnboarding" class="dismiss" type="button" data-i18n="dismissOnboarding">知道了</button>
+          </div>
+          <ol>
+            <li data-i18n="onboardingStep1">先同步官網登入狀態。</li>
+            <li data-i18n="onboardingStep2">打開互動示範確認橫幅、右鍵與投票面板。</li>
+            <li data-i18n="onboardingStep3">到新聞頁閱讀後再投票或補證據。</li>
+          </ol>
+          <div class="onboarding-actions">
+            <button id="openDemo" type="button" data-i18n="openDemo">開啟 Demo</button>
+            <button id="openGuide" type="button" data-i18n="openGuide">閱讀手冊</button>
+          </div>
+        </div>
+
         <div class="grid">
           <div class="card"><div class="label" data-i18n="monitoredDomains">監控網域</div><div id="domains" class="value">-</div></div>
           <div class="card"><div class="label" data-i18n="votes">投票數</div><div id="votes" class="value">-</div></div>
@@ -243,14 +289,28 @@
           <strong id="authStatus" data-i18n="authChecking">登入狀態檢查中</strong>
           <span id="authUser" data-i18n="authHint">如果你已在官網登入，插件會自動同步。</span>
           <div class="auth-actions">
+            <button id="resyncAuth" type="button" data-i18n="resyncAuth">重新同步登入</button>
             <button id="openLogin" type="button" data-i18n="signIn">登入</button>
             <button id="signOut" class="danger" type="button" data-i18n="signOut" hidden>登出</button>
           </div>
         </div>
 
         <div class="debug">
-          <strong>頁面診斷</strong>
-          <pre id="pageDebug">checking...</pre>
+          <strong data-i18n="pageDiagnostics">頁面診斷</strong>
+          <div id="pageDebug" class="debug-grid"></div>
+          <small id="pageDebugHint"></small>
+          <div class="repair-actions">
+            <button id="repairReport" type="button" data-i18n="repairReport">回報此頁</button>
+            <button id="repairShowBanner" type="button" data-i18n="repairShowBanner">重新顯示橫幅</button>
+            <button id="repairHealth" type="button" data-i18n="repairHealth">檢查 API</button>
+            <button id="repairGuide" type="button" data-i18n="repairGuide">看排除說明</button>
+          </div>
+        </div>
+
+        <div id="achievementCard" class="achievement" hidden>
+          <strong data-i18n="achievementCardTitle">今日貢獻</strong>
+          <p id="achievementText"></p>
+          <button id="openProfile" type="button" class="link-button" data-i18n="openProfile">開啟個人頁</button>
         </div>
 
         <button id="openStatus" class="primary" data-i18n="openStatus">查看目前頁面評分</button>
@@ -260,6 +320,7 @@
         <button id="openHealth" data-i18n="openHealth">開啟系統健康狀態</button>
         <button id="openBugReport" data-i18n="openBugReport">回報 Bug 或安全問題</button>
         <button id="openInstall" data-i18n="openInstall">下載與安裝教學</button>
+        <button id="openMobile" data-i18n="openMobile">開啟手機版入口</button>
 
         <button id="openHub" class="link-button" type="button" data-i18n="openHub">開啟真相總部</button>
         <button id="openOptions" class="link-button" type="button" data-i18n="settings">設定</button>

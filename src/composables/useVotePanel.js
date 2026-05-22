@@ -40,6 +40,7 @@ export function useVotePanel(route) {
   const error = ref('')
   const voteError = ref('')
   const voteMessage = ref('')
+  const achievementToastMessage = ref('')
   const evidenceError = ref('')
   const reportMessage = ref('')
   const changeReportMessage = ref('')
@@ -100,13 +101,19 @@ export function useVotePanel(route) {
   const readMinimum = ref(15)
   const readSynced = ref(false)
   const readTimer = ref(null)
+  const advancedMode = ref(false)
 
   const tabSteps = computed(() => [
     { key: 'results', number: 1, label: t('votePanel.tabs.results') },
     { key: 'vote', number: 2, label: t('votePanel.tabs.vote') },
     { key: 'evidence', number: 3, label: t('votePanel.tabs.evidence') },
-    { key: 'events', number: 4, label: locale.value === 'en' ? 'Events' : '事件' },
+    { key: 'events', number: 4, label: t('votePanel.tabs.context') },
   ])
+  const visibleTabSteps = computed(() => {
+    if (advancedMode.value || relatedEvents.value.length) return tabSteps.value
+
+    return tabSteps.value.filter((step) => step.key !== 'events')
+  })
 
   const newsUrl = computed(() => route.query.news_url || '')
   const pageSnapshot = computed(() => ({
@@ -151,7 +158,33 @@ export function useVotePanel(route) {
 
     return localized === key ? t('votePanel.evidenceRequirement.optional') : localized
   })
-  const isLoggedIn = computed(() => Boolean(token.value && user.value))
+  const selectedEvidenceUrlLabel = computed(() => {
+    if (!selectedTag.value) return t('votePanel.evidenceUrlLabel')
+    const requirement = selectedEvidenceRequirement.value
+    if (requirement === 'context_note') return t('votePanel.contextSourceLabel')
+    if (requirement === 'disclosure_note') return t('votePanel.disclosureSourceLabel')
+    if (requiresEvidenceUrl.value) return t('votePanel.evidenceUrlLabel')
+
+    return t('votePanel.optionalSourceLabel')
+  })
+  const selectedEvidenceNoteLabel = computed(() => {
+    if (!selectedTag.value) return t('votePanel.evidenceNoteLabel')
+    const requirement = selectedEvidenceRequirement.value
+    if (requirement === 'context_note') return t('votePanel.contextReasonLabel')
+    if (requirement === 'disclosure_note') return t('votePanel.disclosureReasonLabel')
+
+    return t('votePanel.evidenceNoteLabel')
+  })
+  const selectedEvidenceNotePlaceholder = computed(() => {
+    if (!selectedTag.value) return t('votePanel.optional')
+    const requirement = selectedEvidenceRequirement.value
+    if (requirement === 'context_note') return t('votePanel.contextReasonPlaceholder')
+    if (requirement === 'disclosure_note') return t('votePanel.disclosureReasonPlaceholder')
+    if (requiresEvidenceNote.value) return t('votePanel.evidenceNoteRequired')
+
+    return t('votePanel.optional')
+  })
+  const isLoggedIn = computed(() => Boolean(token.value))
   const totalWeight = computed(() => Number(status.value?.total_weight || 0))
   const distribution = computed(() => status.value?.distribution || [])
   const secondaryDistribution = computed(() => status.value?.secondary_distribution || [])
@@ -177,8 +210,29 @@ export function useVotePanel(route) {
   const userTitle = computed(() => profile.value?.title?.name || t('profile.observer'))
   const achievementCount = computed(() => profile.value?.achievement_summary?.unlocked_count || unlockedAchievements.value.length || 0)
   const achievementTotal = computed(() => profile.value?.achievement_summary?.total_count || profile.value?.achievements?.length || 0)
+  const estimatedVoteWeight = computed(() => {
+    if (!isLoggedIn.value) return 0
+    const trust = Number(user.value?.trust_score || 0)
+    const identity = Number(user.value?.identity_multiplier ?? 1)
+    const abuse = Number(user.value?.abuse_multiplier ?? 1)
+
+    return Math.max(0, trust * identity * abuse)
+  })
   const isVotingOpen = computed(() => (status.value?.voting_closes_at ? Boolean(status.value?.is_open) : true))
   const hasReadEnough = computed(() => readMinimum.value <= 0 || readSeconds.value >= readMinimum.value || Boolean(myVote.value))
+  const cannotVoteReasons = computed(() => {
+    const reasons = []
+    if (!isVotingOpen.value) reasons.push(t('votePanel.cannotVoteClosed'))
+    if (!isLoggedIn.value) reasons.push(t('votePanel.cannotVoteLogin'))
+    if (isVotingOpen.value && isLoggedIn.value && !hasReadEnough.value) {
+      reasons.push(t('votePanel.cannotVoteRead', { seconds: Math.max(0, readMinimum.value - readSeconds.value) }))
+    }
+    if (selectedTag.value && requiresEvidenceUrl.value && !evidenceUrl.value.trim()) reasons.push(t('votePanel.cannotVoteEvidenceUrl'))
+    if (selectedTag.value && requiresEvidenceNote.value && !evidenceNote.value.trim()) reasons.push(t('votePanel.cannotVoteEvidenceNote'))
+
+    return reasons
+  })
+  const primaryCannotVoteReason = computed(() => cannotVoteReasons.value[0] || '')
   const readProgress = computed(() => {
     if (readMinimum.value <= 0) return 100
     return Math.min(100, Math.round((readSeconds.value / readMinimum.value) * 100))
@@ -233,7 +287,7 @@ export function useVotePanel(route) {
 
     return null
   })
-  const activeStepNumber = computed(() => tabSteps.value.find((step) => step.key === activeTab.value)?.number || 1)
+  const activeStepNumber = computed(() => visibleTabSteps.value.find((step) => step.key === activeTab.value)?.number || 1)
 
   const toneClass = computed(() => {
     const tone = status.value?.tone
@@ -300,6 +354,29 @@ export function useVotePanel(route) {
     }).filter(Boolean)
     return { nodeLayouts, edgeLayouts }
   })
+  const groupedVotingTags = computed(() => {
+    const groups = [
+      { key: 'positive', label: t('votePanel.tagGroupPositive'), match: (tag) => tag.severity === 'positive' },
+      { key: 'headline', label: t('votePanel.tagGroupHeadline'), match: (tag) => ['clickbait_headline', 'headline_mismatch', 'misleading_headline'].includes(tag.slug) || String(tag.slug || '').includes('headline') || String(tag.name || '').includes('標題') },
+      { key: 'context', label: t('votePanel.tagGroupContext'), match: (tag) => ['single_source', 'lack_of_balance', 'missing_context', 'out_of_context', 'hidden_facts'].includes(tag.slug) || tag.evidence_requirement === 'context_note' },
+      { key: 'source', label: t('votePanel.tagGroupSource'), match: (tag) => ['unverified_source', 'anonymous_source', 'wrong_source', 'fabricated'].includes(tag.slug) || String(tag.slug || '').includes('source') },
+      { key: 'commercial', label: t('votePanel.tagGroupCommercial'), match: (tag) => ['sponsored_content', 'content_farm', 'undisclosed_sponsorship'].includes(tag.slug) || tag.evidence_requirement === 'disclosure_note' },
+    ]
+    const used = new Set()
+    const resolved = groups.map((group) => {
+      const items = tags.value.filter((tag) => {
+        if (used.has(tag.id)) return false
+        const matched = group.match(tag)
+        if (matched) used.add(tag.id)
+        return matched
+      })
+      return { key: group.key, label: group.label, tags: items }
+    }).filter((group) => group.tags.length)
+    const other = tags.value.filter((tag) => !used.has(tag.id))
+    if (other.length) resolved.push({ key: 'other', label: t('votePanel.tagGroupOther'), tags: other })
+
+    return resolved
+  })
 
   function readStoredUser() {
     try {
@@ -351,14 +428,68 @@ export function useVotePanel(route) {
 
     try {
       user.value = await fetchCurrentUser(token.value)
-      profile.value = await fetchProfile(token.value).catch(() => null)
       readMinimum.value = Number(user.value?.min_read_seconds_before_vote ?? 15)
       localStorage.setItem(USER_KEY, JSON.stringify(user.value))
-    } catch {
+    } catch (err) {
+      if (err?.status === 401 || err?.status === 403) {
+        localStorage.removeItem(TOKEN_KEY)
+        localStorage.removeItem(USER_KEY)
+        token.value = ''
+        user.value = null
+        profile.value = null
+      }
+
+      return
+    }
+
+    profile.value = await fetchProfile(token.value).catch(() => null)
+  }
+
+  function requestAuthFromParent() {
+    window.parent?.postMessage({
+      type: 'TRUTH_SHIELD_AUTH_REQUEST',
+      source: 'truthshield-vote-panel',
+    }, '*')
+  }
+
+  async function handleAuthMessage(event) {
+    if (event.data?.type === 'TRUTH_SHIELD_AUTH_UPDATED') {
+      const isSameOriginLogin = event.origin === window.location.origin
+      const isExtensionHandoff = event.source === window.parent && event.data.source === 'truthshield-extension'
+
+      if ((isSameOriginLogin || isExtensionHandoff) && event.data.token) {
+        localStorage.setItem(TOKEN_KEY, event.data.token)
+        if (event.data.user) {
+          localStorage.setItem(USER_KEY, JSON.stringify(event.data.user))
+        }
+
+        window.parent?.postMessage({
+          type: 'TRUTH_SHIELD_AUTH_UPDATED',
+          token: event.data.token,
+          user: event.data.user || null,
+        }, '*')
+      }
+
+      await loadAuth()
+      await syncReadSession()
+      await loadData()
+      notifyHeight()
+    }
+
+    if (event.data?.type === 'TRUTH_SHIELD_AUTH_CLEARED') {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_KEY)
       token.value = ''
       user.value = null
+      profile.value = null
+      notifyHeight()
+    }
+
+    if (event.data?.type === 'TRUTH_SHIELD_ARTICLE_READ_TICK') {
+      readSeconds.value = Math.max(readSeconds.value, Number(event.data.secondsRead || 0))
+      if (readSeconds.value % 5 === 0 || readSeconds.value >= readMinimum.value) {
+        await syncReadSession()
+      }
     }
   }
 
@@ -451,7 +582,7 @@ export function useVotePanel(route) {
         selectedSecondaryTagIds.value = []
       }
     } catch (err) {
-      error.value = err.message || t('votePanel.unavailable')
+      error.value = friendlyError(err, t('votePanel.unavailable'))
     } finally {
       loading.value = false
       statusLoading.value = false
@@ -465,6 +596,23 @@ export function useVotePanel(route) {
       url: newsUrl.value,
       status: status.value,
     }, '*')
+  }
+
+  async function shareCurrentResult() {
+    const text = status.value?.display_text || t('votePanel.noData')
+    const shareUrl = newsUrl.value || window.location.href
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'TruthShield', text, url: shareUrl })
+        return
+      }
+      await navigator.clipboard?.writeText(`${text}\n${shareUrl}`)
+      voteMessage.value = t('votePanel.shareCopied')
+    } catch {
+      voteMessage.value = t('votePanel.shareFallback')
+    } finally {
+      notifyHeight()
+    }
   }
 
   async function submitOfficialResponse() {
@@ -552,6 +700,7 @@ export function useVotePanel(route) {
   async function submitVote() {
     voteError.value = ''
     voteMessage.value = ''
+    achievementToastMessage.value = ''
 
     if (!isLoggedIn.value) {
       openLogin()
@@ -586,6 +735,7 @@ export function useVotePanel(route) {
     submitting.value = true
 
     try {
+      const previousAchievementCount = achievementCount.value
       await createVote(token.value, {
         url: newsUrl.value,
         tag_id: selectedTagId.value,
@@ -610,13 +760,14 @@ export function useVotePanel(route) {
       evidenceUrl.value = ''
       evidenceNote.value = ''
       await loadData()
+      if (achievementCount.value > previousAchievementCount) {
+        achievementToastMessage.value = t('votePanel.achievementUnlocked')
+      } else if (nextAchievement.value) {
+        achievementToastMessage.value = t('votePanel.achievementProgress', { name: nextAchievement.value.name })
+      }
       notifyVoteUpdated()
     } catch (err) {
-      voteError.value = err.status === 409
-        ? t('votePanel.voteWindowClosedError')
-        : err.status === 428
-          ? t('votePanel.readRequiredError', { minimum: err.payload?.minimum_read_seconds || readMinimum.value, current: err.payload?.seconds_read ?? readSeconds.value })
-          : err.errors?.evidence_url?.[0] || err.errors?.evidence_note?.[0] || err.message || t('votePanel.voteFailed')
+      voteError.value = friendlyError(err, t('votePanel.voteFailed'))
     } finally {
       submitting.value = false
       notifyHeight()
@@ -810,6 +961,83 @@ export function useVotePanel(route) {
     return item.is_trusted_evidence ? t('evidence.trustedSource') : t('evidence.communityPending')
   }
 
+  function evidenceQualityState(item) {
+    const netWeight = Number(item.net_helpful_weight || 0)
+    const helpful = Number(item.helpful_count || 0)
+    const unhelpful = Number(item.unhelpful_count || 0)
+    if (item.is_trusted_evidence || netWeight >= 2) return 'strong'
+    if (netWeight < 0 || unhelpful > helpful) return 'disputed'
+
+    return 'pending'
+  }
+
+  function evidenceQualityLabel(item) {
+    return t(`votePanel.evidenceQuality.${evidenceQualityState(item)}`)
+  }
+
+  function evidenceQualityClass(item) {
+    const state = evidenceQualityState(item)
+    if (state === 'strong') return 'bg-emerald-500/15 text-emerald-200'
+    if (state === 'disputed') return 'bg-orange-500/15 text-orange-100'
+
+    return 'bg-zinc-800 text-zinc-400'
+  }
+
+  function tagEvidenceRequirement(tag) {
+    if (!tag) return 'optional'
+
+    return tag.evidence_requirement || (tag.requires_evidence ? 'strong_evidence' : 'optional')
+  }
+
+  function tagEvidenceBadge(tag) {
+    const requirement = tagEvidenceRequirement(tag)
+    if (tag.evidence_url_required || requirement === 'strong_evidence') return t('votePanel.badgeEvidenceUrl')
+    if (tag.evidence_note_required || requirement === 'context_note' || requirement === 'disclosure_note') return t('votePanel.badgeTextReason')
+
+    return t('votePanel.badgeOptional')
+  }
+
+  function tagEvidenceBadgeClass(tag) {
+    const requirement = tagEvidenceRequirement(tag)
+    if (tag.evidence_url_required || requirement === 'strong_evidence') return 'border-amber-300/30 bg-amber-300/10 text-amber-100'
+    if (tag.evidence_note_required || requirement === 'context_note' || requirement === 'disclosure_note') return 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100'
+
+    return 'border-white/10 bg-white/5 text-zinc-400'
+  }
+
+  function tagPlainHint(tag) {
+    if (!tag?.slug) return tag?.description || t('votePanel.tagPlainFallback')
+    const path = `labelGuide.criteria.${tag.slug}`
+    const localized = t(path)
+    const text = localized === path ? tag.description || t('votePanel.tagPlainFallback') : localized
+
+    return text.length > 88 ? `${text.slice(0, 88)}...` : text
+  }
+
+  function friendlyError(err, fallback = '') {
+    const statusCode = err?.status || err?.payload?.status
+    if (statusCode === 401) return t('votePanel.errorUnauthorized')
+    if (statusCode === 403) return t('votePanel.errorForbidden')
+    if (statusCode === 409) return t('votePanel.voteWindowClosedError')
+    if (statusCode === 428) {
+      return t('votePanel.readRequiredError', {
+        minimum: err.payload?.minimum_read_seconds || readMinimum.value,
+        current: err.payload?.seconds_read ?? readSeconds.value,
+      })
+    }
+    if (statusCode === 422) {
+      const first = err.errors?.evidence_url?.[0]
+        || err.errors?.evidence_note?.[0]
+        || err.errors?.tag_id?.[0]
+      return first || t('votePanel.errorValidation')
+    }
+    if (statusCode === 429) return t('votePanel.errorRateLimited')
+    if (statusCode >= 500) return t('votePanel.errorServer')
+    if (/Failed to fetch|NetworkError|Load failed/i.test(err?.message || '')) return t('votePanel.errorNetwork')
+
+    return err?.message || fallback || t('votePanel.errorUnknown')
+  }
+
   async function openEventDetail(ev, mode) {
     if (eventDetailTab.value?.eventId === ev.id && eventDetailTab.value?.mode === mode) {
       eventDetailTab.value = null
@@ -938,7 +1166,7 @@ export function useVotePanel(route) {
           source_url: pinSourceUrl.value.trim() || newsUrl.value,
           news_url: newsUrl.value,
         })
-        pinMessage.value = locale.value === 'en' ? 'Pinned to event.' : '已加入事件時間線。'
+        pinMessage.value = locale.value === 'en' ? 'Added to event timeline. Edit log saved.' : '已加入事件時間線，編輯紀錄已保存。'
         pinEntrySummary.value = ''
       }
       pinNewEventName.value = ''
@@ -968,44 +1196,23 @@ export function useVotePanel(route) {
     if (mode === 'graph') loadPinEventGraph(eventId)
   })
 
-  watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, evidenceUploading, evidenceUploadMessage, voteError, voteMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, readSeconds], notifyHeight)
+  watch(visibleTabSteps, (steps) => {
+    if (!steps.some((step) => step.key === activeTab.value)) {
+      activeTab.value = 'results'
+    }
+  })
+
+  watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, evidenceUploading, evidenceUploadMessage, voteError, voteMessage, achievementToastMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, readSeconds], notifyHeight)
 
   onMounted(async () => {
     trackEvent('vote_panel_open', { source: 'extension', feature: 'vote_panel', url: newsUrl.value })
+    window.addEventListener('message', handleAuthMessage)
+    requestAuthFromParent()
     await loadAuth()
     await syncSnapshot()
     await loadData()
     window.addEventListener('focus', loadAuth)
     window.addEventListener('storage', loadAuth)
-    window.addEventListener('message', async (event) => {
-      if (event.data?.type === 'TRUTH_SHIELD_AUTH_UPDATED') {
-        const isSameOriginLogin = event.origin === window.location.origin
-        const isExtensionHandoff = event.source === window.parent && event.data.source === 'truthshield-extension'
-
-        if ((isSameOriginLogin || isExtensionHandoff) && event.data.token) {
-          localStorage.setItem(TOKEN_KEY, event.data.token)
-          if (event.data.user) {
-            localStorage.setItem(USER_KEY, JSON.stringify(event.data.user))
-          }
-
-          window.parent?.postMessage({
-            type: 'TRUTH_SHIELD_AUTH_UPDATED',
-            token: event.data.token,
-            user: event.data.user || null,
-          }, '*')
-        }
-
-        await loadAuth()
-        await syncReadSession()
-      }
-
-      if (event.data?.type === 'TRUTH_SHIELD_ARTICLE_READ_TICK') {
-        readSeconds.value = Math.max(readSeconds.value, Number(event.data.secondsRead || 0))
-        if (readSeconds.value % 5 === 0 || readSeconds.value >= readMinimum.value) {
-          await syncReadSession()
-        }
-      }
-    })
     startReadTracking()
     await syncReadSession()
     notifyHeight()
@@ -1023,6 +1230,7 @@ export function useVotePanel(route) {
     error,
     voteError,
     voteMessage,
+    achievementToastMessage,
     evidenceError,
     reportMessage,
     changeReportMessage,
@@ -1083,8 +1291,10 @@ export function useVotePanel(route) {
     readMinimum,
     readSynced,
     readTimer,
+    advancedMode,
     // computed
     tabSteps,
+    visibleTabSteps,
     newsUrl,
     pageSnapshot,
     selectedTag,
@@ -1093,6 +1303,9 @@ export function useVotePanel(route) {
     requiresEvidenceUrl,
     requiresEvidenceNote,
     selectedEvidenceGuidance,
+    selectedEvidenceUrlLabel,
+    selectedEvidenceNoteLabel,
+    selectedEvidenceNotePlaceholder,
     isLoggedIn,
     totalWeight,
     distribution,
@@ -1108,8 +1321,11 @@ export function useVotePanel(route) {
     userTitle,
     achievementCount,
     achievementTotal,
+    estimatedVoteWeight,
     isVotingOpen,
     hasReadEnough,
+    cannotVoteReasons,
+    primaryCannotVoteReason,
     readProgress,
     deadlineText,
     finalizedText,
@@ -1122,6 +1338,7 @@ export function useVotePanel(route) {
     activeStepNumber,
     toneClass,
     graphLayout,
+    groupedVotingTags,
     // functions
     formatDateTime,
     loadAuth,
@@ -1130,6 +1347,7 @@ export function useVotePanel(route) {
     startReadTracking,
     loadData,
     notifyVoteUpdated,
+    shareCurrentResult,
     submitOfficialResponse,
     reactOfficial,
     openLogin,
@@ -1145,6 +1363,14 @@ export function useVotePanel(route) {
     evidencePreviewUrl,
     evidenceTypeLabel,
     evidenceTrustLabel,
+    evidenceQualityState,
+    evidenceQualityLabel,
+    evidenceQualityClass,
+    tagEvidenceRequirement,
+    tagEvidenceBadge,
+    tagEvidenceBadgeClass,
+    tagPlainHint,
+    friendlyError,
     openEventDetail,
     searchPinEvents,
     loadPinEventGraph,

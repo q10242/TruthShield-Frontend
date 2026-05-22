@@ -73,6 +73,37 @@ function metricRows(metrics) {
   return Object.entries(metrics || {}).slice(0, 4)
 }
 
+function typeLabel(type) {
+  const match = typeOptions.find((option) => option.value === type)
+  return match ? t(match.labelKey) : type
+}
+
+function actionLabel(task) {
+  const map = {
+    domain_candidate: t('communityTasks.actionDomain'),
+    url_rule_candidate: t('communityTasks.actionUrlRule'),
+    trusted_source_candidate: t('communityTasks.actionTrustedSource'),
+    evidence_quality_review: t('communityTasks.actionEvidence'),
+    controversial_news: t('communityTasks.actionControversy'),
+    needs_official_response: t('communityTasks.actionOfficialResponse'),
+  }
+
+  return map[task.type] || t('communityTasks.openDetail')
+}
+
+function taskImpact(task) {
+  const map = {
+    domain_candidate: t('communityTasks.impactDomain'),
+    url_rule_candidate: t('communityTasks.impactUrlRule'),
+    trusted_source_candidate: t('communityTasks.impactTrustedSource'),
+    evidence_quality_review: t('communityTasks.impactEvidence'),
+    controversial_news: t('communityTasks.impactControversy'),
+    needs_official_response: t('communityTasks.impactOfficialResponse'),
+  }
+
+  return map[task.type] || t('communityTasks.impactDefault')
+}
+
 onMounted(load)
 </script>
 
@@ -122,15 +153,16 @@ onMounted(load)
             <div>
               <div class="flex flex-wrap items-center gap-2">
                 <span class="rounded border px-2 py-1 text-xs font-semibold" :class="priorityClass(task.priority)">{{ t('communityTasks.priority') }} {{ task.priority }}</span>
-                <span class="rounded bg-white/10 px-2 py-1 text-xs font-semibold text-zinc-300">{{ task.type }}</span>
+                <span class="rounded bg-white/10 px-2 py-1 text-xs font-semibold text-zinc-300">{{ typeLabel(task.type) }}</span>
                 <span class="rounded bg-zinc-800 px-2 py-1 text-xs font-semibold text-zinc-400">{{ task.status }}</span>
               </div>
               <h2 class="mt-3 text-lg font-semibold text-white">{{ task.title }}</h2>
               <p class="mt-2 text-sm leading-6 text-zinc-400">{{ task.description }}</p>
+              <p class="mt-2 text-xs leading-5 text-cyan-100/80">{{ taskImpact(task) }}</p>
               <p class="mt-2 break-all text-xs text-zinc-600">{{ task.subject_key }}</p>
             </div>
             <RouterLink class="rounded-md border border-cyan-300/40 px-3 py-2 text-sm font-semibold text-cyan-100" :to="`/community-tasks/${task.id}`">
-              {{ t('communityTasks.openDetail') }}
+              {{ actionLabel(task) }}
             </RouterLink>
           </div>
           <div v-if="metricRows(task.metrics).length" class="mt-4 grid gap-2 sm:grid-cols-4">

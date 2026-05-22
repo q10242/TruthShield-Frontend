@@ -18,7 +18,7 @@ const {
   statusLoading,
   error,
   status,
-  tabSteps,
+  visibleTabSteps,
   activeStepNumber,
   toneClass,
   statusBadgeText,
@@ -40,9 +40,15 @@ const {
   readMinimum,
   readProgress,
   hasReadEnough,
+  advancedMode,
+  relatedEvents,
   openLogin,
   formatDateTime,
 } = vp
+
+function toggleAdvancedMode() {
+  advancedMode.value = !advancedMode.value
+}
 </script>
 
 <template>
@@ -73,9 +79,23 @@ const {
         </button>
       </div>
 
-      <div class="grid grid-cols-4 rounded-md border border-white/10 bg-white/[0.03] p-1 text-xs font-semibold">
+      <div class="mb-2 flex items-center justify-between gap-3 text-xs">
+        <span class="text-zinc-500">{{ advancedMode || relatedEvents.length ? t('votePanel.modeAdvanced') : t('votePanel.modeSimple') }}</span>
         <button
-          v-for="step in tabSteps"
+          class="rounded-md border border-white/10 px-2 py-1 font-semibold text-zinc-300 hover:border-cyan-300/50 hover:text-cyan-100"
+          type="button"
+          @click="toggleAdvancedMode"
+        >
+          {{ advancedMode ? t('votePanel.simpleMode') : t('votePanel.advancedMode') }}
+        </button>
+      </div>
+
+      <div
+        class="grid rounded-md border border-white/10 bg-white/[0.03] p-1 text-xs font-semibold"
+        :class="visibleTabSteps.length === 4 ? 'grid-cols-4' : 'grid-cols-3'"
+      >
+        <button
+          v-for="step in visibleTabSteps"
           :key="step.key"
           class="rounded px-2 py-2"
           :class="activeTab === step.key ? 'bg-cyan-300 text-zinc-950' : step.number < activeStepNumber ? 'text-cyan-200' : 'text-zinc-400'"
@@ -84,6 +104,28 @@ const {
           <span class="mr-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-current text-[10px]">{{ step.number }}</span>
           {{ step.label }}
         </button>
+      </div>
+
+      <div class="mt-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
+        <p class="text-xs font-semibold text-zinc-200">{{ t('votePanel.linearFlowTitle') }}</p>
+        <div class="mt-3 grid grid-cols-4 gap-2 text-[11px]">
+          <div class="rounded border border-cyan-300/30 bg-cyan-300/10 p-2 text-cyan-100">
+            <span class="block font-semibold">1. {{ t('votePanel.flowResult') }}</span>
+            <span class="mt-1 block text-cyan-100/70">{{ t('votePanel.flowResultDesc') }}</span>
+          </div>
+          <div class="rounded border p-2" :class="hasReadEnough ? 'border-emerald-300/30 bg-emerald-300/10 text-emerald-100' : 'border-orange-300/30 bg-orange-300/10 text-orange-100'">
+            <span class="block font-semibold">2. {{ t('votePanel.flowRead') }}</span>
+            <span class="mt-1 block opacity-75">{{ Math.min(readSeconds, readMinimum) }} / {{ readMinimum }} {{ t('votePanel.seconds') }}</span>
+          </div>
+          <div class="rounded border p-2" :class="isLoggedIn ? 'border-emerald-300/30 bg-emerald-300/10 text-emerald-100' : 'border-white/10 bg-zinc-950/60 text-zinc-400'">
+            <span class="block font-semibold">3. {{ t('votePanel.flowVote') }}</span>
+            <span class="mt-1 block opacity-75">{{ isLoggedIn ? t('votePanel.authReady') : t('votePanel.notSignedIn') }}</span>
+          </div>
+          <div class="rounded border border-white/10 bg-zinc-950/60 p-2 text-zinc-400">
+            <span class="block font-semibold">4. {{ t('votePanel.flowEvidence') }}</span>
+            <span class="mt-1 block opacity-75">{{ t('votePanel.flowEvidenceDesc') }}</span>
+          </div>
+        </div>
       </div>
 
       <div class="mt-3 w-full rounded-md border p-3 text-left" :class="toneClass">
@@ -101,6 +143,7 @@ const {
           <div>
             <p class="text-sm font-semibold text-cyan-100">{{ t('votePanel.signInCtaTitle') }}</p>
             <p class="mt-1 text-xs leading-5 text-zinc-300">{{ t('votePanel.signInCtaDesc') }}</p>
+            <p class="mt-1 text-[11px] leading-5 text-zinc-500">{{ t('votePanel.authSyncHint') }}</p>
           </div>
           <button class="shrink-0 rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950" @click="openLogin">
             {{ t('votePanel.signInContinue') }}
@@ -146,6 +189,21 @@ const {
           </div>
         </div>
       </div>
+
+      <div v-if="isLoggedIn && nextAchievement" class="mt-3 rounded-md border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
+        <div class="flex items-center justify-between gap-3 text-xs">
+          <div>
+            <p class="font-semibold text-cyan-100">{{ t('votePanel.todayProgress') }}</p>
+            <p class="mt-1 text-zinc-400">{{ t('votePanel.nextBadge', { name: nextAchievement.name }) }}</p>
+          </div>
+          <span class="shrink-0 rounded-full bg-cyan-300 px-2.5 py-1 font-semibold text-zinc-950">{{ nextAchievement.current }} / {{ nextAchievement.target }}</span>
+        </div>
+      </div>
+
+      <details class="mt-3 rounded-md border border-white/10 bg-white/[0.03] p-3 text-xs leading-5 text-zinc-400">
+        <summary class="cursor-pointer font-semibold text-zinc-200">{{ t('votePanel.extensionTipTitle') }}</summary>
+        <p class="mt-2">{{ t('votePanel.extensionTipDesc') }}</p>
+      </details>
 
       <div
         v-if="snapshotAlert"

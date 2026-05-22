@@ -351,6 +351,12 @@ async function postStoredAuthToVotePanelFrame() {
   )
 }
 
+function scheduleStoredAuthHandoff() {
+  ;[0, 150, 600, 1500, 3000].forEach((delay) => {
+    window.setTimeout(postStoredAuthToVotePanelFrame, delay)
+  })
+}
+
 async function loadExtensionNonce() {
   try {
     extensionNonce = await fetchApiViaBackground('/api/extension/nonce')
@@ -1625,7 +1631,7 @@ function openVotePanelModal(targetUrl = window.location.href, panelPath = '/ifra
   votePanelFrame.style.background = 'transparent'
   votePanelFrame.style.display = 'block'
   votePanelFrame.style.colorScheme = 'normal'
-  votePanelFrame.addEventListener('load', postStoredAuthToVotePanelFrame)
+  votePanelFrame.addEventListener('load', scheduleStoredAuthHandoff)
 
   const panelUrl = new URL(panelPath, TOOLTIP_ORIGIN)
   panelUrl.searchParams.set('news_url', targetUrl)
@@ -1654,7 +1660,7 @@ function openVotePanelModal(targetUrl = window.location.href, panelPath = '/ifra
     }
   })
   updateVotePanelShellSize(620, false)
-  postStoredAuthToVotePanelFrame()
+  scheduleStoredAuthHandoff()
   reportExtensionEvent(telemetryEvent, true, { mode: panelPath === '/iframe-vote-panel' ? 'side_panel_from_banner' : extraParams.mode || 'side_panel' })
   if (panelPath === '/iframe-vote-panel') startArticleReadTimer()
 
@@ -1902,6 +1908,10 @@ window.addEventListener('message', (event) => {
     updateVotePanelShellSize(Number(event.data.height), Boolean(event.data.collapsed))
   }
 
+  if (event.data?.type === 'TRUTH_SHIELD_AUTH_REQUEST') {
+    scheduleStoredAuthHandoff()
+  }
+
   if (event.data?.type === 'TRUTH_SHIELD_AUTH_UPDATED' && event.data.token) {
     sendRuntimeMessage({
       type: 'TRUTH_SHIELD_SET_AUTH',
@@ -1929,6 +1939,18 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
     ensureVotePanelFrame(message.url || window.location.href)
     startArticleReadTimer()
     sendResponse({ ok: true })
+    return true
+  }
+
+  if (message?.type === 'TRUTH_SHIELD_RESHOW_BANNER') {
+    articleBannerDismissed = false
+    const banner = ensureArticleBanner()
+    if (banner) {
+      refreshArticleBannerStatus(message.url || window.location.href)
+      sendResponse({ ok: true })
+    } else {
+      sendResponse({ ok: false })
+    }
     return true
   }
 

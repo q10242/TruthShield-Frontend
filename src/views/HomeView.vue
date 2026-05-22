@@ -182,21 +182,16 @@ onMounted(async () => {
             <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/demo-news">
               {{ t('home.demoNewsCta') }}
             </RouterLink>
-            <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/user-guide">
-              {{ t('home.manualGuideCta') }}
-            </RouterLink>
             <RouterLink class="rounded-md border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-semibold text-amber-100 hover:border-amber-200" to="/extension-install">
               {{ t('home.installExtensionCta') }}
             </RouterLink>
-            <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/news-search">
-              {{ t('home.primaryCta') }}
-            </RouterLink>
-            <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" :to="token ? '/profile' : '/login'">
-              {{ t('home.secondaryCta') }}
-            </RouterLink>
-            <RouterLink class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" to="/evidence-library">
-              {{ t('home.thirdCta') }}
-            </RouterLink>
+          </div>
+          <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-zinc-400">
+            <RouterLink class="hover:text-cyan-100" to="/user-guide">{{ t('home.manualGuideCta') }}</RouterLink>
+            <RouterLink class="hover:text-cyan-100" to="/mobile">{{ t('common.mobile') }}</RouterLink>
+            <RouterLink class="hover:text-cyan-100" to="/news-search">{{ t('home.primaryCta') }}</RouterLink>
+            <RouterLink class="hover:text-cyan-100" :to="token ? '/profile' : '/login'">{{ t('home.secondaryCta') }}</RouterLink>
+            <RouterLink class="hover:text-cyan-100" to="/evidence-library">{{ t('home.thirdCta') }}</RouterLink>
           </div>
 
           <div class="rounded-lg border border-amber-300/30 bg-amber-300/10 p-4">
@@ -477,30 +472,33 @@ onMounted(async () => {
       </section>
 
       <section class="border-t border-white/10 py-8">
-        <div class="flex flex-wrap items-end justify-between gap-4">
-          <div>
+        <details class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <summary class="cursor-pointer list-none">
             <p class="text-sm font-semibold text-cyan-300">{{ t('home.exploreEyebrow') }}</p>
-            <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('home.exploreTitle') }}</h2>
+            <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+              <h2 class="text-2xl font-semibold text-white">{{ t('home.exploreTitle') }}</h2>
+              <span class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100">{{ t('home.exploreOpen') }}</span>
+            </div>
             <p class="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{{ t('home.exploreIntro') }}</p>
+          </summary>
+          <div class="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <RouterLink
+              v-for="link in primaryLinks"
+              :key="link.to"
+              class="group rounded-lg border border-white/10 bg-zinc-950/70 p-5 hover:border-cyan-300/60 hover:bg-cyan-300/[0.06]"
+              :to="link.to"
+            >
+              <div class="flex items-center justify-between gap-4">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-cyan-300/20 bg-cyan-300/10 text-xs font-semibold text-cyan-100">{{ link.mark }}</span>
+                <span class="text-lg text-cyan-200">→</span>
+              </div>
+              <div class="mt-4">
+                <h3 class="text-base font-semibold text-white">{{ link.label }}</h3>
+                <p class="mt-3 text-sm leading-6 text-zinc-400 group-hover:text-zinc-300">{{ link.description }}</p>
+              </div>
+            </RouterLink>
           </div>
-        </div>
-        <div class="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <RouterLink
-            v-for="link in primaryLinks"
-            :key="link.to"
-            class="group rounded-lg border border-white/10 bg-white/[0.03] p-5 hover:border-cyan-300/60 hover:bg-cyan-300/[0.06]"
-            :to="link.to"
-          >
-            <div class="flex items-center justify-between gap-4">
-              <span class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-cyan-300/20 bg-cyan-300/10 text-xs font-semibold text-cyan-100">{{ link.mark }}</span>
-              <span class="text-lg text-cyan-200">→</span>
-            </div>
-            <div class="mt-4">
-              <h3 class="text-base font-semibold text-white">{{ link.label }}</h3>
-              <p class="mt-3 text-sm leading-6 text-zinc-400 group-hover:text-zinc-300">{{ link.description }}</p>
-            </div>
-          </RouterLink>
-        </div>
+        </details>
       </section>
 
       <section class="grid gap-3 border-t border-white/10 py-6 md:grid-cols-3">
