@@ -13,7 +13,6 @@ const AUTH_TOKEN_KEY = 'truthshield_api_token'
 const AUTH_USER_KEY = 'truthshield_user'
 let enableTooltip = true
 let enablePanel = true
-let enableReportButton = true
 let contentLocale = navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en'
 const FALLBACK_NEWS_DOMAINS = [
   '127.0.0.1',
@@ -150,7 +149,6 @@ let votePanelExtraKey = ''
 let votePanelPosition = null
 let votePanelCollapsed = false
 let votePanelDrag = null
-let reportButton = null
 let activeAnchor = null
 let hideTimer = null
 let hoverTimer = null
@@ -195,7 +193,6 @@ const contentMessages = {
     closeBanner: '關閉 TruthShield 橫幅',
     closePanel: '關閉 TruthShield 投票面板',
     votePanelTitle: 'TruthShield 新聞投票面板',
-    reportMissing: '回報未收錄新聞站',
   },
   en: {
     checkingLink: 'Checking this link...',
@@ -215,7 +212,6 @@ const contentMessages = {
     closeBanner: 'Close TruthShield banner',
     closePanel: 'Close TruthShield vote panel',
     votePanelTitle: 'TruthShield news vote panel',
-    reportMissing: 'Report missing news site',
   },
 }
 
@@ -620,7 +616,6 @@ async function loadSettings() {
     apiOrigin: API_ORIGIN,
     enableTooltip: true,
     enablePanel: true,
-    enableReportButton: true,
     locale: 'auto',
   })
 
@@ -628,7 +623,6 @@ async function loadSettings() {
   API_ORIGIN = settings.apiOrigin
   enableTooltip = settings.enableTooltip
   enablePanel = settings.enablePanel
-  enableReportButton = settings.enableReportButton
   contentLocale = settings.locale === 'zh-TW' || settings.locale === 'en'
     ? settings.locale
     : (navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en')
@@ -1778,48 +1772,16 @@ function observeArticleChanges() {
   window.addEventListener('yt-navigate-finish', handleUrlChange)
 }
 
-function ensureReportButton() {
-  if (reportButton) {
-    return reportButton
-  }
-
-  reportButton = document.createElement('button')
-  reportButton.type = 'button'
-  reportButton.textContent = t('reportMissing')
-  reportButton.style.position = 'fixed'
-  reportButton.style.right = '16px'
-  reportButton.style.bottom = '16px'
-  reportButton.style.zIndex = '2147483645'
-  reportButton.style.border = '1px solid rgba(103, 232, 249, 0.45)'
-  reportButton.style.borderRadius = '999px'
-  reportButton.style.background = 'rgba(9, 9, 11, 0.94)'
-  reportButton.style.color = '#cffafe'
-  reportButton.style.padding = '10px 14px'
-  reportButton.style.font = '600 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-  reportButton.style.boxShadow = '0 18px 44px rgba(0, 0, 0, 0.35)'
-  reportButton.style.cursor = 'pointer'
-  reportButton.addEventListener('click', () => {
-    const reportUrl = new URL('/report-domain', TOOLTIP_ORIGIN)
-    reportUrl.searchParams.set('url', window.location.href)
-    reportUrl.searchParams.set('page_title', document.title || '')
-    reportUrl.searchParams.set('locale', contentLocale)
-    const youtubeChannelUrl = currentYoutubeChannelUrl()
-    if (youtubeChannelUrl) {
-      reportUrl.searchParams.set('youtube_channel_url', youtubeChannelUrl)
-    }
-    window.open(reportUrl.toString(), 'truthshield-report-domain', 'width=520,height=720')
-  })
-  document.body.appendChild(reportButton)
-
-  return reportButton
+function removeReportButton() {
+  document
+    .querySelectorAll('[data-truthshield-domain-report-button]')
+    .forEach((button) => button.remove())
 }
 
 function maybeInjectDomainReportButton() {
-  if (!enableReportButton || !isPotentialUntrackedNewsPage()) {
-    return
-  }
-
-  ensureReportButton()
+  // Keep missing-site reports in the context menu and popup only.
+  // A persistent floating button gets in the way on article pages.
+  removeReportButton()
 }
 
 function scheduleTooltip(anchor) {

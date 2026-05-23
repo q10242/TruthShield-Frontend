@@ -3,7 +3,6 @@ const defaults = {
   apiOrigin: 'https://truth-shield-api.otus.tw',
   enableTooltip: true,
   enablePanel: true,
-  enableReportButton: true,
   locale: 'auto',
 }
 
@@ -12,7 +11,6 @@ const fields = {
   apiOrigin: document.getElementById('apiOrigin'),
   enableTooltip: document.getElementById('enableTooltip'),
   enablePanel: document.getElementById('enablePanel'),
-  enableReportButton: document.getElementById('enableReportButton'),
   locale: document.getElementById('locale'),
 }
 const t = window.truthShieldT || ((key) => key)
@@ -29,7 +27,6 @@ function currentSettings() {
     apiOrigin: fields.apiOrigin.value || defaults.apiOrigin,
     enableTooltip: fields.enableTooltip.checked,
     enablePanel: fields.enablePanel.checked,
-    enableReportButton: fields.enableReportButton.checked,
     locale: fields.locale.value || defaults.locale,
   }
 }
@@ -39,7 +36,6 @@ function applySettings(values) {
   fields.apiOrigin.value = values.apiOrigin || defaults.apiOrigin
   fields.enableTooltip.checked = values.enableTooltip !== false
   fields.enablePanel.checked = values.enablePanel !== false
-  fields.enableReportButton.checked = values.enableReportButton !== false
   fields.locale.value = values.locale || defaults.locale
 }
 
@@ -84,7 +80,6 @@ document.getElementById('importSettings').addEventListener('click', () => {
       apiOrigin: parsed.apiOrigin || defaults.apiOrigin,
       enableTooltip: parsed.enableTooltip !== false,
       enablePanel: parsed.enablePanel !== false,
-      enableReportButton: parsed.enableReportButton !== false,
       locale: ['auto', 'zh-TW', 'en'].includes(parsed.locale) ? parsed.locale : defaults.locale,
     }
     chrome.storage.sync.set(next, () => {
