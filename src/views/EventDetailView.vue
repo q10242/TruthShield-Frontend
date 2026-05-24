@@ -46,6 +46,7 @@ const localEntityPositions = ref({})
 const draggingEntity = ref(null)
 const graphPan = ref({ x: 0, y: 0 })
 const graphScale = ref(1)
+const nodeManagementOpen = ref(false)
 const isPanning = ref(false)
 const panAnchor = ref(null)
 const submitting = ref(false)
@@ -78,6 +79,7 @@ const quickEntityForm = ref({
 const quickGlobalEntitySearch = ref('')
 const quickGlobalEntityResults = ref([])
 const quickGlobalEntitySearching = ref(false)
+const quickGlobalEntitySearched = ref(false)
 const quickRelationshipForm = ref({
   from_entity_id: '',
   to_entity_id: '',
@@ -134,6 +136,7 @@ function clearGlobalEntity() {
 }
 
 async function searchQuickGlobal() {
+  quickGlobalEntitySearched.value = true
   if (!quickGlobalEntitySearch.value.trim()) { quickGlobalEntityResults.value = []; return }
   quickGlobalEntitySearching.value = true
   try {
@@ -159,6 +162,7 @@ function clearQuickGlobalEntity() {
   quickEntityForm.value.global_entity_id = null
   quickGlobalEntitySearch.value = ''
   quickGlobalEntityResults.value = []
+  quickGlobalEntitySearched.value = false
 }
 const relationshipForm = ref({
   from_entity_id: '',
@@ -1192,11 +1196,19 @@ onUnmounted(() => { document.title = 'TruthShield' })
           </div>
 
           <div v-if="(graph.entities || []).length === 0" class="text-sm text-zinc-400">{{ zh ? '尚無人物/組織節點。可從新聞右鍵 Pin 進來。' : 'No people or organization nodes yet. Pin one from a news page.' }}</div>
-          <div v-else class="grid gap-5 lg:grid-cols-[620px_1fr]">
+          <div v-else class="grid gap-5" :class="nodeManagementOpen ? 'lg:grid-cols-[minmax(0,1fr)_360px]' : 'lg:grid-cols-1'">
             <div class="space-y-3">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-sm font-semibold text-zinc-200">{{ zh ? '關係圖' : 'Relationship Graph' }}</p>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    class="rounded-md border px-3 py-2 text-xs font-semibold"
+                    :class="nodeManagementOpen ? 'border-cyan-300 bg-cyan-300 text-zinc-950' : 'border-white/10 text-zinc-300 hover:border-cyan-300/60'"
+                    @click="nodeManagementOpen = !nodeManagementOpen"
+                  >
+                    {{ nodeManagementOpen ? (zh ? '收合節點管理' : 'Hide Node Panel') : (zh ? '節點管理' : 'Node Panel') }}
+                  </button>
                   <button class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100 hover:border-cyan-300/80" @click="downloadGraphImage('png')">
                     {{ zh ? '下載 PNG' : 'Download PNG' }}
                   </button>
@@ -1222,7 +1234,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
                 </span>
               </div>
               <div class="relative">
-              <svg ref="graphSvg" class="h-[460px] w-full rounded-lg border border-white/10 bg-zinc-950" :class="isPanning ? 'cursor-grabbing' : 'cursor-grab'" viewBox="-30 -30 580 500" role="img" @contextmenu.prevent="openGraphContextMenu($event)" @pointerdown="startGraphPan" @pointermove="handleGraphMove" @pointerup="endGraphInteraction" @pointerleave="endGraphInteraction" @wheel.prevent="handleGraphWheel">
+              <svg ref="graphSvg" class="w-full rounded-lg border border-white/10 bg-zinc-950" :class="[isPanning ? 'cursor-grabbing' : 'cursor-grab', nodeManagementOpen ? 'h-[520px]' : 'h-[680px]']" viewBox="-30 -30 580 500" role="img" @contextmenu.prevent="openGraphContextMenu($event)" @pointerdown="startGraphPan" @pointermove="handleGraphMove" @pointerup="endGraphInteraction" @pointerleave="endGraphInteraction" @wheel.prevent="handleGraphWheel">
                 <rect x="-30" y="-30" width="580" height="500" fill="#09090b" @contextmenu.prevent="openGraphContextMenu($event)" />
                 <defs>
                   <marker id="truthshield-arrow-cyan" viewBox="0 0 8 8" refX="6.8" refY="4" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
@@ -1321,6 +1333,8 @@ onUnmounted(() => { document.title = 'TruthShield' })
                         <span class="shrink-0 text-xs text-zinc-500">{{ ge.entity_type }} · {{ ge.event_entities_count ?? 0 }} {{ zh ? '個事件' : 'events' }}</span>
                       </button>
                     </div>
+                    <p v-else-if="quickGlobalEntitySearching" class="mt-1 text-xs text-zinc-500">{{ zh ? '搜尋中...' : 'Searching...' }}</p>
+                    <p v-else-if="quickGlobalEntitySearched && quickGlobalEntitySearch.trim()" class="mt-1 text-xs text-zinc-500">{{ zh ? '沒有找到共用人物/組織，可以直接新增本事件節點。' : 'No shared entity found. You can still add a local event node.' }}</p>
                     <p v-if="quickEntityForm.global_entity_id" class="mt-1 text-xs text-cyan-300">{{ zh ? '已連結全域人物/組織' : 'Linked to global entity' }} #{{ quickEntityForm.global_entity_id }}</p>
                   </div>
                   <div class="grid grid-cols-[1fr_112px] gap-2">
@@ -1367,7 +1381,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
                 <button class="hover:text-zinc-300" @click="resetGraphView">{{ zh ? '重設視圖' : 'Reset view' }}</button>
               </div>
             </div>
-            <div class="space-y-3">
+            <div v-if="nodeManagementOpen" class="space-y-3">
               <section class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
