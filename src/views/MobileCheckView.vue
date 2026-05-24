@@ -72,6 +72,15 @@ const readCta = computed(() => {
   if (!hasReadEnough.value) return t('mobile.readMore', { seconds: Math.max(0, readMinimum.value - readSeconds.value) })
   return myVote.value ? t('mobile.updateVote') : t('mobile.readyToVote')
 })
+const cacheStatusLabel = computed(() => cacheStatus.value === 'hit' ? t('mobile.cacheCached') : t('mobile.cacheLive'))
+const readGateLabel = computed(() => hasReadEnough.value ? t('mobile.readGateMet') : t('mobile.readGatePending'))
+const readSyncLabel = computed(() => readSynced.value ? t('mobile.readSyncedReady') : t('mobile.readSyncedPending'))
+
+function mobileNavClass(active) {
+  return active
+    ? 'ts-mobile-nav-link is-active rounded-xl px-2 py-2'
+    : 'ts-mobile-nav-link rounded-xl px-2 py-2'
+}
 
 function readStoredUser() {
   try {
@@ -347,7 +356,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-zinc-950 pb-24 text-zinc-100">
+  <main class="ts-app-shell min-h-screen bg-zinc-950 pb-24 text-zinc-100">
     <section class="px-4 pb-6 pt-5">
       <AppNav>
         <RouterLink class="rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-cyan-100" to="/mobile">
@@ -367,15 +376,20 @@ onUnmounted(() => {
       <p v-if="error" class="mt-3 rounded-xl border border-orange-300/30 bg-orange-500/10 p-3 text-sm text-orange-100">{{ error }}</p>
 
       <template v-if="newsUrl && !error">
-        <section class="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-xl shadow-black/20">
+        <section class="ts-surface mt-5 rounded-3xl p-4">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">{{ t('mobile.currentResult') }}</p>
               <h1 class="mt-2 text-xl font-semibold leading-7 text-white">{{ status?.display_text || t('votePanel.noData') }}</h1>
             </div>
-            <span class="shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-zinc-300">{{ cacheStatus }}</span>
+            <span class="ts-pill shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold">{{ cacheStatusLabel }}</span>
           </div>
           <p class="mt-3 break-all text-xs leading-5 text-zinc-500">{{ newsUrl }}</p>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <span class="ts-pill rounded-full px-3 py-1.5 text-[11px] font-medium">{{ readGateLabel }}</span>
+            <span class="ts-pill rounded-full px-3 py-1.5 text-[11px] font-medium">{{ t('mobile.evidenceCount', { count: evidence.length }) }}</span>
+            <span class="ts-pill rounded-full px-3 py-1.5 text-[11px] font-medium">{{ t('mobile.officialCount', { count: officialResponses.length }) }}</span>
+          </div>
           <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
             <div class="rounded-xl border border-white/10 bg-zinc-950/60 p-3">
               <p class="text-zinc-500">{{ t('votePanel.totalWeight', { weight: totalWeight.toFixed(2) }) }}</p>
@@ -384,6 +398,7 @@ onUnmounted(() => {
             <div class="rounded-xl border border-white/10 bg-zinc-950/60 p-3">
               <p class="text-zinc-500">{{ t('mobile.readThreshold') }}</p>
               <p class="mt-1 font-semibold text-white">{{ readSeconds }} / {{ readMinimum }} {{ t('votePanel.seconds') }}</p>
+              <p class="mt-1 text-[11px] text-zinc-500">{{ readSyncLabel }}</p>
             </div>
           </div>
           <button class="mt-4 w-full rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-4 py-3 text-sm font-bold text-cyan-100" @click="openOriginal">
@@ -391,7 +406,7 @@ onUnmounted(() => {
           </button>
         </section>
 
-        <section class="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <section class="ts-surface-muted mt-5 rounded-2xl p-4">
           <div class="flex items-center justify-between gap-3">
             <h2 class="text-lg font-semibold text-white">{{ t('mobile.weightedResult') }}</h2>
             <span class="text-xs text-zinc-500">{{ loading ? t('common.loading') : statusText }}</span>
@@ -415,7 +430,7 @@ onUnmounted(() => {
           </div>
         </section>
 
-        <section class="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <section class="ts-surface-muted mt-5 rounded-2xl p-4">
           <h2 class="text-lg font-semibold text-white">{{ t('mobile.voteAfterReading') }}</h2>
           <p class="mt-2 text-sm leading-6 text-zinc-400">{{ readCta }}</p>
           <div class="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
@@ -476,7 +491,7 @@ onUnmounted(() => {
           <p v-if="voteMessage" class="mt-3 rounded-xl border border-emerald-300/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">{{ voteMessage }}</p>
         </section>
 
-        <section class="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <section class="ts-surface-muted mt-5 rounded-2xl p-4">
           <h2 class="text-lg font-semibold text-white">{{ t('mobile.officialResponses') }}</h2>
           <article v-for="item in officialResponses" :key="item.id" class="mt-3 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
             <p class="text-xs font-semibold text-cyan-100">{{ item.claimant?.claim_type || item.response_type }}</p>
@@ -485,7 +500,7 @@ onUnmounted(() => {
           <p v-if="!officialResponses.length" class="mt-3 text-sm text-zinc-500">{{ t('votePanel.noOfficialResponses') }}</p>
         </section>
 
-        <section class="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <section class="ts-surface-muted mt-5 rounded-2xl p-4">
           <h2 class="text-lg font-semibold text-white">{{ t('mobile.communityEvidence') }}</h2>
           <article v-for="item in evidence" :key="item.id" class="mt-3 rounded-xl border border-white/10 bg-zinc-950/60 p-3">
             <div class="flex flex-wrap items-center gap-2">
@@ -498,7 +513,7 @@ onUnmounted(() => {
           <p v-if="!evidence.length" class="mt-3 text-sm text-zinc-500">{{ t('votePanel.noEvidence') }}</p>
         </section>
 
-        <section class="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <section class="ts-surface-muted mt-5 rounded-2xl p-4">
           <h2 class="text-lg font-semibold text-white">{{ t('mobile.communityReports') }}</h2>
           <div class="mt-3 grid gap-2">
             <RouterLink class="rounded-xl border border-white/10 bg-zinc-950/60 p-3 text-sm font-semibold text-cyan-100" :to="reportLinks().classification">{{ t('mobile.reportNotArticle') }}</RouterLink>
@@ -509,12 +524,12 @@ onUnmounted(() => {
       </template>
     </section>
 
-    <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-zinc-950/95 px-3 py-2 backdrop-blur">
+    <nav class="ts-mobile-nav fixed inset-x-0 bottom-0 z-40 border-t border-white/10 px-3 py-2">
       <div class="grid grid-cols-4 text-center text-[11px] font-semibold text-zinc-400">
-        <RouterLink class="rounded-lg px-2 py-2 text-cyan-200" to="/mobile">{{ t('mobile.navCheck') }}</RouterLink>
-        <RouterLink class="rounded-lg px-2 py-2" to="/evidence-library">{{ t('mobile.navEvidence') }}</RouterLink>
-        <RouterLink class="rounded-lg px-2 py-2" to="/community-tasks">{{ t('mobile.navTasks') }}</RouterLink>
-        <RouterLink class="rounded-lg px-2 py-2" :to="isLoggedIn ? '/profile' : '/login?redirect=/mobile'">{{ t('mobile.navMe') }}</RouterLink>
+        <RouterLink :class="mobileNavClass(route.path.startsWith('/mobile'))" to="/mobile">{{ t('mobile.navCheck') }}</RouterLink>
+        <RouterLink :class="mobileNavClass(route.path.startsWith('/evidence-library'))" to="/evidence-library">{{ t('mobile.navEvidence') }}</RouterLink>
+        <RouterLink :class="mobileNavClass(route.path.startsWith('/community-tasks'))" to="/community-tasks">{{ t('mobile.navTasks') }}</RouterLink>
+        <RouterLink :class="mobileNavClass(route.path.startsWith('/profile') || route.path.startsWith('/login'))" :to="isLoggedIn ? '/profile' : '/login?redirect=/mobile'">{{ t('mobile.navMe') }}</RouterLink>
       </div>
     </nav>
   </main>

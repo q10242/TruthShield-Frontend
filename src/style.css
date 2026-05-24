@@ -2,6 +2,14 @@
 
 :root {
   color-scheme: dark;
+  --ts-bg: #09090b;
+  --ts-bg-elevated: rgba(255, 255, 255, 0.05);
+  --ts-bg-muted: rgba(15, 23, 42, 0.72);
+  --ts-border: rgba(255, 255, 255, 0.1);
+  --ts-border-strong: rgba(103, 232, 249, 0.28);
+  --ts-text-soft: rgba(228, 228, 231, 0.7);
+  --ts-cyan: #67e8f9;
+  --ts-emerald: #6ee7b7;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -13,7 +21,10 @@
 
 body {
   margin: 0;
-  background: #09090b;
+  background:
+    radial-gradient(circle at top, rgba(34, 211, 238, 0.12), transparent 34%),
+    radial-gradient(circle at 80% 18%, rgba(16, 185, 129, 0.08), transparent 24%),
+    var(--ts-bg);
 }
 
 #app {
@@ -22,4 +33,60 @@ body {
 
 a {
   text-decoration: none;
+}
+
+@layer components {
+  .ts-app-shell {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .ts-app-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 18rem;
+    background:
+      linear-gradient(180deg, rgba(6, 182, 212, 0.12), transparent 72%),
+      radial-gradient(circle at top left, rgba(255, 255, 255, 0.06), transparent 32%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .ts-surface {
+    border: 1px solid var(--ts-border);
+    background: linear-gradient(180deg, rgba(24, 24, 27, 0.84), rgba(9, 9, 11, 0.92));
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(14px);
+  }
+
+  .ts-surface-muted {
+    border: 1px solid var(--ts-border);
+    background: var(--ts-bg-elevated);
+    backdrop-filter: blur(10px);
+  }
+
+  .ts-pill {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--ts-text-soft);
+  }
+
+  .ts-mobile-nav {
+    background: rgba(9, 9, 11, 0.92);
+    backdrop-filter: blur(18px);
+  }
+
+  .ts-mobile-nav-link {
+    border: 1px solid transparent;
+    color: rgba(212, 212, 216, 0.72);
+    transition: 160ms ease;
+  }
+
+  .ts-mobile-nav-link.is-active {
+    border-color: rgba(103, 232, 249, 0.28);
+    background: rgba(103, 232, 249, 0.12);
+    color: #ecfeff;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
 }
