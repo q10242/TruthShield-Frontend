@@ -2,18 +2,18 @@
 import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { trackPageView } from '../lib/traffic'
-import { currentLocale, useI18n } from '../i18n'
+import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
 
-const { t } = useI18n()
-const zh = currentLocale() !== 'en'
+const { locale, t } = useI18n()
+const zh = computed(() => locale.value !== 'en')
 
 const chapters = computed(() => [
   { id: 'start', title: t('userGuide.chapterStart') },
   { id: 'extension', title: t('userGuide.chapterExtension') },
   { id: 'vote', title: t('userGuide.chapterVote') },
   { id: 'search', title: t('userGuide.chapterSearch') },
-  { id: 'events', title: zh ? '事件時間線與關係圖' : 'Event timelines and graphs' },
+  { id: 'events', title: zh.value ? '事件時間線與關係圖' : 'Event timelines and graphs' },
   { id: 'evidence', title: t('userGuide.chapterEvidence') },
   { id: 'response', title: t('userGuide.chapterResponse') },
   { id: 'trust', title: t('userGuide.chapterTrust') },

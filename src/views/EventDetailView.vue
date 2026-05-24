@@ -20,19 +20,20 @@ import {
   updateEventRelationship,
   updateEventTimelineEntry,
 } from '../lib/api'
-import { currentLocale } from '../i18n'
+import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
 
 const route = useRoute()
-const zh = currentLocale() !== 'en'
+const { locale } = useI18n()
+const zh = computed(() => locale.value !== 'en')
 const token = ref(localStorage.getItem('truthshield_api_token') || '')
 
-const sourceTypes = [
-  { value: 'news', label: zh ? '新聞' : 'News' },
-  { value: 'evidence', label: zh ? '佐證資料' : 'Evidence' },
-  { value: 'official_response', label: zh ? '官方回應' : 'Official response' },
-  { value: 'external', label: zh ? '外部來源' : 'External' },
-]
+const sourceTypes = computed(() => [
+  { value: 'news', label: zh.value ? '新聞' : 'News' },
+  { value: 'evidence', label: zh.value ? '佐證資料' : 'Evidence' },
+  { value: 'official_response', label: zh.value ? '官方回應' : 'Official response' },
+  { value: 'external', label: zh.value ? '外部來源' : 'External' },
+])
 const activeTab = ref(route.query.tab || 'overview')
 const event = ref(null)
 const timeline = ref([])
@@ -121,11 +122,11 @@ const relationshipEditForm = ref({
 const entityFilter = ref('all')
 
 const tabs = computed(() => [
-  { key: 'overview', label: zh ? '總覽' : 'Overview' },
-  { key: 'timeline', label: zh ? '時間線' : 'Timeline' },
-  { key: 'graph', label: zh ? '人物/組織關係圖' : 'People/Org Graph' },
-  { key: 'news', label: zh ? '相關新聞' : 'Related News' },
-  { key: 'logs', label: zh ? '編輯紀錄' : 'Edit Logs' },
+  { key: 'overview', label: zh.value ? '總覽' : 'Overview' },
+  { key: 'timeline', label: zh.value ? '時間線' : 'Timeline' },
+  { key: 'graph', label: zh.value ? '人物/組織關係圖' : 'People/Org Graph' },
+  { key: 'news', label: zh.value ? '相關新聞' : 'Related News' },
+  { key: 'logs', label: zh.value ? '編輯紀錄' : 'Edit Logs' },
 ])
 
 function setMeta(title, description) {
@@ -305,7 +306,7 @@ async function endDragEntity() {
       }
     }
   } catch (err) {
-    formError.value = err.message || (zh ? '位置保存失敗。' : 'Failed to save position.')
+    formError.value = err.message || (zh.value ? '位置保存失敗。' : 'Failed to save position.')
   }
 }
 
@@ -334,17 +335,17 @@ const entityDegrees = computed(() => {
 const maxEntityDegree = computed(() => Math.max(1, ...Array.from(entityDegrees.value.values())))
 
 const entityHeatLegend = computed(() => [
-  { label: zh ? '低連結' : 'Low', color: '#1e3a5f' },
-  { label: zh ? '中連結' : 'Medium', color: '#0f766e' },
-  { label: zh ? '高連結' : 'High', color: '#b45309' },
-  { label: zh ? '核心角色' : 'Core', color: '#be123c' },
+  { label: zh.value ? '低連結' : 'Low', color: '#1e3a5f' },
+  { label: zh.value ? '中連結' : 'Medium', color: '#0f766e' },
+  { label: zh.value ? '高連結' : 'High', color: '#b45309' },
+  { label: zh.value ? '核心角色' : 'Core', color: '#be123c' },
 ])
 
 const entityFilters = computed(() => [
-  { key: 'all', label: zh ? '全部' : 'All', count: (graph.value.entities || []).length },
-  { key: 'person', label: zh ? '人物' : 'People', count: (graph.value.entities || []).filter((entity) => entity.entity_type === 'person').length },
-  { key: 'organization', label: zh ? '組織' : 'Organizations', count: (graph.value.entities || []).filter((entity) => entity.entity_type === 'organization').length },
-  { key: 'core', label: zh ? '高連結' : 'Highly connected', count: (graph.value.entities || []).filter((entity) => entityHeat(entity).level >= 2).length },
+  { key: 'all', label: zh.value ? '全部' : 'All', count: (graph.value.entities || []).length },
+  { key: 'person', label: zh.value ? '人物' : 'People', count: (graph.value.entities || []).filter((entity) => entity.entity_type === 'person').length },
+  { key: 'organization', label: zh.value ? '組織' : 'Organizations', count: (graph.value.entities || []).filter((entity) => entity.entity_type === 'organization').length },
+  { key: 'core', label: zh.value ? '高連結' : 'Highly connected', count: (graph.value.entities || []).filter((entity) => entityHeat(entity).level >= 2).length },
 ])
 
 const visibleEntities = computed(() => {
@@ -362,10 +363,10 @@ function entityDegree(entity) {
 
 function entityHeat(entity) {
   const ratio = entityDegree(entity) / maxEntityDegree.value
-  if (ratio >= 0.75) return { level: 3, color: '#be123c', stroke: '#fecdd3', label: zh ? '核心角色' : 'Core actor' }
-  if (ratio >= 0.5) return { level: 2, color: '#b45309', stroke: '#fde68a', label: zh ? '高連結' : 'Highly connected' }
-  if (ratio >= 0.25) return { level: 1, color: '#0f766e', stroke: '#99f6e4', label: zh ? '中連結' : 'Connected' }
-  return { level: 0, color: entity?.entity_type === 'organization' ? '#1e3a5f' : '#27272a', stroke: '#67e8f9', label: zh ? '低連結' : 'Low connection' }
+  if (ratio >= 0.75) return { level: 3, color: '#be123c', stroke: '#fecdd3', label: zh.value ? '核心角色' : 'Core actor' }
+  if (ratio >= 0.5) return { level: 2, color: '#b45309', stroke: '#fde68a', label: zh.value ? '高連結' : 'Highly connected' }
+  if (ratio >= 0.25) return { level: 1, color: '#0f766e', stroke: '#99f6e4', label: zh.value ? '中連結' : 'Connected' }
+  return { level: 0, color: entity?.entity_type === 'organization' ? '#1e3a5f' : '#27272a', stroke: '#67e8f9', label: zh.value ? '低連結' : 'Low connection' }
 }
 
 function relationshipSiblings(rel) {
@@ -565,7 +566,7 @@ function fmtDate(value, opts = {}) {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return String(value).slice(0, 10)
-  return date.toLocaleString(zh ? 'zh-TW' : 'en', {
+  return date.toLocaleString(zh.value ? 'zh-TW' : 'en', {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit', hour12: false,
     ...opts,
@@ -624,7 +625,7 @@ function cancelEditRelationship() {
 
 async function submitTimeline() {
   if (!token.value) {
-    formError.value = zh ? '登入後才能新增時間線項目。' : 'Sign in to add timeline entries.'
+    formError.value = zh.value ? '登入後才能新增時間線項目。' : 'Sign in to add timeline entries.'
     return
   }
 
@@ -633,11 +634,11 @@ async function submitTimeline() {
   try {
     await createEventTimelineEntry(token.value, route.params.id, timelineForm.value)
     timelineForm.value = { title: '', summary: '', occurred_at: '', source_type: 'news', source_url: '' }
-    formMessage.value = zh ? '時間線項目已新增，編輯紀錄也已保存。' : 'Timeline entry added and logged.'
+    formMessage.value = zh.value ? '時間線項目已新增，編輯紀錄也已保存。' : 'Timeline entry added and logged.'
     await load()
     activeTab.value = 'timeline'
   } catch (err) {
-    formError.value = err.message || (zh ? '新增失敗。' : 'Failed to add entry.')
+    formError.value = err.message || (zh.value ? '新增失敗。' : 'Failed to add entry.')
   } finally {
     submitting.value = false
   }
@@ -651,11 +652,11 @@ async function submitTimelineEdit() {
   try {
     await updateEventTimelineEntry(token.value, route.params.id, timelineEditId.value, timelineEditForm.value)
     cancelEditTimeline()
-    formMessage.value = zh ? '時間線項目已更新，編輯紀錄也已保存。' : 'Timeline entry updated and logged.'
+    formMessage.value = zh.value ? '時間線項目已更新，編輯紀錄也已保存。' : 'Timeline entry updated and logged.'
     await load()
     activeTab.value = 'timeline'
   } catch (err) {
-    formError.value = err.message || (zh ? '更新失敗。' : 'Failed to update entry.')
+    formError.value = err.message || (zh.value ? '更新失敗。' : 'Failed to update entry.')
   } finally {
     submitting.value = false
   }
@@ -663,21 +664,21 @@ async function submitTimelineEdit() {
 
 async function removeTimelineEntry(entry) {
   if (!token.value) {
-    formError.value = zh ? '登入後才能刪除時間線項目。' : 'Sign in to delete timeline entries.'
+    formError.value = zh.value ? '登入後才能刪除時間線項目。' : 'Sign in to delete timeline entries.'
     return
   }
-  if (!window.confirm(zh ? `刪除時間線項目「${entry.title}」？此動作會留下公開紀錄。` : `Delete timeline entry "${entry.title}"? This will be publicly logged.`)) return
+  if (!window.confirm(zh.value ? `刪除時間線項目「${entry.title}」？此動作會留下公開紀錄。` : `Delete timeline entry "${entry.title}"? This will be publicly logged.`)) return
 
   resetMessages()
   submitting.value = true
   try {
     await deleteEventTimelineEntry(token.value, route.params.id, entry.id)
     if (timelineEditId.value === String(entry.id)) cancelEditTimeline()
-    formMessage.value = zh ? '時間線項目已刪除，刪除紀錄已保存。' : 'Timeline entry deleted and logged.'
+    formMessage.value = zh.value ? '時間線項目已刪除，刪除紀錄已保存。' : 'Timeline entry deleted and logged.'
     await load()
     activeTab.value = 'timeline'
   } catch (err) {
-    formError.value = err.message || (zh ? '刪除失敗。' : 'Failed to delete entry.')
+    formError.value = err.message || (zh.value ? '刪除失敗。' : 'Failed to delete entry.')
   } finally {
     submitting.value = false
   }
@@ -685,7 +686,7 @@ async function removeTimelineEntry(entry) {
 
 async function submitEntity() {
   if (!token.value) {
-    formError.value = zh ? '登入後才能新增人物或組織節點。' : 'Sign in to add people or organizations.'
+    formError.value = zh.value ? '登入後才能新增人物或組織節點。' : 'Sign in to add people or organizations.'
     return
   }
 
@@ -695,11 +696,11 @@ async function submitEntity() {
     await createEventEntity(token.value, route.params.id, entityForm.value)
     entityForm.value = { name: '', entity_type: 'person', description: '', source_url: '', global_entity_id: null }
     clearGlobalEntity()
-    formMessage.value = zh ? '節點已新增，編輯紀錄也已保存。' : 'Node added and logged.'
+    formMessage.value = zh.value ? '節點已新增，編輯紀錄也已保存。' : 'Node added and logged.'
     await load()
     activeTab.value = 'graph'
   } catch (err) {
-    formError.value = err.message || (zh ? '新增失敗。' : 'Failed to add node.')
+    formError.value = err.message || (zh.value ? '新增失敗。' : 'Failed to add node.')
   } finally {
     submitting.value = false
   }
@@ -713,11 +714,11 @@ async function submitEntityEdit() {
   try {
     await updateEventEntity(token.value, route.params.id, entityEditId.value, entityEditForm.value)
     cancelEditEntity()
-    formMessage.value = zh ? '節點已更新，編輯紀錄也已保存。' : 'Node updated and logged.'
+    formMessage.value = zh.value ? '節點已更新，編輯紀錄也已保存。' : 'Node updated and logged.'
     await load()
     activeTab.value = 'graph'
   } catch (err) {
-    formError.value = err.message || (zh ? '更新失敗。' : 'Failed to update node.')
+    formError.value = err.message || (zh.value ? '更新失敗。' : 'Failed to update node.')
   } finally {
     submitting.value = false
   }
@@ -725,21 +726,21 @@ async function submitEntityEdit() {
 
 async function removeEntity(entity) {
   if (!token.value) {
-    formError.value = zh ? '登入後才能刪除節點。' : 'Sign in to delete nodes.'
+    formError.value = zh.value ? '登入後才能刪除節點。' : 'Sign in to delete nodes.'
     return
   }
-  if (!window.confirm(zh ? `刪除節點「${entity.name}」？相關關係也會刪除並留下紀錄。` : `Delete node "${entity.name}"? Related relationships will also be deleted and logged.`)) return
+  if (!window.confirm(zh.value ? `刪除節點「${entity.name}」？相關關係也會刪除並留下紀錄。` : `Delete node "${entity.name}"? Related relationships will also be deleted and logged.`)) return
 
   resetMessages()
   submitting.value = true
   try {
     await deleteEventEntity(token.value, route.params.id, entity.id)
     if (entityEditId.value === String(entity.id)) cancelEditEntity()
-    formMessage.value = zh ? '節點已刪除，刪除紀錄已保存。' : 'Node deleted and logged.'
+    formMessage.value = zh.value ? '節點已刪除，刪除紀錄已保存。' : 'Node deleted and logged.'
     await load()
     activeTab.value = 'graph'
   } catch (err) {
-    formError.value = err.message || (zh ? '刪除失敗。' : 'Failed to delete node.')
+    formError.value = err.message || (zh.value ? '刪除失敗。' : 'Failed to delete node.')
   } finally {
     submitting.value = false
   }
@@ -753,14 +754,14 @@ async function submitEntityMerge() {
   try {
     await mergeEventEntity(token.value, route.params.id, entityEditId.value, {
       target_entity_id: mergeTargetEntityId.value,
-      reason: zh ? '社群合併重複節點' : 'Community merged duplicate node',
+      reason: zh.value ? '社群合併重複節點' : 'Community merged duplicate node',
     })
     cancelEditEntity()
-    formMessage.value = zh ? '節點已合併，關係已移轉，編輯紀錄也已保存。' : 'Node merged, relationships moved, and edit logs saved.'
+    formMessage.value = zh.value ? '節點已合併，關係已移轉，編輯紀錄也已保存。' : 'Node merged, relationships moved, and edit logs saved.'
     await load()
     activeTab.value = 'graph'
   } catch (err) {
-    formError.value = err.message || (zh ? '合併失敗。' : 'Failed to merge node.')
+    formError.value = err.message || (zh.value ? '合併失敗。' : 'Failed to merge node.')
   } finally {
     submitting.value = false
   }
@@ -768,7 +769,7 @@ async function submitEntityMerge() {
 
 async function submitRelationship() {
   if (!token.value) {
-    formError.value = zh ? '登入後才能新增人物或組織關係。' : 'Sign in to add relationships.'
+    formError.value = zh.value ? '登入後才能新增人物或組織關係。' : 'Sign in to add relationships.'
     return
   }
 
@@ -785,11 +786,11 @@ async function submitRelationship() {
       source_type: 'news',
       source_url: '',
     }
-    formMessage.value = zh ? '關係已新增，編輯紀錄也已保存。' : 'Relationship added and logged.'
+    formMessage.value = zh.value ? '關係已新增，編輯紀錄也已保存。' : 'Relationship added and logged.'
     await load()
     activeTab.value = 'graph'
   } catch (err) {
-    formError.value = err.message || (zh ? '新增失敗。' : 'Failed to add relationship.')
+    formError.value = err.message || (zh.value ? '新增失敗。' : 'Failed to add relationship.')
   } finally {
     submitting.value = false
   }
@@ -803,11 +804,11 @@ async function submitRelationshipEdit() {
   try {
     await updateEventRelationship(token.value, route.params.id, relationshipEditId.value, relationshipEditForm.value)
     cancelEditRelationship()
-    formMessage.value = zh ? '關係已更新，編輯紀錄也已保存。' : 'Relationship updated and logged.'
+    formMessage.value = zh.value ? '關係已更新，編輯紀錄也已保存。' : 'Relationship updated and logged.'
     await load()
     activeTab.value = 'graph'
   } catch (err) {
-    formError.value = err.message || (zh ? '更新失敗。' : 'Failed to update relationship.')
+    formError.value = err.message || (zh.value ? '更新失敗。' : 'Failed to update relationship.')
   } finally {
     submitting.value = false
   }
@@ -815,21 +816,21 @@ async function submitRelationshipEdit() {
 
 async function removeRelationship(rel) {
   if (!token.value) {
-    formError.value = zh ? '登入後才能刪除關係。' : 'Sign in to delete relationships.'
+    formError.value = zh.value ? '登入後才能刪除關係。' : 'Sign in to delete relationships.'
     return
   }
-  if (!window.confirm(zh ? `刪除「${rel.from_entity?.name} → ${rel.to_entity?.name}」這條關係？此動作會留下公開紀錄。` : `Delete this relationship? This will be publicly logged.`)) return
+  if (!window.confirm(zh.value ? `刪除「${rel.from_entity?.name} → ${rel.to_entity?.name}」這條關係？此動作會留下公開紀錄。` : `Delete this relationship? This will be publicly logged.`)) return
 
   resetMessages()
   submitting.value = true
   try {
     await deleteEventRelationship(token.value, route.params.id, rel.id)
     if (relationshipEditId.value === String(rel.id)) cancelEditRelationship()
-    formMessage.value = zh ? '關係已刪除，刪除紀錄已保存。' : 'Relationship deleted and logged.'
+    formMessage.value = zh.value ? '關係已刪除，刪除紀錄已保存。' : 'Relationship deleted and logged.'
     await load()
     activeTab.value = 'graph'
   } catch (err) {
-    formError.value = err.message || (zh ? '刪除失敗。' : 'Failed to delete relationship.')
+    formError.value = err.message || (zh.value ? '刪除失敗。' : 'Failed to delete relationship.')
   } finally {
     submitting.value = false
   }

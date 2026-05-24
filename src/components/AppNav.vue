@@ -1,11 +1,12 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import BrandLink from './BrandLink.vue'
-import { currentLocale } from '../i18n'
+import { useI18n } from '../i18n'
 import { fetchEvents } from '../lib/api'
 
-const zh = currentLocale() !== 'en'
+const { locale } = useI18n()
+const zh = computed(() => locale.value !== 'en')
 
 const open = ref(false)
 const loaded = ref(false)

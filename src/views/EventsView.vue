@@ -1,11 +1,12 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchEvents } from '../lib/api'
-import { currentLocale } from '../i18n'
+import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
 
-const zh = currentLocale() !== 'en'
+const { locale } = useI18n()
+const zh = computed(() => locale.value !== 'en')
 const q = ref('')
 const sort = ref('updated')
 const page = ref(1)
@@ -15,27 +16,27 @@ const error = ref('')
 const events = ref([])
 const meta = ref({ total: 0, last_page: 1, page: 1 })
 
-const text = {
-  title: zh ? '事件時間線與關係圖' : 'Event Timelines and Relationship Graphs',
-  intro: zh
+const text = computed(() => ({
+  title: zh.value ? '事件時間線與關係圖' : 'Event Timelines and Relationship Graphs',
+  intro: zh.value
     ? '把多篇新聞、證據、官方澄清與人物/組織關係收斂到同一個事件，讓社群一起維護脈絡。'
     : 'Group related articles, evidence, responses, and people/organization relationships into shared community-maintained events.',
-  search: zh ? '搜尋事件、新聞、人物或組織' : 'Search events, articles, people, or organizations',
-  empty: zh ? '目前沒有符合條件的事件。' : 'No matching events yet.',
-  open: zh ? '查看事件' : 'Open event',
-  timeline: zh ? '時間線' : 'Timeline',
-  graph: zh ? '關係圖' : 'Graph',
-  items: zh ? '資料' : 'Items',
-  views: zh ? '瀏覽' : 'Views',
-  updated: zh ? '更新' : 'Updated',
-}
+  search: zh.value ? '搜尋事件、新聞、人物或組織' : 'Search events, articles, people, or organizations',
+  empty: zh.value ? '目前沒有符合條件的事件。' : 'No matching events yet.',
+  open: zh.value ? '查看事件' : 'Open event',
+  timeline: zh.value ? '時間線' : 'Timeline',
+  graph: zh.value ? '關係圖' : 'Graph',
+  items: zh.value ? '資料' : 'Items',
+  views: zh.value ? '瀏覽' : 'Views',
+  updated: zh.value ? '更新' : 'Updated',
+}))
 
-const sortOptions = [
-  { value: 'updated', label: zh ? '最新更新' : 'Recently updated' },
-  { value: 'created', label: zh ? '最新建立' : 'Newest' },
-  { value: 'views',   label: zh ? '瀏覽次數' : 'Most viewed' },
-  { value: 'recent',  label: zh ? '近期瀏覽' : 'Recently viewed' },
-]
+const sortOptions = computed(() => [
+  { value: 'updated', label: zh.value ? '最新更新' : 'Recently updated' },
+  { value: 'created', label: zh.value ? '最新建立' : 'Newest' },
+  { value: 'views', label: zh.value ? '瀏覽次數' : 'Most viewed' },
+  { value: 'recent', label: zh.value ? '近期瀏覽' : 'Recently viewed' },
+])
 
 async function load() {
   loading.value = true
@@ -65,7 +66,7 @@ function goPage(p) {
 
 function formatDate(iso) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString(zh ? 'zh-TW' : 'en', { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(iso).toLocaleDateString(zh.value ? 'zh-TW' : 'en', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 onMounted(load)

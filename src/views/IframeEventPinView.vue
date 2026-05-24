@@ -9,13 +9,14 @@ import {
   fetchEventGraph,
   fetchEvents,
 } from '../lib/api'
-import { currentLocale } from '../i18n'
+import { useI18n } from '../i18n'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
 
 const route = useRoute()
-const zh = currentLocale() !== 'en'
+const { locale } = useI18n()
+const zh = computed(() => locale.value !== 'en')
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const user = ref(readUser())
 const events = ref([])
@@ -37,7 +38,7 @@ const selectedEvent = computed(() => eventOptions.value.find((event) => String(e
 
 const eventName = ref('')
 const eventSummary = ref('')
-const timelineTitle = ref(pageTitle.value || (zh ? '新聞事件' : 'News event'))
+const timelineTitle = ref(pageTitle.value || (zh.value ? '新聞事件' : 'News event'))
 const timelineSummary = ref('')
 const occurredAt = ref(new Date().toISOString().slice(0, 16))
 const sourceType = ref('news')
@@ -50,31 +51,31 @@ const relationshipType = ref('')
 const relationshipDescription = ref('')
 const relationshipSourceUrl = ref(newsUrl.value)
 
-const text = {
-  title: zh ? '加入事件' : 'Add to Event',
-  timelineTitle: zh ? '加入事件時間線' : 'Add to Event Timeline',
-  graphTitle: zh ? '加入人物/組織關係圖' : 'Add to People/Org Graph',
-  login: zh ? '登入後才能提交事件編輯。' : 'Sign in to submit event edits.',
-  selectEvent: zh ? '選擇既有事件' : 'Select existing event',
-  searchEvent: zh ? '搜尋事件' : 'Search events',
-  searchEventPlaceholder: zh ? '輸入事件、人物、組織或新聞關鍵字' : 'Search events, people, organizations, or articles',
-  createEvent: zh ? '或建立新事件' : 'Or create a new event',
-  eventName: zh ? '事件名稱' : 'Event name',
-  eventSummary: zh ? '事件摘要' : 'Event summary',
-  entryTitle: zh ? '時間線標題' : 'Entry title',
-  summary: zh ? '摘要' : 'Summary',
-  time: zh ? '時間點' : 'Time',
-  sourceUrl: zh ? '參考資料 URL' : 'Source URL',
-  entity: zh ? '人名或組織名' : 'Person or organization name',
-  entityType: zh ? '類型' : 'Type',
-  relatedTo: zh ? '跟誰有關係' : 'Related to',
-  relationship: zh ? '關係' : 'Relationship',
-  description: zh ? '說明' : 'Description',
-  submit: zh ? '加入事件' : 'Add to Event',
-  loading: zh ? '載入中...' : 'Loading...',
-  firstNode: zh ? '這張圖還沒有節點，這次會先建立第一個人物/組織節點。' : 'This graph has no nodes yet. This submission will create the first node.',
-  viewEvent: zh ? '查看事件頁' : 'Open event page',
-}
+const text = computed(() => ({
+  title: zh.value ? '加入事件' : 'Add to Event',
+  timelineTitle: zh.value ? '加入事件時間線' : 'Add to Event Timeline',
+  graphTitle: zh.value ? '加入人物/組織關係圖' : 'Add to People/Org Graph',
+  login: zh.value ? '登入後才能提交事件編輯。' : 'Sign in to submit event edits.',
+  selectEvent: zh.value ? '選擇既有事件' : 'Select existing event',
+  searchEvent: zh.value ? '搜尋事件' : 'Search events',
+  searchEventPlaceholder: zh.value ? '輸入事件、人物、組織或新聞關鍵字' : 'Search events, people, organizations, or articles',
+  createEvent: zh.value ? '或建立新事件' : 'Or create a new event',
+  eventName: zh.value ? '事件名稱' : 'Event name',
+  eventSummary: zh.value ? '事件摘要' : 'Event summary',
+  entryTitle: zh.value ? '時間線標題' : 'Entry title',
+  summary: zh.value ? '摘要' : 'Summary',
+  time: zh.value ? '時間點' : 'Time',
+  sourceUrl: zh.value ? '參考資料 URL' : 'Source URL',
+  entity: zh.value ? '人名或組織名' : 'Person or organization name',
+  entityType: zh.value ? '類型' : 'Type',
+  relatedTo: zh.value ? '跟誰有關係' : 'Related to',
+  relationship: zh.value ? '關係' : 'Relationship',
+  description: zh.value ? '說明' : 'Description',
+  submit: zh.value ? '加入事件' : 'Add to Event',
+  loading: zh.value ? '載入中...' : 'Loading...',
+  firstNode: zh.value ? '這張圖還沒有節點，這次會先建立第一個人物/組織節點。' : 'This graph has no nodes yet. This submission will create the first node.',
+  viewEvent: zh.value ? '查看事件頁' : 'Open event page',
+}))
 
 function readUser() {
   try {
@@ -122,7 +123,7 @@ async function loadGraph() {
 async function ensureEvent() {
   if (selectedEventId.value) return selectedEventId.value
   const name = eventName.value.trim()
-  if (!name) throw new Error(zh ? '請選擇事件或輸入新事件名稱。' : 'Select an event or enter a new event name.')
+  if (!name) throw new Error(zh.value ? '請選擇事件或輸入新事件名稱。' : 'Select an event or enter a new event name.')
 
   const payload = await createEvent(token.value, {
     name,
@@ -178,7 +179,7 @@ async function submitGraph() {
 
 async function submit() {
   if (!isLoggedIn.value) {
-    error.value = text.login
+    error.value = text.value.login
     return
   }
 
@@ -191,7 +192,7 @@ async function submit() {
     } else {
       await submitTimeline()
     }
-    message.value = zh ? '已加入事件，編輯紀錄已保存。' : 'Added to event. The edit log was saved.'
+    message.value = zh.value ? '已加入事件，編輯紀錄已保存。' : 'Added to event. The edit log was saved.'
     await loadEvents()
   } catch (err) {
     error.value = err.message || 'Submit failed'
@@ -202,6 +203,13 @@ async function submit() {
 }
 
 watch(selectedEventId, loadGraph)
+watch(zh, (isZh, wasZh) => {
+  if (pageTitle.value) return
+  const previousDefault = wasZh ? '新聞事件' : 'News event'
+  if (!timelineTitle.value || timelineTitle.value === previousDefault) {
+    timelineTitle.value = isZh ? '新聞事件' : 'News event'
+  }
+})
 onMounted(() => {
   window.addEventListener('message', (event) => {
     if (event.data?.type === 'TRUTH_SHIELD_AUTH_UPDATED' && event.data.token) {
