@@ -21,6 +21,20 @@ function setStatus(message, danger = false) {
   byId('status').style.color = danger ? '#fca5a5' : '#86efac'
 }
 
+function selectedLocale() {
+  return state.settings.locale === 'zh-TW' || state.settings.locale === 'en'
+    ? state.settings.locale
+    : (navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en')
+}
+
+function applyStaticEventLabels() {
+  const refreshBtn = byId('detail-refresh-btn')
+  if (!refreshBtn) return
+  const label = t('detailRefresh')
+  refreshBtn.title = label
+  refreshBtn.setAttribute('aria-label', label)
+}
+
 function truthUrl(path, params = {}) {
   const url = new URL(path, state.settings.tooltipOrigin)
   const locale = state.settings.locale === 'zh-TW' || state.settings.locale === 'en'
@@ -45,6 +59,16 @@ function currentUrl() {
 
 function currentTitle() {
   return state.tab?.title || ''
+}
+
+function sourceTypeLabel(sourceType) {
+  const map = {
+    news: 'timelineSourceNews',
+    evidence: 'timelineSourceEvidence',
+    official_response: 'timelineSourceOfficialResponse',
+    external: 'timelineSourceExternal',
+  }
+  return t(map[sourceType] || 'timelineSourceUnknown')
 }
 
 function reportParamsFromContext(context = {}) {
@@ -426,8 +450,8 @@ function renderEventsList(events) {
   if (!events.length) {
     container.innerHTML = `
       <div class="empty-state">
-        <p>找不到符合的事件。</p>
-        <p>試試其他關鍵字搜尋，或點「建立新事件」從目前頁面新增一個。</p>
+        <p>${escapeHtml(t('eventsEmptyTitle'))}</p>
+        <p>${escapeHtml(t('eventsEmptyHint'))}</p>
       </div>`
     return
   }
@@ -436,9 +460,13 @@ function renderEventsList(events) {
     return `
       <div class="event-item">
         <div class="event-name">${escapeHtml(ev.name)}</div>
-        <div class="event-meta">時間線 ${c.timeline ?? 0} · 關係 ${c.relationships ?? 0} · 新聞 ${c.items ?? 0}</div>
+        <div class="event-meta">${escapeHtml(t('eventsCounts', {
+          timeline: c.timeline ?? 0,
+          relationships: c.relationships ?? 0,
+          items: c.items ?? 0,
+        }))}</div>
         <div class="event-actions">
-          <button class="btn-sm cyan" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="pin">＋ 加入事件</button>
+          <button class="btn-sm cyan" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="pin">${escapeHtml(t('eventsPin'))}</button>
           <button class="btn-sm" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="timeline">${t('eventsTimeline')}</button>
           <button class="btn-sm" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="graph">${t('eventsGraph')}</button>
           <a class="btn-sm" href="${escapeHtml(state.settings.tooltipOrigin)}/events/${ev.id}" target="_blank" rel="noopener noreferrer">${t('eventsOpenPage')}</a>
@@ -506,7 +534,13 @@ function formatEntryDate(value) {
   try {
     const d = new Date(value)
     if (isNaN(d.getTime())) return String(value).slice(0, 16)
-    return d.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleString(selectedLocale(), {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   } catch { return String(value).slice(0, 16) }
 }
 
@@ -524,13 +558,13 @@ async function renderTimeline(eventId) {
     const listHtml = entries.length
       ? `<div class="tl-list">${entries.map((entry) => `
           <div class="tl-entry">
-            <div class="tl-time">${escapeHtml(formatEntryDate(entry.occurred_at))} · ${escapeHtml(entry.source_type || '')}</div>
+            <div class="tl-time">${escapeHtml(formatEntryDate(entry.occurred_at))} · ${escapeHtml(sourceTypeLabel(entry.source_type))}</div>
             <div class="tl-title">${escapeHtml(entry.title || '')}</div>
             ${entry.summary ? `<div class="tl-summary">${escapeHtml(entry.summary)}</div>` : ''}
             ${entry.source_url ? `<a class="tl-link" href="${escapeHtml(entry.source_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(entry.source_url.length > 60 ? entry.source_url.slice(0, 60) + '…' : entry.source_url)}</a>` : ''}
           </div>`).join('')}</div>`
       : `<p class="panel-msg">${t('detailTimelineEmpty')}</p>`
-    const html = `<button class="btn-sm cyan add-btn" id="add-timeline-btn">＋ 新增時間線項目</button>${listHtml}`
+    const html = `<button class="btn-sm cyan add-btn" id="add-timeline-btn">${escapeHtml(t('detailAddTimeline'))}</button>${listHtml}`
     eventsState.cache.timeline[eventId] = html
     container.innerHTML = html
     bindTimelineAddBtn(eventId)
@@ -577,7 +611,7 @@ async function renderGraph(eventId) {
 function buildAddGraphBtn(eventId) {
   const btn = document.createElement('button')
   btn.className = 'btn-sm cyan add-btn'
-  btn.textContent = '＋ 新增人物／組織'
+  btn.textContent = t('detailAddGraph')
   btn.addEventListener('click', () => openAddGraph(eventId))
   return btn
 }
@@ -651,14 +685,18 @@ function buildGraphSvg(entities, relationships) {
     const isRisk = rel.is_high_risk
     const markerId = isRisk ? 'pg-arrow-orange' : 'pg-arrow-cyan'
 
-    svg.appendChild(el('line', { x1, y1, x2, y2, stroke: isRisk ? '#f97316' : '#67e8f9', 'stroke-width': '2', opacity: '0.65', 'marker-end': `url(#${markerId})` }))
+    const relGroup = el('g')
+    const line = el('line', { x1, y1, x2, y2, stroke: isRisk ? '#f97316' : '#67e8f9', 'stroke-width': '2', opacity: '0.65', 'marker-end': `url(#${markerId})` })
+    line.appendChild(el('title', {}, `${entities[fi].name} -> ${entities[ti].name}${rel.relationship_type ? ` (${rel.relationship_type})` : ''}`))
+    relGroup.appendChild(line)
 
     const label = String(rel.relationship_type || '').slice(0, 10)
     if (label) {
       const lw = label.length * 7 + 14
-      svg.appendChild(el('rect', { x: mx - lw / 2, y: my - 9, width: lw, height: 18, rx: '4', fill: '#09090b', stroke: isRisk ? '#f97316' : '#155e75', opacity: '0.95' }))
-      svg.appendChild(el('text', { x: mx, y: my + 1, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: isRisk ? '#fed7aa' : '#cffafe', 'font-size': '10', 'font-weight': '700' }, label))
+      relGroup.appendChild(el('rect', { x: mx - lw / 2, y: my - 9, width: lw, height: 18, rx: '4', fill: '#09090b', stroke: isRisk ? '#f97316' : '#155e75', opacity: '0.95' }))
+      relGroup.appendChild(el('text', { x: mx, y: my + 1, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: isRisk ? '#fed7aa' : '#cffafe', 'font-size': '10', 'font-weight': '700' }, label))
     }
+    svg.appendChild(relGroup)
   }
 
   for (let i = 0; i < entities.length; i++) {
@@ -669,9 +707,12 @@ function buildGraphSvg(entities, relationships) {
     const degree = degrees.get(entity.id) || 0
     const { fill, stroke } = graphHeat(degree / maxDeg, isOrg)
 
-    svg.appendChild(el('circle', { cx: pos.x, cy: pos.y, r, fill, stroke, 'stroke-width': '2' }))
-    svg.appendChild(el('text', { x: pos.x, y: pos.y + 4, 'text-anchor': 'middle', fill: '#fff', 'font-size': '11', 'pointer-events': 'none' }, entity.name.slice(0, 7)))
-    svg.appendChild(el('text', { x: pos.x, y: pos.y + r + 13, 'text-anchor': 'middle', fill: '#a1a1aa', 'font-size': '9', 'pointer-events': 'none' }, String(degree)))
+    const nodeGroup = el('g')
+    nodeGroup.appendChild(el('title', {}, `${entity.name} (${degree})`))
+    nodeGroup.appendChild(el('circle', { cx: pos.x, cy: pos.y, r, fill, stroke, 'stroke-width': '2' }))
+    nodeGroup.appendChild(el('text', { x: pos.x, y: pos.y + 4, 'text-anchor': 'middle', fill: '#fff', 'font-size': '11', 'pointer-events': 'none' }, entity.name.slice(0, 7)))
+    nodeGroup.appendChild(el('text', { x: pos.x, y: pos.y + r + 13, 'text-anchor': 'middle', fill: '#a1a1aa', 'font-size': '9', 'pointer-events': 'none' }, String(degree)))
+    svg.appendChild(nodeGroup)
   }
 
   return svg
@@ -821,6 +862,7 @@ async function initPopup() {
 
   chrome.storage.sync.get(defaults, async (settings) => {
     state.settings = settings
+    applyStaticEventLabels()
     state.tab = await activeTab()
 
     const url = currentUrl()
