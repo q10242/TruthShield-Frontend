@@ -75,6 +75,13 @@ const readCta = computed(() => {
 const cacheStatusLabel = computed(() => cacheStatus.value === 'hit' ? t('mobile.cacheCached') : t('mobile.cacheLive'))
 const readGateLabel = computed(() => hasReadEnough.value ? t('mobile.readGateMet') : t('mobile.readGatePending'))
 const readSyncLabel = computed(() => readSynced.value ? t('mobile.readSyncedReady') : t('mobile.readSyncedPending'))
+const jumpLinks = computed(() => [
+  { id: 'result', label: t('mobile.jumpResult') },
+  { id: 'vote', label: t('mobile.jumpVote') },
+  { id: 'evidence', label: t('mobile.jumpEvidence') },
+  { id: 'responses', label: t('mobile.jumpResponses') },
+  { id: 'reports', label: t('mobile.jumpReports') },
+])
 
 function mobileNavClass(active) {
   return active
@@ -143,6 +150,13 @@ function goCheck() {
     return
   }
   router.replace({ name: 'mobile-check', query: { url: normalized } })
+}
+
+function scrollToSection(id) {
+  document.getElementById(`mobile-section-${id}`)?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  })
 }
 
 async function loadAuth() {
@@ -376,7 +390,22 @@ onUnmounted(() => {
       <p v-if="error" class="mt-3 rounded-xl border border-orange-300/30 bg-orange-500/10 p-3 text-sm text-orange-100">{{ error }}</p>
 
       <template v-if="newsUrl && !error">
-        <section class="ts-surface mt-5 rounded-3xl p-4">
+        <div class="sticky top-3 z-20 mt-4 overflow-x-auto pb-1">
+          <div class="ts-mobile-section-rail inline-flex min-w-full gap-2 rounded-2xl px-2 py-2">
+            <span class="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">{{ t('mobile.jumpTo') }}</span>
+            <button
+              v-for="item in jumpLinks"
+              :key="item.id"
+              class="ts-mobile-section-chip rounded-full px-3 py-2 text-xs font-semibold whitespace-nowrap"
+              type="button"
+              @click="scrollToSection(item.id)"
+            >
+              {{ item.label }}
+            </button>
+          </div>
+        </div>
+
+        <section id="mobile-section-result" class="ts-surface mt-5 scroll-mt-24 rounded-3xl p-4">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">{{ t('mobile.currentResult') }}</p>
@@ -401,12 +430,17 @@ onUnmounted(() => {
               <p class="mt-1 text-[11px] text-zinc-500">{{ readSyncLabel }}</p>
             </div>
           </div>
-          <button class="mt-4 w-full rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-4 py-3 text-sm font-bold text-cyan-100" @click="openOriginal">
-            {{ t('mobile.openOriginal') }}
-          </button>
+          <div class="mt-4 grid grid-cols-2 gap-2">
+            <button class="rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-4 py-3 text-sm font-bold text-cyan-100" @click="openOriginal">
+              {{ t('mobile.openOriginal') }}
+            </button>
+            <button class="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-white" type="button" @click="scrollToSection('vote')">
+              {{ t('mobile.jumpToVote') }}
+            </button>
+          </div>
         </section>
 
-        <section class="ts-surface-muted mt-5 rounded-2xl p-4">
+        <section class="ts-surface-muted mt-5 scroll-mt-24 rounded-2xl p-4">
           <div class="flex items-center justify-between gap-3">
             <h2 class="text-lg font-semibold text-white">{{ t('mobile.weightedResult') }}</h2>
             <span class="text-xs text-zinc-500">{{ loading ? t('common.loading') : statusText }}</span>
@@ -430,7 +464,7 @@ onUnmounted(() => {
           </div>
         </section>
 
-        <section class="ts-surface-muted mt-5 rounded-2xl p-4">
+        <section id="mobile-section-vote" class="ts-surface-muted mt-5 scroll-mt-24 rounded-2xl p-4">
           <h2 class="text-lg font-semibold text-white">{{ t('mobile.voteAfterReading') }}</h2>
           <p class="mt-2 text-sm leading-6 text-zinc-400">{{ readCta }}</p>
           <div class="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
@@ -491,7 +525,7 @@ onUnmounted(() => {
           <p v-if="voteMessage" class="mt-3 rounded-xl border border-emerald-300/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">{{ voteMessage }}</p>
         </section>
 
-        <section class="ts-surface-muted mt-5 rounded-2xl p-4">
+        <section id="mobile-section-responses" class="ts-surface-muted mt-5 scroll-mt-24 rounded-2xl p-4">
           <h2 class="text-lg font-semibold text-white">{{ t('mobile.officialResponses') }}</h2>
           <article v-for="item in officialResponses" :key="item.id" class="mt-3 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
             <p class="text-xs font-semibold text-cyan-100">{{ item.claimant?.claim_type || item.response_type }}</p>
@@ -500,7 +534,7 @@ onUnmounted(() => {
           <p v-if="!officialResponses.length" class="mt-3 text-sm text-zinc-500">{{ t('votePanel.noOfficialResponses') }}</p>
         </section>
 
-        <section class="ts-surface-muted mt-5 rounded-2xl p-4">
+        <section id="mobile-section-evidence" class="ts-surface-muted mt-5 scroll-mt-24 rounded-2xl p-4">
           <h2 class="text-lg font-semibold text-white">{{ t('mobile.communityEvidence') }}</h2>
           <article v-for="item in evidence" :key="item.id" class="mt-3 rounded-xl border border-white/10 bg-zinc-950/60 p-3">
             <div class="flex flex-wrap items-center gap-2">
@@ -513,8 +547,11 @@ onUnmounted(() => {
           <p v-if="!evidence.length" class="mt-3 text-sm text-zinc-500">{{ t('votePanel.noEvidence') }}</p>
         </section>
 
-        <section class="ts-surface-muted mt-5 rounded-2xl p-4">
-          <h2 class="text-lg font-semibold text-white">{{ t('mobile.communityReports') }}</h2>
+        <section id="mobile-section-reports" class="ts-surface-muted mt-5 scroll-mt-24 rounded-2xl p-4">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold text-white">{{ t('mobile.communityReports') }}</h2>
+            <button class="text-xs font-semibold text-cyan-200" type="button" @click="scrollToSection('result')">{{ t('mobile.backToTop') }}</button>
+          </div>
           <div class="mt-3 grid gap-2">
             <RouterLink class="rounded-xl border border-white/10 bg-zinc-950/60 p-3 text-sm font-semibold text-cyan-100" :to="reportLinks().classification">{{ t('mobile.reportNotArticle') }}</RouterLink>
             <RouterLink class="rounded-xl border border-white/10 bg-zinc-950/60 p-3 text-sm font-semibold text-cyan-100" :to="reportLinks().domain">{{ t('mobile.reportMissingSite') }}</RouterLink>
