@@ -37,6 +37,7 @@ export function useVotePanel(route) {
   const activeTab = ref('results')
   const loading = ref(true)
   const statusLoading = ref(true)
+  const hasLoadedStatus = ref(false)
   const error = ref('')
   const voteError = ref('')
   const voteMessage = ref('')
@@ -77,6 +78,7 @@ export function useVotePanel(route) {
   const pinSubmitting = ref(false)
   const pinMessage = ref('')
   const pinError = ref('')
+  const lastResizePayload = { height: 0, collapsed: null }
   const officialResponseText = ref('')
   const officialResponseEvidenceUrl = ref('')
   const officialResponseType = ref('subject_clarification')
@@ -101,7 +103,10 @@ export function useVotePanel(route) {
   const readMinimum = ref(15)
   const readSynced = ref(false)
   const readTimer = ref(null)
+  const lastReadSessionSyncSecond = ref(0)
   const advancedMode = ref(false)
+  const lastAuthHandoffSignature = ref('')
+  const authRefreshInFlight = ref(false)
 
   const tabSteps = computed(() => [
     { key: 'results', number: 1, label: t('votePanel.tabs.results') },
@@ -392,12 +397,20 @@ export function useVotePanel(route) {
       const height = collapsed.value
         ? Math.ceil(document.body.getBoundingClientRect().height || document.documentElement.scrollHeight)
         : document.documentElement.scrollHeight
+      const nextCollapsed = Boolean(collapsed.value)
+
+      if (height === lastResizePayload.height && nextCollapsed === lastResizePayload.collapsed) {
+        return
+      }
+
+      lastResizePayload.height = height
+      lastResizePayload.collapsed = nextCollapsed
 
       window.parent?.postMessage(
         {
           type: 'TRUTH_SHIELD_VOTE_PANEL_RESIZE',
           height,
-          collapsed: collapsed.value,
+          collapsed: nextCollapsed,
         },
         '*',
       )
@@ -456,6 +469,15 @@ export function useVotePanel(route) {
     if (event.data?.type === 'TRUTH_SHIELD_AUTH_UPDATED') {
       const isSameOriginLogin = event.origin === window.location.origin
       const isExtensionHandoff = event.source === window.parent && event.data.source === 'truthshield-extension'
+      const authSignature = event.data.token
+        ? `${event.data.token}:${JSON.stringify(event.data.user || null)}`
+        : ''
+
+      if (authSignature && authSignature === lastAuthHandoffSignature.value && (authRefreshInFlight.value || status.value || statusLoading.value)) {
+        return
+      }
+
+      lastAuthHandoffSignature.value = authSignature
 
       if ((isSameOriginLogin || isExtensionHandoff) && event.data.token) {
         localStorage.setItem(TOKEN_KEY, event.data.token)
@@ -470,10 +492,16 @@ export function useVotePanel(route) {
         }, '*')
       }
 
-      await loadAuth()
-      await syncReadSession()
-      await loadData()
-      notifyHeight()
+      if (authRefreshInFlight.value) return
+      authRefreshInFlight.value = true
+      try {
+        await loadAuth()
+        await syncReadSession()
+        await loadData()
+      } finally {
+        authRefreshInFlight.value = false
+        notifyHeight()
+      }
     }
 
     if (event.data?.type === 'TRUTH_SHIELD_AUTH_CLEARED') {
@@ -487,14 +515,23 @@ export function useVotePanel(route) {
 
     if (event.data?.type === 'TRUTH_SHIELD_ARTICLE_READ_TICK') {
       readSeconds.value = Math.max(readSeconds.value, Number(event.data.secondsRead || 0))
-      if (readSeconds.value % 5 === 0 || readSeconds.value >= readMinimum.value) {
+      if (shouldSyncReadSession()) {
         await syncReadSession()
       }
     }
   }
 
+  function shouldSyncReadSession() {
+    const seconds = Number(readSeconds.value || 0)
+    if (seconds <= 0 || seconds <= lastReadSessionSyncSecond.value) return false
+
+    const crossedReadThreshold = seconds >= readMinimum.value && lastReadSessionSyncSecond.value < readMinimum.value
+    return crossedReadThreshold || seconds % 5 === 0
+  }
+
   async function syncReadSession() {
     if (!token.value || !newsUrl.value || document.hidden) return
+    lastReadSessionSyncSecond.value = Number(readSeconds.value || 0)
 
     try {
       const payload = await recordReadSession(token.value, {
@@ -535,7 +572,7 @@ export function useVotePanel(route) {
 
       readSeconds.value += 1
 
-      if (readSeconds.value % 5 === 0 || readSeconds.value === readMinimum.value) {
+      if (shouldSyncReadSession()) {
         syncReadSession()
       }
     }, 1000)
@@ -544,7 +581,7 @@ export function useVotePanel(route) {
   async function loadData() {
     error.value = ''
     evidenceError.value = ''
-    statusLoading.value = true
+    statusLoading.value = !hasLoadedStatus.value
 
     try {
       if (!newsUrl.value) throw new Error('Missing news_url')
@@ -565,6 +602,7 @@ export function useVotePanel(route) {
       const [statusPayload, tagPayload, evidencePayload, reportReasonsPayload, officialResponsesPayload, eventPayload, myVotePayload] = await Promise.all(requests)
 
       status.value = statusPayload
+      hasLoadedStatus.value = true
       tags.value = tagPayload
       evidence.value = evidencePayload
       reportReasons.value = reportReasonsPayload
@@ -1202,7 +1240,7 @@ export function useVotePanel(route) {
     }
   })
 
-  watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, evidenceUploading, evidenceUploadMessage, voteError, voteMessage, achievementToastMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, readSeconds], notifyHeight)
+  watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, evidenceUploading, evidenceUploadMessage, voteError, voteMessage, achievementToastMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText], notifyHeight)
 
   onMounted(async () => {
     trackEvent('vote_panel_open', { source: 'extension', feature: 'vote_panel', url: newsUrl.value })
@@ -1236,6 +1274,7 @@ export function useVotePanel(route) {
     changeReportMessage,
     readMessage,
     status,
+    hasLoadedStatus,
     tags,
     evidence,
     officialResponses,

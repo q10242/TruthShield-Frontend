@@ -18,6 +18,7 @@ const {
   statusLoading,
   error,
   status,
+  hasLoadedStatus,
   visibleTabSteps,
   activeStepNumber,
   toneClass,
@@ -129,7 +130,7 @@ function toggleAdvancedMode() {
       </div>
 
       <div class="mt-3 w-full rounded-md border p-3 text-left" :class="toneClass">
-        <div v-if="statusLoading" class="text-sm text-zinc-300">{{ t('votePanel.checkingNews') }}</div>
+        <div v-if="statusLoading && !hasLoadedStatus" class="text-sm text-zinc-300">{{ t('votePanel.checkingNews') }}</div>
         <div v-else-if="error" class="text-sm text-orange-100">{{ t('votePanel.unavailable') }}</div>
         <div v-else class="space-y-1">
           <div class="text-sm font-semibold">{{ status?.display_text || t('votePanel.noData') }}</div>

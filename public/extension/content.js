@@ -1392,8 +1392,9 @@ async function refreshArticleBannerStatus(url = window.location.href, knownStatu
     return
   }
 
+  const cachedBeforeRefresh = articleBannerStatusCache.get(cacheKey)
   clearStatusCachesForUrl(cacheKey)
-  if (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey) {
+  if (!cachedBeforeRefresh?.payload && (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey)) {
     renderArticleBanner(null, true)
   }
 
