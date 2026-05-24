@@ -21,6 +21,17 @@ function setStatus(message, danger = false) {
   byId('status').style.color = danger ? '#fca5a5' : '#86efac'
 }
 
+function setPageContextSummary(textKey, badgeKey, tone = 'ok') {
+  const summary = byId('popupSummary')
+  const badge = byId('pageContextBadge')
+  if (summary) summary.textContent = t(textKey)
+  if (!badge) return
+  badge.textContent = t(badgeKey)
+  badge.classList.remove('warn', 'bad')
+  if (tone === 'warn') badge.classList.add('warn')
+  if (tone === 'bad') badge.classList.add('bad')
+}
+
 function selectedLocale() {
   return state.settings.locale === 'zh-TW' || state.settings.locale === 'en'
     ? state.settings.locale
@@ -314,6 +325,11 @@ async function loadPageDebug() {
     const bannerVisible = Boolean(context?.hasArticleBanner)
     const bannerDismissed = Boolean(context?.articleBannerDismissed)
 
+    if (!isSupported) setPageContextSummary('popupSummaryUnsupported', 'popupBadgeUnsupported', 'bad')
+    else if (isTracked && isArticle) setPageContextSummary('popupSummaryTrackedArticle', 'popupBadgeReady', 'ok')
+    else if (isTracked) setPageContextSummary('popupSummaryTrackedNonArticle', 'popupBadgeMonitorOnly', 'warn')
+    else setPageContextSummary('popupSummaryUntracked', 'popupBadgeUntracked', 'warn')
+
     debug.innerHTML = [
       row(t('diagContentScript'), pill(isSupported, t('diagOk'), t('diagNotRunning'))),
       row(t('diagTrackedDomain'), pill(isTracked, t('diagTracked'), t('diagNotTracked'), isSupported && !isTracked)),
@@ -329,6 +345,7 @@ async function loadPageDebug() {
         ].filter(Boolean).join(' · ')
       : t('diagNoContentHint')
   } catch (error) {
+    setPageContextSummary('popupSummaryUnsupported', 'popupBadgeUnsupported', 'bad')
     debug.innerHTML = row(t('diagContentScript'), pill(false, t('diagOk'), t('diagNotRunning')))
     byId('pageDebugHint').textContent = error.message || t('diagNoContentHint')
   }
@@ -871,6 +888,7 @@ async function initPopup() {
     byId('openStatus').disabled = disabled
     byId('openVote').disabled = disabled
     byId('openReport').disabled = disabled
+    setPageContextSummary(disabled ? 'popupSummaryUnsupported' : 'popupSummaryDefault', disabled ? 'popupBadgeUnsupported' : 'popupBadgeChecking', disabled ? 'bad' : 'ok')
     setStatus(disabled ? t('unsupportedTab') : t('readyStatus'))
 
     bindActions()

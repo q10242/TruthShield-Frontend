@@ -4,109 +4,228 @@
     <meta charset="utf-8" />
     <title>TruthShield</title>
     <style>
+      :root {
+        color-scheme: dark;
+        --bg: #09090b;
+        --bg-top: #0b1120;
+        --panel: rgba(17, 17, 19, 0.9);
+        --panel-strong: rgba(24, 24, 27, 0.96);
+        --border: rgba(255, 255, 255, 0.09);
+        --text: #f4f4f5;
+        --muted: #a1a1aa;
+        --accent: #67e8f9;
+      }
+      * { box-sizing: border-box; }
       body {
         width: 330px;
         margin: 0;
-        background: #09090b;
-        color: #f4f4f5;
+        background:
+          radial-gradient(circle at top, rgba(34, 211, 238, 0.16), transparent 34%),
+          linear-gradient(180deg, var(--bg-top) 0%, var(--bg) 24%, #050509 100%);
+        color: var(--text);
         font: 13px system-ui, sans-serif;
       }
-      main { padding: 16px; }
-      h1 { font-size: 16px; margin: 0; }
-      .brand { display: flex; align-items: center; gap: 10px; }
-      .brand img { width: 36px; height: 36px; }
-      p { margin: 6px 0 0; color: #a1a1aa; line-height: 1.5; }
-      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-      .card { border: 1px solid #27272a; border-radius: 8px; padding: 10px; background: #18181b; }
-      .label { color: #a1a1aa; font-size: 11px; }
-      .value { margin-top: 4px; font-weight: 700; font-size: 18px; }
-      .target {
+      main { padding: 14px; }
+      h1, h2, p { margin: 0; }
+      h1 { font-size: 17px; }
+      p { color: var(--muted); line-height: 1.5; }
+      .hero {
+        border: 1px solid rgba(103, 232, 249, 0.18);
+        border-radius: 18px;
+        padding: 14px;
+        background:
+          linear-gradient(145deg, rgba(8, 145, 178, 0.16), rgba(17, 17, 19, 0.92) 48%),
+          var(--panel);
+        box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 10px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(103, 232, 249, 0.12);
+        color: #cffafe;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .brand { display: flex; align-items: center; gap: 12px; }
+      .brand img { width: 40px; height: 40px; }
+      .hero-copy { min-width: 0; }
+      .hero-copy p { margin-top: 4px; font-size: 12px; color: #d4d4d8; }
+      .hero-status {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: end;
         margin-top: 12px;
-        border: 1px solid #27272a;
-        border-radius: 8px;
-        padding: 10px;
-        background: #111113;
+      }
+      .hero-status p { color: #e4e4e7; font-size: 12px; }
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(103, 232, 249, 0.24);
+        background: rgba(8, 145, 178, 0.12);
+        color: #cffafe;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .status-badge.warn {
+        border-color: rgba(245, 158, 11, 0.28);
+        background: rgba(245, 158, 11, 0.12);
+        color: #fde68a;
+      }
+      .status-badge.bad {
+        border-color: rgba(239, 68, 68, 0.28);
+        background: rgba(239, 68, 68, 0.12);
+        color: #fecaca;
+      }
+      .hero-target {
+        margin-top: 12px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: rgba(9, 9, 11, 0.45);
+      }
+      .hero-target strong {
+        display: block;
+        color: #e4e4e7;
+        font-size: 11px;
+      }
+      .hero-target span {
+        display: block;
+        margin-top: 5px;
         color: #d4d4d8;
+        line-height: 1.45;
         word-break: break-all;
       }
-      .auth {
+      .section {
         margin-top: 12px;
-        border: 1px solid #164e63;
-        border-radius: 8px;
-        padding: 10px;
-        background: rgba(8, 145, 178, .08);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px;
+        background: var(--panel);
+        backdrop-filter: blur(10px);
       }
-      .auth strong { display:block; color:#cffafe; font-size:12px; }
-      .auth span { display:block; margin-top:4px; color:#a1a1aa; font-size:12px; line-height:1.4; word-break:break-word; }
-      .auth-actions { display:flex; gap:8px; margin-top:10px; }
-      .auth-actions button { margin-top:0; padding:8px; text-align:center; }
-      .auth-actions .danger { border-color:#7f1d1d; background:rgba(127,29,29,.35); color:#fecaca; }
+      .section-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .section-header h2 { font-size: 13px; }
+      .section-header p { font-size: 11px; text-align: right; }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .card {
+        border: 1px solid #27272a;
+        border-radius: 12px;
+        padding: 10px;
+        background: rgba(24, 24, 27, 0.92);
+      }
+      .label { color: #a1a1aa; font-size: 11px; }
+      .value { margin-top: 4px; font-weight: 700; font-size: 18px; }
+      .auth {
+        border: 1px solid #164e63;
+        border-radius: 12px;
+        padding: 10px;
+        background: rgba(8, 145, 178, 0.08);
+      }
+      .auth strong { display: block; color: #cffafe; font-size: 12px; }
+      .auth span { display: block; margin-top: 4px; color: #a1a1aa; font-size: 12px; line-height: 1.4; word-break: break-word; }
+      .auth-actions { display: flex; gap: 8px; margin-top: 10px; }
+      .auth-actions button { margin-top: 0; padding: 8px; text-align: center; }
+      .auth-actions .danger { border-color: #7f1d1d; background: rgba(127, 29, 29, 0.35); color: #fecaca; }
       .onboarding {
         margin-top: 12px;
-        border: 1px solid rgba(103,232,249,.25);
-        border-radius: 8px;
+        border: 1px solid rgba(103, 232, 249, 0.25);
+        border-radius: 12px;
         padding: 10px;
-        background: rgba(8,145,178,.08);
+        background: rgba(8, 145, 178, 0.08);
       }
-      .onboarding-title { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#cffafe; font-weight:700; font-size:12px; }
-      .onboarding ol { margin: 8px 0 0; padding-left: 18px; color:#d4d4d8; font-size:12px; line-height:1.55; }
-      .onboarding-actions { display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px; }
-      .onboarding-actions button { margin-top:0; padding:8px; font-size:12px; text-align:center; }
-      .dismiss { width:auto; margin:0; border:0; background:transparent; color:#67e8f9; padding:0; font-size:11px; }
+      .onboarding-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #cffafe; font-weight: 700; font-size: 12px; }
+      .onboarding ol { margin: 8px 0 0; padding-left: 18px; color: #d4d4d8; font-size: 12px; line-height: 1.55; }
+      .onboarding-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+      .onboarding-actions button { margin-top: 0; padding: 8px; font-size: 12px; text-align: center; }
+      .dismiss { width: auto; margin: 0; border: 0; background: transparent; color: var(--accent); padding: 0; font-size: 11px; }
       .debug {
-        margin-top: 12px;
         border: 1px solid #27272a;
-        border-radius: 8px;
-        background: #111113;
+        border-radius: 12px;
+        background: rgba(9, 9, 11, 0.55);
         padding: 10px;
       }
-      .debug strong { display:block; color:#cffafe; font-size:12px; }
-      .debug-grid { display:grid; gap:6px; margin-top:8px; }
-      .debug-row { display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid #27272a; border-radius:6px; padding:7px 8px; background:#18181b; }
-      .debug-row span:first-child { color:#a1a1aa; font-size:11px; }
-      .debug-pill { border-radius:999px; padding:2px 7px; font-size:11px; font-weight:700; white-space:nowrap; }
-      .debug-pill.ok { background:rgba(16,185,129,.16); color:#a7f3d0; }
-      .debug-pill.warn { background:rgba(245,158,11,.16); color:#fde68a; }
-      .debug-pill.bad { background:rgba(239,68,68,.16); color:#fecaca; }
-      .debug small { display:block; margin-top:8px; color:#71717a; line-height:1.45; word-break:break-word; }
-      .repair-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
-      .repair-actions button { margin-top:0; padding:8px; font-size:12px; text-align:center; }
+      .debug-grid { display: grid; gap: 6px; }
+      .debug-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid #27272a; border-radius: 6px; padding: 7px 8px; background: #18181b; }
+      .debug-row span:first-child { color: #a1a1aa; font-size: 11px; }
+      .debug-pill { border-radius: 999px; padding: 2px 7px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+      .debug-pill.ok { background: rgba(16, 185, 129, 0.16); color: #a7f3d0; }
+      .debug-pill.warn { background: rgba(245, 158, 11, 0.16); color: #fde68a; }
+      .debug-pill.bad { background: rgba(239, 68, 68, 0.16); color: #fecaca; }
+      .debug small { display: block; margin-top: 8px; color: #71717a; line-height: 1.45; word-break: break-word; }
+      .repair-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+      .repair-actions button { margin-top: 0; padding: 8px; font-size: 12px; text-align: center; }
       .achievement {
-        margin-top:12px;
-        border:1px solid rgba(103,232,249,.22);
-        border-radius:8px;
-        padding:10px;
-        background:rgba(255,255,255,.035);
+        margin-top: 12px;
+        border: 1px solid rgba(103, 232, 249, 0.22);
+        border-radius: 12px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.035);
       }
-      .achievement strong { display:block; color:#cffafe; font-size:12px; }
-      .achievement p { font-size:12px; }
+      .achievement strong { display: block; color: #cffafe; font-size: 12px; }
+      .achievement p { margin-top: 6px; font-size: 12px; }
+      .action-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .action-grid.compact { grid-template-columns: 1fr; margin-top: 8px; }
       button {
         width: 100%;
-        margin-top: 8px;
+        margin-top: 0;
         border: 1px solid #27272a;
-        border-radius: 8px;
-        background: #18181b;
-        color: #f4f4f5;
+        border-radius: 10px;
+        background: var(--panel-strong);
+        color: var(--text);
         padding: 10px;
         font-weight: 700;
         cursor: pointer;
         text-align: left;
       }
       button.primary {
-        border-color: #67e8f9;
-        background: #67e8f9;
+        border-color: rgba(103, 232, 249, 0.56);
+        background: linear-gradient(135deg, rgba(103, 232, 249, 0.95), rgba(34, 211, 238, 0.9));
         color: #09090b;
       }
-      button:disabled { cursor: not-allowed; opacity: .48; }
-      .link-button { width:auto; margin-top:10px; border:0; background:transparent; color:#67e8f9; padding:0; text-decoration:none; font-weight:700; }
-      #status { min-height: 18px; margin-top: 10px; color: #86efac; }
-
-      /* Tab bar */
+      button.secondary {
+        border-color: rgba(103, 232, 249, 0.18);
+        background: rgba(8, 145, 178, 0.08);
+      }
+      button.ghost { background: transparent; }
+      button:disabled { cursor: not-allowed; opacity: 0.48; }
+      .link-button { width: auto; margin-top: 10px; border: 0; background: transparent; color: var(--accent); padding: 0; text-decoration: none; font-weight: 700; }
+      #status {
+        min-height: 18px;
+        margin-top: 10px;
+        color: #86efac;
+        font-size: 11px;
+      }
       .tab-bar {
         display: flex;
         gap: 0;
-        margin: 12px -16px 0;
-        padding: 0 16px;
+        margin: 14px -14px 0;
+        padding: 0 14px;
         border-bottom: 1px solid #27272a;
       }
       .tab-btn {
@@ -123,10 +242,8 @@
         cursor: pointer;
         text-align: center;
       }
-      .tab-btn.tab-active { color: #67e8f9; border-bottom-color: #67e8f9; }
+      .tab-btn.tab-active { color: var(--accent); border-bottom-color: var(--accent); }
       .tab-btn:hover:not(.tab-active) { color: #d4d4d8; }
-
-      /* Events panel */
       .search-row { display: flex; gap: 6px; margin-top: 12px; }
       .search-input {
         flex: 1;
@@ -139,7 +256,7 @@
         outline: none;
         min-width: 0;
       }
-      .search-input:focus { border-color: #67e8f9; }
+      .search-input:focus { border-color: var(--accent); }
       .search-btn {
         width: auto;
         margin: 0;
@@ -157,9 +274,9 @@
       .event-item {
         margin-top: 8px;
         border: 1px solid #27272a;
-        border-radius: 8px;
+        border-radius: 12px;
         padding: 10px;
-        background: #18181b;
+        background: rgba(24, 24, 27, 0.92);
       }
       .event-name { font-weight: 700; font-size: 13px; color: #f4f4f5; }
       .event-meta { margin-top: 3px; font-size: 11px; color: #71717a; }
@@ -179,9 +296,7 @@
         display: inline-flex;
         align-items: center;
       }
-      .btn-sm.cyan { border-color: #67e8f9; color: #67e8f9; }
-
-      /* Event detail panel */
+      .btn-sm.cyan { border-color: var(--accent); color: var(--accent); }
       .detail-header { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
       .back-btn {
         margin: 0;
@@ -197,7 +312,6 @@
         flex-shrink: 0;
       }
       .detail-event-name {
-        margin: 0;
         font-size: 13px;
         font-weight: 700;
         color: #f4f4f5;
@@ -210,9 +324,7 @@
       .detail-scroll::-webkit-scrollbar { width: 4px; }
       .detail-scroll::-webkit-scrollbar-track { background: transparent; }
       .detail-scroll::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
-
-      /* Timeline entries */
-      .tl-list { padding-left: 8px; border-left: 2px solid rgba(103,232,249,0.2); }
+      .tl-list { padding-left: 8px; border-left: 2px solid rgba(103, 232, 249, 0.2); }
       .tl-entry { position: relative; padding: 0 0 14px 14px; }
       .tl-entry::before {
         content: '';
@@ -222,41 +334,49 @@
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        border: 1px solid #67e8f9;
+        border: 1px solid var(--accent);
         background: #09090b;
       }
       .tl-time { font-size: 10px; color: #71717a; }
       .tl-title { font-size: 12px; font-weight: 700; color: #f4f4f5; margin-top: 2px; line-height: 1.4; }
       .tl-summary { font-size: 11px; color: #a1a1aa; margin-top: 3px; line-height: 1.45; }
-      .tl-link { font-size: 10px; color: #67e8f9; margin-top: 4px; display: block; word-break: break-all; text-decoration: none; }
+      .tl-link { font-size: 10px; color: var(--accent); margin-top: 4px; display: block; word-break: break-all; text-decoration: none; }
       .tl-link:hover { color: #cffafe; }
-
-      /* Misc */
       .panel-msg { font-size: 12px; color: #a1a1aa; margin-top: 10px; }
       .panel-err { font-size: 12px; color: #fca5a5; margin-top: 10px; }
-      .empty-state { margin-top: 12px; border: 1px solid #27272a; border-radius: 8px; padding: 14px; background: #18181b; }
+      .empty-state { margin-top: 12px; border: 1px solid #27272a; border-radius: 12px; padding: 14px; background: rgba(24, 24, 27, 0.92); }
       .empty-state p { margin: 0 0 8px; font-size: 12px; color: #a1a1aa; line-height: 1.5; }
       .empty-state p:last-child { margin-bottom: 0; }
-      .empty-state strong { color: #f4f4f5; }
       .add-btn { margin-bottom: 8px; }
     </style>
   </head>
   <body>
     <main>
-      <div class="brand">
-        <img src="icons/icon-48.png" alt="" />
-        <h1>TruthShield</h1>
-      </div>
+      <section class="hero">
+        <div class="eyebrow" data-i18n="popupEyebrow">Reading companion</div>
+        <div class="brand">
+          <img src="icons/icon-48.png" alt="" />
+          <div class="hero-copy">
+            <h1 data-i18n="popupTitle">TruthShield</h1>
+            <p data-i18n="popupIntro">新聞頁會顯示頂部橫幅；點擊橫幅可開啟投票與證據面板。連結也可用右鍵查看或回報。</p>
+          </div>
+        </div>
+        <div class="hero-status">
+          <p id="popupSummary" data-i18n="popupSummaryDefault">正在檢查目前分頁是否可直接開啟 TruthShield 工具。</p>
+          <span id="pageContextBadge" class="status-badge" data-i18n="popupBadgeChecking">檢查中</span>
+        </div>
+        <div class="hero-target">
+          <strong data-i18n="currentTab">目前分頁</strong>
+          <span id="currentUrl" data-i18n="loading">讀取中...</span>
+        </div>
+      </section>
 
       <nav class="tab-bar">
         <button id="tab-status" class="tab-btn tab-active" data-i18n="tabStatus">狀態</button>
         <button id="tab-events" class="tab-btn" data-i18n="tabEvents">事件</button>
       </nav>
 
-      <!-- Status panel (existing content) -->
       <div id="panel-status">
-        <p data-i18n="popupIntro">新聞頁會顯示頂部橫幅；點擊橫幅可開啟投票與證據面板。連結也可用右鍵查看或回報。</p>
-
         <div id="onboarding" class="onboarding" hidden>
           <div class="onboarding-title">
             <span data-i18n="onboardingTitle">第一次使用 TruthShield</span>
@@ -273,61 +393,90 @@
           </div>
         </div>
 
-        <div class="grid">
-          <div class="card"><div class="label" data-i18n="monitoredDomains">監控網域</div><div id="domains" class="value">-</div></div>
-          <div class="card"><div class="label" data-i18n="votes">投票數</div><div id="votes" class="value">-</div></div>
-          <div class="card"><div class="label" data-i18n="apiStatus">API 狀態</div><div id="apiStatus" class="value">-</div></div>
-          <div class="card"><div class="label" data-i18n="version">版本</div><div id="version" class="value">-</div></div>
-        </div>
-
-        <div class="target">
-          <div class="label" data-i18n="currentTab">目前分頁</div>
-          <div id="currentUrl" data-i18n="loading">讀取中...</div>
-        </div>
-
-        <div class="auth">
-          <strong id="authStatus" data-i18n="authChecking">登入狀態檢查中</strong>
-          <span id="authUser" data-i18n="authHint">如果你已在官網登入，插件會自動同步。</span>
-          <div class="auth-actions">
-            <button id="resyncAuth" type="button" data-i18n="resyncAuth">重新同步登入</button>
-            <button id="openLogin" type="button" data-i18n="signIn">登入</button>
-            <button id="signOut" class="danger" type="button" data-i18n="signOut" hidden>登出</button>
+        <section class="section">
+          <div class="section-header">
+            <h2 data-i18n="popupSectionOverview">快速概況</h2>
+            <p data-i18n="popupSectionOverviewHint">先確認頁面、API 與版本狀態。</p>
           </div>
-        </div>
-
-        <div class="debug">
-          <strong data-i18n="pageDiagnostics">頁面診斷</strong>
-          <div id="pageDebug" class="debug-grid"></div>
-          <small id="pageDebugHint"></small>
-          <div class="repair-actions">
-            <button id="repairReport" type="button" data-i18n="repairReport">回報此頁</button>
-            <button id="repairShowBanner" type="button" data-i18n="repairShowBanner">重新顯示橫幅</button>
-            <button id="repairHealth" type="button" data-i18n="repairHealth">檢查 API</button>
-            <button id="repairGuide" type="button" data-i18n="repairGuide">看排除說明</button>
+          <div class="grid">
+            <div class="card"><div class="label" data-i18n="monitoredDomains">監控網域</div><div id="domains" class="value">-</div></div>
+            <div class="card"><div class="label" data-i18n="votes">投票數</div><div id="votes" class="value">-</div></div>
+            <div class="card"><div class="label" data-i18n="apiStatus">API 狀態</div><div id="apiStatus" class="value">-</div></div>
+            <div class="card"><div class="label" data-i18n="version">版本</div><div id="version" class="value">-</div></div>
           </div>
-        </div>
+        </section>
 
-        <div id="achievementCard" class="achievement" hidden>
-          <strong data-i18n="achievementCardTitle">今日貢獻</strong>
-          <p id="achievementText"></p>
-          <button id="openProfile" type="button" class="link-button" data-i18n="openProfile">開啟個人頁</button>
-        </div>
+        <section class="section">
+          <div class="section-header">
+            <h2 data-i18n="popupSectionAuth">登入與同步</h2>
+            <p data-i18n="popupSectionAuthHint">官網登入後，插件就能沿用同一身份。</p>
+          </div>
+          <div class="auth">
+            <strong id="authStatus" data-i18n="authChecking">登入狀態檢查中</strong>
+            <span id="authUser" data-i18n="authHint">如果你已在官網登入，插件會自動同步。</span>
+            <div class="auth-actions">
+              <button id="resyncAuth" type="button" data-i18n="resyncAuth">重新同步登入</button>
+              <button id="openLogin" type="button" data-i18n="signIn">登入</button>
+              <button id="signOut" class="danger" type="button" data-i18n="signOut" hidden>登出</button>
+            </div>
+          </div>
 
-        <button id="openStatus" class="primary" data-i18n="openStatus">查看目前頁面評分</button>
-        <button id="openVote" data-i18n="openVote">開啟投票與證據面板</button>
-        <button id="openReport" data-i18n="openReport">回報未收錄或分類錯誤</button>
-        <button id="openReadiness" data-i18n="openReadiness">開啟願景準備中心</button>
-        <button id="openHealth" data-i18n="openHealth">開啟系統健康狀態</button>
-        <button id="openBugReport" data-i18n="openBugReport">回報 Bug 或安全問題</button>
-        <button id="openInstall" data-i18n="openInstall">下載與安裝教學</button>
-        <button id="openMobile" data-i18n="openMobile">開啟手機版入口</button>
+          <div id="achievementCard" class="achievement" hidden>
+            <strong data-i18n="achievementCardTitle">今日貢獻</strong>
+            <p id="achievementText"></p>
+            <button id="openProfile" type="button" class="link-button" data-i18n="openProfile">開啟個人頁</button>
+          </div>
+        </section>
 
-        <button id="openHub" class="link-button" type="button" data-i18n="openHub">開啟真相總部</button>
-        <button id="openOptions" class="link-button" type="button" data-i18n="settings">設定</button>
-        <div id="status"></div>
+        <section class="section">
+          <div class="section-header">
+            <h2 data-i18n="popupSectionActions">主要動作</h2>
+            <p data-i18n="popupSectionActionsHint">優先處理這個頁面的查看、投票與回報。</p>
+          </div>
+          <div class="action-grid">
+            <button id="openStatus" class="primary" data-i18n="openStatus">查看目前頁面評分</button>
+            <button id="openVote" class="secondary" data-i18n="openVote">開啟投票與證據面板</button>
+            <button id="openReport" data-i18n="openReport">回報未收錄或分類錯誤</button>
+            <button id="openBugReport" data-i18n="openBugReport">回報 Bug 或安全問題</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 data-i18n="popupSectionTools">延伸工具</h2>
+            <p data-i18n="popupSectionToolsHint">開啟網站入口、手機版與診斷相關頁面。</p>
+          </div>
+          <div class="action-grid">
+            <button id="openReadiness" data-i18n="openReadiness">開啟願景準備中心</button>
+            <button id="openHealth" data-i18n="openHealth">開啟系統健康狀態</button>
+            <button id="openInstall" data-i18n="openInstall">下載與安裝教學</button>
+            <button id="openMobile" data-i18n="openMobile">開啟手機版入口</button>
+          </div>
+          <div class="action-grid compact">
+            <button id="openHub" class="ghost" type="button" data-i18n="openHub">開啟真相總部</button>
+            <button id="openOptions" class="ghost" type="button" data-i18n="settings">設定</button>
+          </div>
+          <div id="status"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 data-i18n="pageDiagnostics">頁面診斷</h2>
+            <p data-i18n="popupSectionFixesHint">這裡用來確認橫幅與新聞頁判定。</p>
+          </div>
+          <div class="debug">
+            <div id="pageDebug" class="debug-grid"></div>
+            <small id="pageDebugHint"></small>
+            <div class="repair-actions">
+              <button id="repairReport" type="button" data-i18n="repairReport">回報此頁</button>
+              <button id="repairShowBanner" type="button" data-i18n="repairShowBanner">重新顯示橫幅</button>
+              <button id="repairHealth" type="button" data-i18n="repairHealth">檢查 API</button>
+              <button id="repairGuide" type="button" data-i18n="repairGuide">看排除說明</button>
+            </div>
+          </div>
+        </section>
       </div>
 
-      <!-- Events panel -->
       <div id="panel-events" hidden>
         <div class="search-row">
           <input id="event-search-input" class="search-input" data-i18n-placeholder="eventsSearchPlaceholder" />
@@ -340,7 +489,6 @@
         <div id="events-list-content"></div>
       </div>
 
-      <!-- Event detail panel -->
       <div id="panel-event-detail" hidden>
         <div class="detail-header">
           <button id="detail-back" class="back-btn" data-i18n="detailBack">← 返回</button>
