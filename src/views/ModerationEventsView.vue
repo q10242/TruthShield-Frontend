@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchModerationEvents } from '../lib/api'
 import { useI18n } from '../i18n'
@@ -7,6 +7,7 @@ import AppNav from '../components/AppNav.vue'
 
 const rows = ref([])
 const { locale, t } = useI18n()
+const dateTimeLocale = computed(() => (locale.value === 'zh-TW' ? 'zh-TW' : 'en-US'))
 
 onMounted(async () => {
   rows.value = await fetchModerationEvents()
@@ -25,7 +26,7 @@ onMounted(async () => {
         <article v-for="row in rows" :key="row.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <div class="flex items-center justify-between">
             <span class="rounded bg-cyan-300/10 px-2 py-1 text-xs font-semibold text-cyan-100">{{ row.event_type }}</span>
-            <span class="text-xs text-zinc-500">{{ new Date(row.created_at).toLocaleString(locale === 'zh-TW' ? 'zh-TW' : 'en-US') }}</span>
+            <span class="text-xs text-zinc-500">{{ new Date(row.created_at).toLocaleString(dateTimeLocale) }}</span>
           </div>
           <p class="mt-3 text-sm text-zinc-200">{{ row.public_reason }}</p>
         </article>

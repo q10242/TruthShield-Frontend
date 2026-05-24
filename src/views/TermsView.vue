@@ -1,11 +1,12 @@
 <script setup>
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from '../i18n'
 import { legalDocument } from '../legalContent'
 import AppNav from '../components/AppNav.vue'
 
 const { locale, t } = useI18n()
-const doc = legalDocument(locale.value, 'terms')
+const doc = computed(() => legalDocument(locale.value, 'terms'))
 </script>
 
 <template>

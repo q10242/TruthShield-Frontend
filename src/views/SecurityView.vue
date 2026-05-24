@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchVisionReadiness } from '../lib/api'
 import { useI18n } from '../i18n'
@@ -7,7 +7,7 @@ import { legalDocument } from '../legalContent'
 import AppNav from '../components/AppNav.vue'
 
 const { locale, t } = useI18n()
-const doc = legalDocument(locale.value, 'security')
+const doc = computed(() => legalDocument(locale.value, 'security'))
 const flow = ref([])
 
 onMounted(async () => {

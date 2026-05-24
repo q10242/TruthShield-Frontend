@@ -1,11 +1,12 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { searchGlobalEntities, createGlobalEntity } from '../lib/api'
-import { currentLocale } from '../i18n'
+import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
 
-const zh = currentLocale() !== 'en'
+const { locale } = useI18n()
+const zh = computed(() => locale.value !== 'en')
 const token = ref(localStorage.getItem('truthshield_api_token') || '')
 
 const q = ref('')
@@ -24,27 +25,38 @@ const creating = ref(false)
 const createMessage = ref('')
 const createError = ref('')
 
-const text = {
-  title: zh ? '全域實體資料庫' : 'Global Entity Database',
-  intro: zh
+const text = computed(() => ({
+  title: zh.value ? '全域實體資料庫' : 'Global Entity Database',
+  intro: zh.value
     ? '跨事件共用的人物與組織資料庫，可連結到多個事件中的節點，減少重複建立。'
     : 'Shared people and organization database across events. Link entities to multiple events to avoid duplication.',
-  search: zh ? '搜尋人物或組織名稱' : 'Search people or organizations',
-  empty: zh ? '目前沒有符合條件的實體。' : 'No matching entities yet.',
-  person: zh ? '人物' : 'Person',
-  organization: zh ? '組織' : 'Organization',
-  all: zh ? '全部' : 'All',
-  events: zh ? '個事件' : 'events',
-  wiki: zh ? 'Wikipedia' : 'Wikipedia',
-  findEvents: zh ? '查看相關事件' : 'Find related events',
-  createTitle: zh ? '建立全域實體' : 'Create Global Entity',
-  createIntro: zh ? '建立後可在任何事件的節點中連結此實體。' : 'Once created, this entity can be linked from nodes in any event.',
-  nameLabel: zh ? '名稱' : 'Name',
-  descLabel: zh ? '簡短描述' : 'Short description',
-  wikiLabel: zh ? 'Wikipedia URL（選填）' : 'Wikipedia URL (optional)',
-  submit: zh ? '建立實體' : 'Create Entity',
-  submitting: zh ? '建立中...' : 'Creating...',
-}
+  search: zh.value ? '搜尋人物或組織名稱' : 'Search people or organizations',
+  empty: zh.value ? '目前沒有符合條件的實體。' : 'No matching entities yet.',
+  person: zh.value ? '人物' : 'Person',
+  organization: zh.value ? '組織' : 'Organization',
+  all: zh.value ? '全部' : 'All',
+  events: zh.value ? '個事件' : 'events',
+  wiki: 'Wikipedia',
+  findEvents: zh.value ? '查看相關事件' : 'Find related events',
+  createTitle: zh.value ? '建立全域實體' : 'Create Global Entity',
+  createIntro: zh.value ? '建立後可在任何事件的節點中連結此實體。' : 'Once created, this entity can be linked from nodes in any event.',
+  nameLabel: zh.value ? '名稱' : 'Name',
+  descLabel: zh.value ? '簡短描述' : 'Short description',
+  wikiLabel: zh.value ? 'Wikipedia URL（選填）' : 'Wikipedia URL (optional)',
+  submit: zh.value ? '建立實體' : 'Create Entity',
+  submitting: zh.value ? '建立中...' : 'Creating...',
+  searchButton: zh.value ? '搜尋' : 'Search',
+  type: zh.value ? '類型：' : 'Type:',
+  count: zh.value ? `共 ${entities.value.length} 筆` : `${entities.value.length} entities`,
+  loading: zh.value ? '載入中...' : 'Loading...',
+  signIn: zh.value ? '登入' : 'Sign in',
+  signInCta: zh.value ? '後可建立全域實體。' : ' to create global entities.',
+  eventsNav: zh.value ? '事件' : 'Events',
+  tasksNav: zh.value ? '社群任務' : 'Community Tasks',
+  loadFailed: zh.value ? '載入失敗。' : 'Failed to load entities.',
+  createSuccess: zh.value ? '實體已建立。' : 'Entity created successfully.',
+  createFailed: zh.value ? '建立失敗。' : 'Failed to create entity.',
+}))
 
 async function load() {
   loading.value = true
@@ -55,7 +67,7 @@ async function load() {
     const payload = await searchGlobalEntities(params)
     entities.value = payload.data || []
   } catch (err) {
-    error.value = err.message || (zh ? '載入失敗。' : 'Failed to load entities.')
+    error.value = err.message || text.value.loadFailed
   } finally {
     loading.value = false
   }
@@ -74,10 +86,10 @@ async function submitCreate() {
   try {
     await createGlobalEntity(token.value, createForm.value)
     createForm.value = { name: '', entity_type: 'person', description: '', wikipedia_url: '' }
-    createMessage.value = zh ? '實體已建立。' : 'Entity created successfully.'
+    createMessage.value = text.value.createSuccess
     await load()
   } catch (err) {
-    createError.value = err.message || (zh ? '建立失敗。' : 'Failed to create entity.')
+    createError.value = err.message || text.value.createFailed
   } finally {
     creating.value = false
   }
@@ -90,8 +102,8 @@ onMounted(load)
   <main class="min-h-screen bg-zinc-950 px-6 py-10 text-zinc-100">
     <section class="mx-auto max-w-6xl">
       <AppNav>
-        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/events">{{ zh ? '事件' : 'Events' }}</RouterLink>
-        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/community-tasks">{{ zh ? '社群任務' : 'Community Tasks' }}</RouterLink>
+        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/events">{{ text.eventsNav }}</RouterLink>
+        <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/community-tasks">{{ text.tasksNav }}</RouterLink>
       </AppNav>
 
       <div class="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -104,14 +116,14 @@ onMounted(load)
           <label class="text-xs font-semibold text-zinc-500">{{ text.search }}</label>
           <div class="mt-2 flex gap-2">
             <input v-model="q" class="min-w-0 flex-1 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" />
-            <button class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" type="submit">{{ zh ? '搜尋' : 'Search' }}</button>
+            <button class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" type="submit">{{ text.searchButton }}</button>
           </div>
         </form>
       </div>
 
       <!-- type filter bar -->
       <div class="mt-6 flex items-center gap-2">
-        <span class="text-xs text-zinc-500">{{ zh ? '類型：' : 'Type:' }}</span>
+        <span class="text-xs text-zinc-500">{{ text.type }}</span>
         <button
           v-for="opt in [{ value: 'all', label: text.all }, { value: 'person', label: text.person }, { value: 'organization', label: text.organization }]"
           :key="opt.value"
@@ -124,11 +136,11 @@ onMounted(load)
         >
           {{ opt.label }}
         </button>
-        <span class="ml-auto text-xs text-zinc-600">{{ zh ? `共 ${entities.length} 筆` : `${entities.length} entities` }}</span>
+        <span class="ml-auto text-xs text-zinc-600">{{ text.count }}</span>
       </div>
 
       <div v-if="error" class="mt-4 rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{{ error }}</div>
-      <div v-else-if="loading" class="mt-4 rounded-lg border border-white/10 p-4 text-sm text-zinc-400">{{ zh ? '載入中...' : 'Loading...' }}</div>
+      <div v-else-if="loading" class="mt-4 rounded-lg border border-white/10 p-4 text-sm text-zinc-400">{{ text.loading }}</div>
       <div v-else class="mt-4 grid gap-4">
         <div v-if="entities.length === 0" class="rounded-lg border border-white/10 bg-white/[0.03] p-5 text-sm text-zinc-400">{{ text.empty }}</div>
         <article v-for="entity in entities" :key="entity.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
@@ -214,8 +226,8 @@ onMounted(load)
         </form>
       </div>
       <div v-else class="mt-10 rounded-lg border border-white/10 bg-white/[0.03] p-5 text-center text-sm text-zinc-400">
-        <RouterLink class="text-cyan-300 hover:text-cyan-100 underline" to="/login">{{ zh ? '登入' : 'Sign in' }}</RouterLink>
-        {{ zh ? '後可建立全域實體。' : ' to create global entities.' }}
+        <RouterLink class="text-cyan-300 hover:text-cyan-100 underline" to="/login">{{ text.signIn }}</RouterLink>
+        {{ text.signInCta }}
       </div>
     </section>
   </main>
