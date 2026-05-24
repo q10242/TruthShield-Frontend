@@ -45,7 +45,7 @@ const vp = inject('votePanel')
     <div class="space-y-3">
       <div v-for="group in vp.groupedVotingTags.value" :key="group.key" class="rounded-md border border-white/10 bg-white/[0.02] p-2">
         <p class="mb-2 text-[11px] font-semibold text-zinc-400">{{ group.label }}</p>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid gap-2 sm:grid-cols-2">
           <button
             v-for="tag in group.tags"
             :key="tag.id"
@@ -71,7 +71,7 @@ const vp = inject('votePanel')
         </div>
         <span class="text-[11px] text-zinc-500">{{ vp.selectedSecondaryTagIds.value.length }} / 4</span>
       </div>
-      <div class="mt-3 grid grid-cols-2 gap-2">
+      <div class="mt-3 grid gap-2 sm:grid-cols-2">
         <button
           v-for="tag in vp.tags.value"
           :key="`secondary-${tag.id}`"
@@ -199,7 +199,7 @@ const vp = inject('votePanel')
     </div>
     <div v-if="vp.voteMessage.value && !vp.voteError.value" class="rounded-md border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
       <p class="text-xs font-semibold text-cyan-100">{{ vp.t('votePanel.afterVoteTitle') }}</p>
-      <div class="mt-2 grid grid-cols-3 gap-2">
+      <div class="mt-2 grid gap-2 sm:grid-cols-3">
         <button class="rounded-md border border-cyan-300/30 px-2 py-2 text-[11px] font-semibold text-cyan-100" type="button" @click="vp.shareCurrentResult()">
           {{ vp.t('votePanel.shareResult') }}
         </button>
