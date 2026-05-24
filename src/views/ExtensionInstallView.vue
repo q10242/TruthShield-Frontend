@@ -7,6 +7,8 @@ import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
 
 const { t } = useI18n()
+const PRODUCTION_WEB_ORIGIN = 'https://truth-shield.otus.tw'
+const PRODUCTION_API_ORIGIN = 'https://truth-shield-api.otus.tw'
 const health = ref(null)
 const botConfig = ref(null)
 const extensionVersion = ref('0.1.0')
@@ -62,6 +64,31 @@ const githubLinks = computed(() => [
   { href: 'https://github.com/q10242/TruthShield-Backend', label: t('common.githubBackend') },
 ])
 
+const originCards = computed(() => [
+  { label: t('extensionInstall.productionWebLabel'), value: PRODUCTION_WEB_ORIGIN },
+  { label: t('extensionInstall.productionApiLabel'), value: PRODUCTION_API_ORIGIN },
+])
+
+const readinessCards = computed(() => [
+  {
+    label: t('extensionInstall.localStatus'),
+    value: loading.value ? t('common.loading') : health.value?.ok ? t('extensionInstall.healthy') : t('extensionInstall.needsCheck'),
+    tone: loading.value ? 'text-zinc-100' : health.value?.ok ? 'text-emerald-200' : 'text-amber-200',
+  },
+  {
+    label: t('extensionInstall.signedRequests'),
+    value: botConfig.value?.bot_protection_enabled ? t('extensionInstall.protected') : t('extensionInstall.localMode'),
+    tone: botConfig.value?.bot_protection_enabled ? 'text-cyan-100' : 'text-amber-200',
+  },
+])
+
+const verifyChecks = computed(() => [
+  { title: t('extensionInstall.verifyTooltipTitle'), description: t('extensionInstall.verifyTooltipDesc') },
+  { title: t('extensionInstall.verifyBannerTitle'), description: t('extensionInstall.verifyBannerDesc') },
+  { title: t('extensionInstall.verifyContextTitle'), description: t('extensionInstall.verifyContextDesc') },
+  { title: t('extensionInstall.verifyPopupTitle'), description: t('extensionInstall.verifyPopupDesc') },
+])
+
 onMounted(async () => {
   trackPageView('extension_install')
   loading.value = true
@@ -109,6 +136,11 @@ function trackDownload() {
           <p class="mt-4 max-w-2xl text-base leading-7 text-zinc-300">
             {{ t('extensionInstall.intro') }}
           </p>
+          <div class="mt-5 flex flex-wrap gap-2">
+            <span class="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">{{ t('extensionInstall.tooltipStatus') }}</span>
+            <span class="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">{{ t('extensionInstall.bannerStatus') }}</span>
+            <span class="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">{{ t('extensionInstall.contextMenuStatus') }}</span>
+          </div>
           <div class="mt-5 rounded-lg border border-amber-300/30 bg-amber-300/[0.08] p-4">
             <p class="text-sm font-semibold text-amber-100">{{ t('extensionInstall.selfHostedTitle') }}</p>
             <ul class="mt-3 space-y-2 text-sm leading-6 text-amber-50/80">
@@ -127,17 +159,29 @@ function trackDownload() {
         </div>
 
         <aside class="rounded-lg border border-cyan-300/20 bg-zinc-900 p-5 shadow-2xl shadow-cyan-950/30">
-          <h2 class="text-sm font-semibold text-white">{{ t('extensionInstall.localStatus') }}</h2>
+          <div class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.05] p-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">{{ t('extensionInstall.localStatus') }}</p>
+            <h2 class="mt-2 text-lg font-semibold text-white">{{ loading || health?.ok ? t('extensionInstall.statusReadyTitle') : t('extensionInstall.statusNeedsAttentionTitle') }}</h2>
+            <p class="mt-2 text-sm leading-6 text-zinc-300">{{ loading || health?.ok ? t('extensionInstall.statusReadyDesc') : t('extensionInstall.statusNeedsAttentionDesc') }}</p>
+          </div>
           <div class="mt-4 space-y-3">
-            <div class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
-              <p class="text-xs text-zinc-500">API</p>
-              <p class="mt-1 text-sm font-semibold" :class="health?.ok ? 'text-emerald-200' : 'text-amber-200'">
-                {{ loading ? t('common.loading') : health?.ok ? t('extensionInstall.healthy') : t('extensionInstall.needsCheck') }}
-              </p>
+            <div v-for="card in readinessCards" :key="card.label" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
+              <p class="text-xs text-zinc-500">{{ card.label }}</p>
+              <p class="mt-1 text-sm font-semibold" :class="card.tone">{{ card.value }}</p>
             </div>
             <div v-for="card in capabilityCards" :key="card.label" class="rounded-md border border-white/10 bg-zinc-950/70 p-3">
               <p class="text-xs text-zinc-500">{{ card.label }}</p>
               <p class="mt-1 text-sm font-semibold text-cyan-100">{{ card.value }}</p>
+            </div>
+          </div>
+          <div class="mt-4 rounded-lg border border-white/10 bg-zinc-950/60 p-4">
+            <h3 class="text-sm font-semibold text-white">{{ t('extensionInstall.originSectionTitle') }}</h3>
+            <p class="mt-2 text-xs leading-5 text-zinc-400">{{ t('extensionInstall.originSectionDesc') }}</p>
+            <div class="mt-3 space-y-2">
+              <div v-for="card in originCards" :key="card.label" class="rounded-md border border-white/10 bg-white/[0.02] p-3">
+                <p class="text-[11px] uppercase tracking-[0.16em] text-zinc-500">{{ card.label }}</p>
+                <code class="mt-1 block overflow-x-auto text-xs font-semibold text-cyan-100">{{ card.value }}</code>
+              </div>
             </div>
           </div>
         </aside>
@@ -158,6 +202,17 @@ function trackDownload() {
         <div class="mt-4 grid gap-3 md:grid-cols-2">
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">/truthshield-extension.zip</code>
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">manifest.json</code>
+        </div>
+      </section>
+
+      <section class="mt-8 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+        <h2 class="text-lg font-semibold text-white">{{ t('extensionInstall.verifyTitle') }}</h2>
+        <p class="mt-2 text-sm leading-6 text-zinc-400">{{ t('extensionInstall.verifyIntro') }}</p>
+        <div class="mt-4 grid gap-3 md:grid-cols-2">
+          <article v-for="item in verifyChecks" :key="item.title" class="rounded-lg border border-white/10 bg-zinc-950/60 p-4">
+            <p class="text-sm font-semibold text-white">{{ item.title }}</p>
+            <p class="mt-2 text-sm leading-6 text-zinc-400">{{ item.description }}</p>
+          </article>
         </div>
       </section>
 
