@@ -129,6 +129,16 @@ const tabs = computed(() => [
   { key: 'logs', label: zh.value ? '編輯紀錄' : 'Edit Logs' },
 ])
 
+const overviewStats = computed(() => {
+  const counts = event.value?.counts || {}
+  return [
+    { key: 'items', label: zh.value ? '事件資料' : 'Items', value: counts.items ?? 0, tone: 'border-cyan-300/20 bg-cyan-300/5 text-cyan-100' },
+    { key: 'timeline', label: zh.value ? '時間線節點' : 'Timeline entries', value: counts.timeline ?? 0, tone: 'border-white/10 bg-white/[0.03] text-white' },
+    { key: 'relationships', label: zh.value ? '關係連線' : 'Relationships', value: counts.relationships ?? 0, tone: 'border-white/10 bg-white/[0.03] text-white' },
+    { key: 'entities', label: zh.value ? '人物與組織' : 'People and orgs', value: counts.entities ?? 0, tone: 'border-white/10 bg-white/[0.03] text-white' },
+  ]
+})
+
 function setMeta(title, description) {
   document.title = title
   for (const [attr, name, content] of [
@@ -850,30 +860,47 @@ onUnmounted(() => { document.title = 'TruthShield' })
       <div v-if="error" class="rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{{ error }}</div>
       <div v-else-if="loading" class="rounded-lg border border-white/10 p-4 text-sm text-zinc-400">{{ zh ? '載入中...' : 'Loading...' }}</div>
       <template v-else-if="event">
-        <div class="rounded-lg border border-white/10 bg-white/[0.03] p-6">
+        <div class="rounded-3xl border border-cyan-300/15 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_38%),linear-gradient(150deg,rgba(8,145,178,0.1),rgba(24,24,27,0.92)_44%,rgba(9,9,11,0.98))] p-6 shadow-2xl shadow-cyan-950/20">
           <p class="text-sm font-semibold text-cyan-300">TruthShield Event</p>
-          <h1 class="mt-2 text-3xl font-semibold text-white">{{ event.name }}</h1>
-          <p class="mt-3 text-sm leading-7 text-zinc-400">{{ event.summary || (zh ? '這個事件還需要社群補充摘要。' : 'This event still needs a community summary.') }}</p>
+          <h1 class="mt-2 text-3xl font-semibold text-white md:text-4xl">{{ event.name }}</h1>
+          <p class="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">{{ event.summary || (zh ? '這個事件還需要社群補充摘要。' : 'This event still needs a community summary.') }}</p>
           <div class="mt-4 flex flex-wrap gap-2 text-xs">
-            <span class="rounded bg-cyan-300/10 px-2 py-1 font-semibold text-cyan-100">{{ event.status }}</span>
-            <span v-if="event.is_disputed" class="rounded bg-amber-500/10 px-2 py-1 font-semibold text-amber-100">{{ zh ? '爭議中' : 'Disputed' }}</span>
-            <span class="rounded bg-white/10 px-2 py-1 text-zinc-300">{{ zh ? '觀看' : 'Views' }} {{ event.view_count ?? 0 }}</span>
-            <span class="rounded bg-white/10 px-2 py-1 text-zinc-300">{{ zh ? '最後活動' : 'Last activity' }} {{ fmtDate(event.last_activity_at || event.created_at) }}</span>
+            <span class="rounded-full bg-cyan-300/10 px-3 py-1 font-semibold text-cyan-100">{{ event.status }}</span>
+            <span v-if="event.is_disputed" class="rounded-full bg-amber-500/10 px-3 py-1 font-semibold text-amber-100">{{ zh ? '爭議中' : 'Disputed' }}</span>
+            <span class="rounded-full bg-white/10 px-3 py-1 text-zinc-300">{{ zh ? '觀看' : 'Views' }} {{ (event.view_count ?? 0).toLocaleString() }}</span>
+            <span class="rounded-full bg-white/10 px-3 py-1 text-zinc-300">{{ zh ? '最後活動' : 'Last activity' }} {{ fmtDate(event.last_activity_at || event.created_at) }}</span>
+          </div>
+          <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div v-for="stat in overviewStats" :key="stat.key" class="rounded-2xl border p-4" :class="stat.tone">
+              <p class="text-xs uppercase tracking-[0.18em] text-zinc-500">{{ stat.label }}</p>
+              <p class="mt-2 text-2xl font-semibold">{{ stat.value }}</p>
+            </div>
           </div>
         </div>
 
-        <div class="mt-6 flex flex-wrap gap-2">
-          <button v-for="tab in tabs" :key="tab.key" class="rounded-md border px-3 py-2 text-sm font-semibold" :class="activeTab === tab.key ? 'border-cyan-300 bg-cyan-300 text-zinc-950' : 'border-white/10 text-zinc-300 hover:border-cyan-300/50'" @click="activeTab = tab.key">{{ tab.label }}</button>
+        <div class="mt-6 overflow-x-auto pb-1">
+          <div class="flex min-w-max gap-2">
+            <button v-for="tab in tabs" :key="tab.key" class="rounded-full border px-4 py-2 text-sm font-semibold whitespace-nowrap" :class="activeTab === tab.key ? 'border-cyan-300 bg-cyan-300 text-zinc-950' : 'border-white/10 text-zinc-300 hover:border-cyan-300/50'" @click="activeTab = tab.key">{{ tab.label }}</button>
+          </div>
         </div>
 
         <div v-if="formMessage || formError" class="mt-4 rounded-md border p-3 text-sm" :class="formError ? 'border-red-400/40 bg-red-500/10 text-red-100' : 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100'">
           {{ formError || formMessage }}
         </div>
 
-        <section v-if="activeTab === 'overview'" class="mt-6 grid gap-4 md:grid-cols-4">
-          <div v-for="[key, value] in Object.entries(event.counts || {})" :key="key" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-            <p class="text-xs text-zinc-500">{{ key }}</p>
-            <p class="mt-2 text-2xl font-semibold text-white">{{ value ?? 0 }}</p>
+        <section v-if="activeTab === 'overview'" class="mt-6 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div v-for="stat in overviewStats" :key="stat.key" class="rounded-2xl border p-5" :class="stat.tone">
+              <p class="text-xs uppercase tracking-[0.18em] text-zinc-500">{{ stat.label }}</p>
+              <p class="mt-3 text-3xl font-semibold">{{ stat.value }}</p>
+            </div>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">{{ zh ? '事件說明' : 'How to use this event' }}</p>
+            <h2 class="mt-3 text-lg font-semibold text-white">{{ zh ? '把脈絡、關係與編輯紀錄放在一起' : 'Context, relationships, and edit history stay together' }}</h2>
+            <p class="mt-3 text-sm leading-7 text-zinc-400">
+              {{ zh ? '先看總覽掌握規模，再切到時間線與關係圖查看證據脈絡。若需要修正，所有新增與編輯都會留下可追溯紀錄。' : 'Start with the overview, then use the timeline and graph tabs to inspect evidence context. New entries and edits stay publicly traceable.' }}
+            </p>
           </div>
         </section>
 
