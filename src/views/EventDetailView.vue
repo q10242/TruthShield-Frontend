@@ -51,6 +51,38 @@ const panAnchor = ref(null)
 const submitting = ref(false)
 const formMessage = ref('')
 const formError = ref('')
+const graphContextMenu = ref({
+  open: false,
+  x: 0,
+  y: 0,
+  graphX: 260,
+  graphY: 220,
+  entity: null,
+})
+const quickGraphPanel = ref({
+  open: false,
+  mode: 'entity',
+  x: 0,
+  y: 0,
+  graphX: 260,
+  graphY: 220,
+  anchorEntityId: '',
+})
+const quickEntityForm = ref({
+  name: '',
+  entity_type: 'person',
+  description: '',
+  source_url: '',
+})
+const quickRelationshipForm = ref({
+  from_entity_id: '',
+  to_entity_id: '',
+  relationship_type: '',
+  description: '',
+  source_type: 'news',
+  source_url: '',
+  is_bidirectional: false,
+})
 const timelineForm = ref({
   title: '',
   summary: '',
@@ -97,13 +129,13 @@ function clearGlobalEntity() {
   globalEntityResults.value = []
 }
 const relationshipForm = ref({
-  from_entity_name: '',
-  from_entity_type: 'person',
+  from_entity_id: '',
   to_entity_id: '',
   relationship_type: '',
   description: '',
   source_type: 'news',
   source_url: '',
+  is_bidirectional: false,
 })
 const timelineEditId = ref('')
 const timelineEditForm = ref({ title: '', summary: '', occurred_at: '', source_type: 'news', source_url: '' })
@@ -236,7 +268,9 @@ function handleGraphWheel(event) {
 }
 
 function startGraphPan(event) {
+  if (event.button !== 0) return
   if (draggingEntity.value) return
+  closeGraphContextMenu()
   const isBackground = event.target === graphSvg.value || event.target.tagName === 'rect'
   if (!isBackground) return
   isPanning.value = true
@@ -266,9 +300,100 @@ function resetGraphView() {
   graphScale.value = 1
 }
 
+function closeGraphContextMenu() {
+  graphContextMenu.value = { ...graphContextMenu.value, open: false, entity: null }
+}
+
+function closeQuickGraphPanel() {
+  quickGraphPanel.value = { ...quickGraphPanel.value, open: false, anchorEntityId: '' }
+  quickEntityForm.value = { name: '', entity_type: 'person', description: '', source_url: '' }
+  quickRelationshipForm.value = {
+    from_entity_id: '',
+    to_entity_id: '',
+    relationship_type: '',
+    description: '',
+    source_type: 'news',
+    source_url: '',
+    is_bidirectional: false,
+  }
+}
+
+function clampMenuPosition(event) {
+  const container = graphSvg.value?.getBoundingClientRect()
+  if (!container) return { x: 16, y: 16 }
+
+  return {
+    x: Math.min(Math.max(event.clientX - container.left, 12), container.width - 280),
+    y: Math.min(Math.max(event.clientY - container.top, 12), container.height - 220),
+  }
+}
+
+function openGraphContextMenu(event, entity = null) {
+  event.preventDefault()
+  event.stopPropagation()
+  const point = clampGraphPosition(graphPoint(event), entity ? entityRadius(entity.id) : 34)
+  const menu = clampMenuPosition(event)
+  graphContextMenu.value = {
+    open: true,
+    x: menu.x,
+    y: menu.y,
+    graphX: point.x,
+    graphY: point.y,
+    entity,
+  }
+}
+
+function openQuickEntityPanel(entityType = 'person') {
+  const menu = graphContextMenu.value
+  quickEntityForm.value = { name: '', entity_type: entityType, description: '', source_url: '' }
+  quickGraphPanel.value = {
+    open: true,
+    mode: 'entity',
+    x: menu.x,
+    y: menu.y,
+    graphX: menu.graphX,
+    graphY: menu.graphY,
+    anchorEntityId: menu.entity?.id || '',
+  }
+  closeGraphContextMenu()
+}
+
+function openQuickRelationshipPanel(direction = 'from') {
+  const menu = graphContextMenu.value
+  const anchorId = menu.entity?.id || ''
+  quickRelationshipForm.value = {
+    from_entity_id: direction === 'from' ? anchorId : '',
+    to_entity_id: direction === 'to' ? anchorId : '',
+    relationship_type: '',
+    description: '',
+    source_type: 'news',
+    source_url: '',
+    is_bidirectional: false,
+  }
+  quickGraphPanel.value = {
+    open: true,
+    mode: 'relationship',
+    x: menu.x,
+    y: menu.y,
+    graphX: menu.graphX,
+    graphY: menu.graphY,
+    anchorEntityId: anchorId,
+  }
+  closeGraphContextMenu()
+}
+
+function requireGraphAuth() {
+  if (token.value) return true
+  formError.value = zh.value ? '登入後才能編輯關係圖。' : 'Sign in to edit the graph.'
+  closeGraphContextMenu()
+  return false
+}
+
 function startDragEntity(entity, event) {
+  if (event.button !== 0) return
   if (!token.value) return
   event.stopPropagation()
+  closeGraphContextMenu()
 
   const position = entityPosition(entity.id)
   const point = graphPoint(event)
@@ -633,6 +758,53 @@ function cancelEditRelationship() {
   relationshipEditForm.value = { from_entity_id: '', to_entity_id: '', relationship_type: '', description: '', source_type: 'news', source_url: '' }
 }
 
+async function submitQuickEntity() {
+  if (!requireGraphAuth()) return
+
+  resetMessages()
+  submitting.value = true
+  try {
+    const created = await createEventEntity(token.value, route.params.id, quickEntityForm.value)
+    const entityId = created?.data?.id
+    if (entityId) {
+      await updateEventEntityPosition(token.value, route.params.id, entityId, {
+        x: quickGraphPanel.value.graphX,
+        y: quickGraphPanel.value.graphY,
+      })
+    }
+    closeQuickGraphPanel()
+    formMessage.value = zh.value ? '節點已從圖上新增，位置與編輯紀錄已保存。' : 'Node added on the graph; position and edit log saved.'
+    await load()
+    activeTab.value = 'graph'
+  } catch (err) {
+    formError.value = err.message || (zh.value ? '新增失敗。' : 'Failed to add node.')
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function submitQuickRelationship() {
+  if (!requireGraphAuth()) return
+  if (String(quickRelationshipForm.value.from_entity_id) === String(quickRelationshipForm.value.to_entity_id)) {
+    formError.value = zh.value ? '關係兩端不能選同一個節點。' : 'A relationship needs two different nodes.'
+    return
+  }
+
+  resetMessages()
+  submitting.value = true
+  try {
+    await createEventRelationship(token.value, route.params.id, quickRelationshipForm.value)
+    closeQuickGraphPanel()
+    formMessage.value = zh.value ? '關係已從圖上新增，編輯紀錄已保存。' : 'Relationship added from the graph and logged.'
+    await load()
+    activeTab.value = 'graph'
+  } catch (err) {
+    formError.value = err.message || (zh.value ? '新增失敗。' : 'Failed to add relationship.')
+  } finally {
+    submitting.value = false
+  }
+}
+
 async function submitTimeline() {
   if (!token.value) {
     formError.value = zh.value ? '登入後才能新增時間線項目。' : 'Sign in to add timeline entries.'
@@ -782,19 +954,23 @@ async function submitRelationship() {
     formError.value = zh.value ? '登入後才能新增人物或組織關係。' : 'Sign in to add relationships.'
     return
   }
+  if (String(relationshipForm.value.from_entity_id) === String(relationshipForm.value.to_entity_id)) {
+    formError.value = zh.value ? '關係兩端不能選同一個節點。' : 'A relationship needs two different nodes.'
+    return
+  }
 
   resetMessages()
   submitting.value = true
   try {
     await createEventRelationship(token.value, route.params.id, relationshipForm.value)
     relationshipForm.value = {
-      from_entity_name: '',
-      from_entity_type: 'person',
+      from_entity_id: '',
       to_entity_id: '',
       relationship_type: '',
       description: '',
       source_type: 'news',
       source_url: '',
+      is_bidirectional: false,
     }
     formMessage.value = zh.value ? '關係已新增，編輯紀錄也已保存。' : 'Relationship added and logged.'
     await load()
@@ -970,7 +1146,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
               <div class="flex items-center justify-between gap-3">
                 <div>
                   <p class="text-sm font-semibold text-cyan-100">{{ zh ? '手動新增人物/組織' : 'Add Person/Organization' }}</p>
-                  <p class="mt-1 text-xs text-zinc-400">{{ zh ? '先建立節點，再建立節點之間的關係。' : 'Create nodes first, then connect them.' }}</p>
+                  <p class="mt-1 text-xs text-zinc-400">{{ zh ? '也可以在關係圖空白處按右鍵，直接把節點放到指定位置。' : 'You can also right-click the graph to place a node directly.' }}</p>
                 </div>
                 <RouterLink v-if="!token" class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100" to="/login">{{ zh ? '登入' : 'Sign in' }}</RouterLink>
               </div>
@@ -1003,17 +1179,17 @@ onUnmounted(() => { document.title = 'TruthShield' })
 
             <form class="grid gap-3 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-4" @submit.prevent="submitRelationship">
               <p class="text-sm font-semibold text-cyan-100">{{ zh ? '手動新增關係' : 'Add Relationship' }}</p>
-              <div class="grid gap-3 md:grid-cols-[1fr_150px]">
-                <input v-model="relationshipForm.from_entity_name" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '新節點名稱' : 'New node name'" required />
-                <select v-model="relationshipForm.from_entity_type" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300">
-                  <option value="person">{{ zh ? '人物' : 'Person' }}</option>
-                  <option value="organization">{{ zh ? '組織' : 'Organization' }}</option>
+              <p class="text-xs leading-5 text-zinc-400">{{ zh ? '預設使用既有節點建立連線；若缺少人物或組織，先新增節點，或在圖上右鍵新增。' : 'Relationships use existing nodes by default. Add the missing node first, or right-click the graph.' }}</p>
+              <div class="grid gap-3 md:grid-cols-2">
+                <select v-model="relationshipForm.from_entity_id" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" required>
+                  <option value="">{{ zh ? '起點：選擇既有節點' : 'From: existing node' }}</option>
+                  <option v-for="entity in graph.entities || []" :key="entity.id" :value="entity.id">{{ entity.name }} · {{ entity.entity_type }}</option>
+                </select>
+                <select v-model="relationshipForm.to_entity_id" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" required>
+                  <option value="">{{ zh ? '終點：選擇既有節點' : 'To: existing node' }}</option>
+                  <option v-for="entity in graph.entities || []" :key="entity.id" :value="entity.id">{{ entity.name }} · {{ entity.entity_type }}</option>
                 </select>
               </div>
-              <select v-model="relationshipForm.to_entity_id" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" required>
-                <option value="">{{ zh ? '跟哪個既有節點有關' : 'Related existing node' }}</option>
-                <option v-for="entity in graph.entities || []" :key="entity.id" :value="entity.id">{{ entity.name }} · {{ entity.entity_type }}</option>
-              </select>
               <input v-model="relationshipForm.relationship_type" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '關係類型，例如監督、任職、澄清' : 'Relationship type'" required />
               <textarea v-model="relationshipForm.description" class="min-h-16 rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '關係說明' : 'Description'"></textarea>
               <div class="grid gap-3 md:grid-cols-[180px_1fr]">
@@ -1025,6 +1201,10 @@ onUnmounted(() => { document.title = 'TruthShield' })
                 </select>
                 <input v-model="relationshipForm.source_url" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '參考資料 URL' : 'Reference URL'" required />
               </div>
+              <label class="inline-flex items-center gap-2 text-xs text-zinc-300">
+                <input v-model="relationshipForm.is_bidirectional" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-zinc-950 text-cyan-300" />
+                {{ zh ? '雙向關係' : 'Bidirectional relationship' }}
+              </label>
               <button class="rounded-md bg-cyan-300 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-50" :disabled="submitting || !token || !(graph.entities || []).length">{{ zh ? '新增關係' : 'Add Relationship' }}</button>
             </form>
           </div>
@@ -1050,8 +1230,9 @@ onUnmounted(() => { document.title = 'TruthShield' })
                   {{ item.label }}
                 </span>
               </div>
-              <svg ref="graphSvg" class="h-[460px] w-full rounded-lg border border-white/10 bg-zinc-950" :class="isPanning ? 'cursor-grabbing' : 'cursor-grab'" viewBox="-30 -30 580 500" role="img" @pointerdown="startGraphPan" @pointermove="handleGraphMove" @pointerup="endGraphInteraction" @pointerleave="endGraphInteraction" @wheel.prevent="handleGraphWheel">
-                <rect x="-30" y="-30" width="580" height="500" fill="#09090b" />
+              <div class="relative">
+              <svg ref="graphSvg" class="h-[460px] w-full rounded-lg border border-white/10 bg-zinc-950" :class="isPanning ? 'cursor-grabbing' : 'cursor-grab'" viewBox="-30 -30 580 500" role="img" @contextmenu.prevent="openGraphContextMenu($event)" @pointerdown="startGraphPan" @pointermove="handleGraphMove" @pointerup="endGraphInteraction" @pointerleave="endGraphInteraction" @wheel.prevent="handleGraphWheel">
+                <rect x="-30" y="-30" width="580" height="500" fill="#09090b" @contextmenu.prevent="openGraphContextMenu($event)" />
                 <defs>
                   <marker id="truthshield-arrow-cyan" viewBox="0 0 8 8" refX="6.8" refY="4" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
                     <path d="M 0 0 L 8 4 L 0 8 z" fill="#67e8f9" />
@@ -1086,7 +1267,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
                     </text>
                   </g>
                 </g>
-                <g v-for="(entity, index) in graph.entities" :key="entity.id" :class="token ? 'cursor-move' : 'cursor-default'" @pointerdown.prevent="startDragEntity(entity, $event)">
+                <g v-for="(entity, index) in graph.entities" :key="entity.id" :class="token ? 'cursor-move' : 'cursor-default'" @contextmenu.prevent.stop="openGraphContextMenu($event, entity)" @pointerdown.prevent="startDragEntity(entity, $event)">
                   <title>{{ entity.name }} ({{ entity.entity_type }})</title>
                   <circle
                     :cx="entityPosition(entity.id).x"
@@ -1102,6 +1283,80 @@ onUnmounted(() => { document.title = 'TruthShield' })
                 </g>
                 </g>
               </svg>
+              <div
+                v-if="graphContextMenu.open"
+                class="absolute z-20 w-64 rounded-lg border border-cyan-300/20 bg-zinc-950/95 p-2 text-sm shadow-2xl shadow-black/50 backdrop-blur"
+                :style="{ left: `${graphContextMenu.x}px`, top: `${graphContextMenu.y}px` }"
+                @click.stop
+              >
+                <template v-if="token">
+                  <p class="px-2 py-1 text-xs font-semibold text-cyan-200">
+                    {{ graphContextMenu.entity ? graphContextMenu.entity.name : (zh ? '關係圖空白處' : 'Graph canvas') }}
+                  </p>
+                  <button type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickEntityPanel('person')">{{ zh ? '在這裡新增人物' : 'Add person here' }}</button>
+                  <button type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickEntityPanel('organization')">{{ zh ? '在這裡新增組織' : 'Add organization here' }}</button>
+                  <button v-if="graphContextMenu.entity" type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickRelationshipPanel('from')">{{ zh ? '從此節點新增關係線' : 'Add edge from this node' }}</button>
+                  <button v-if="graphContextMenu.entity" type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickRelationshipPanel('to')">{{ zh ? '新增指向此節點的關係線' : 'Add edge to this node' }}</button>
+                  <div v-if="graphContextMenu.entity" class="my-1 border-t border-white/10"></div>
+                  <button v-if="graphContextMenu.entity" type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="startEditEntity(graphContextMenu.entity); closeGraphContextMenu()">{{ zh ? '編輯節點資料' : 'Edit node details' }}</button>
+                  <button v-if="graphContextMenu.entity" type="button" class="block w-full rounded-md px-2 py-2 text-left text-red-200 hover:bg-red-500/10" @click="removeEntity(graphContextMenu.entity); closeGraphContextMenu()">{{ zh ? '刪除節點' : 'Delete node' }}</button>
+                </template>
+                <template v-else>
+                  <p class="px-2 py-2 text-xs leading-5 text-zinc-400">{{ zh ? '登入後可直接在圖上新增人物、組織與關係線。' : 'Sign in to add nodes and relationships directly on the graph.' }}</p>
+                  <RouterLink class="block rounded-md border border-cyan-300/40 px-2 py-2 text-center text-xs font-semibold text-cyan-100" to="/login">{{ zh ? '登入' : 'Sign in' }}</RouterLink>
+                </template>
+                <button type="button" class="mt-1 block w-full rounded-md px-2 py-1.5 text-left text-xs text-zinc-500 hover:bg-white/5" @click="closeGraphContextMenu">{{ zh ? '取消' : 'Cancel' }}</button>
+              </div>
+              <form
+                v-if="quickGraphPanel.open"
+                class="absolute z-20 grid w-[min(320px,calc(100%-24px))] gap-2 rounded-lg border border-cyan-300/25 bg-zinc-950/95 p-3 text-sm shadow-2xl shadow-black/50 backdrop-blur"
+                :style="{ left: `${quickGraphPanel.x}px`, top: `${quickGraphPanel.y}px` }"
+                @submit.prevent="quickGraphPanel.mode === 'entity' ? submitQuickEntity() : submitQuickRelationship()"
+              >
+                <template v-if="quickGraphPanel.mode === 'entity'">
+                  <div class="flex items-center justify-between gap-2">
+                    <p class="font-semibold text-cyan-100">{{ zh ? '新增節點' : 'Add node' }}</p>
+                    <button type="button" class="text-zinc-500 hover:text-zinc-200" @click="closeQuickGraphPanel">✕</button>
+                  </div>
+                  <div class="grid grid-cols-[1fr_112px] gap-2">
+                    <input v-model="quickEntityForm.name" class="rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" :placeholder="zh ? '名稱' : 'Name'" required />
+                    <select v-model="quickEntityForm.entity_type" class="rounded-md border border-white/10 bg-black px-2 py-2 outline-none focus:border-cyan-300">
+                      <option value="person">{{ zh ? '人物' : 'Person' }}</option>
+                      <option value="organization">{{ zh ? '組織' : 'Org' }}</option>
+                    </select>
+                  </div>
+                  <textarea v-model="quickEntityForm.description" class="min-h-16 rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" :placeholder="zh ? '簡短描述' : 'Short description'"></textarea>
+                  <input v-model="quickEntityForm.source_url" class="rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" :placeholder="zh ? '來源 URL（選填）' : 'Source URL optional'" />
+                </template>
+                <template v-else>
+                  <div class="flex items-center justify-between gap-2">
+                    <p class="font-semibold text-cyan-100">{{ zh ? '新增關係線' : 'Add relationship' }}</p>
+                    <button type="button" class="text-zinc-500 hover:text-zinc-200" @click="closeQuickGraphPanel">✕</button>
+                  </div>
+                  <select v-model="quickRelationshipForm.from_entity_id" class="rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" required>
+                    <option value="">{{ zh ? '起點節點' : 'From node' }}</option>
+                    <option v-for="entity in graph.entities || []" :key="entity.id" :value="entity.id">{{ entity.name }} · {{ entity.entity_type }}</option>
+                  </select>
+                  <select v-model="quickRelationshipForm.to_entity_id" class="rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" required>
+                    <option value="">{{ zh ? '終點節點' : 'To node' }}</option>
+                    <option v-for="entity in graph.entities || []" :key="entity.id" :value="entity.id">{{ entity.name }} · {{ entity.entity_type }}</option>
+                  </select>
+                  <input v-model="quickRelationshipForm.relationship_type" class="rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" :placeholder="zh ? '關係類型' : 'Relationship type'" required />
+                  <textarea v-model="quickRelationshipForm.description" class="min-h-16 rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" :placeholder="zh ? '關係說明' : 'Description'"></textarea>
+                  <div class="grid grid-cols-[120px_1fr] gap-2">
+                    <select v-model="quickRelationshipForm.source_type" class="rounded-md border border-white/10 bg-black px-2 py-2 outline-none focus:border-cyan-300">
+                      <option v-for="st in sourceTypes" :key="st.value" :value="st.value">{{ st.label }}</option>
+                    </select>
+                    <input v-model="quickRelationshipForm.source_url" class="rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" :placeholder="zh ? '參考資料 URL' : 'Reference URL'" required />
+                  </div>
+                  <label class="inline-flex items-center gap-2 text-xs text-zinc-300">
+                    <input v-model="quickRelationshipForm.is_bidirectional" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-black text-cyan-300" />
+                    {{ zh ? '雙向關係' : 'Bidirectional' }}
+                  </label>
+                </template>
+                <button class="rounded-md bg-cyan-300 px-3 py-2 font-semibold text-zinc-950 disabled:opacity-50" :disabled="submitting">{{ submitting ? (zh ? '儲存中...' : 'Saving...') : (zh ? '儲存並留下紀錄' : 'Save and log') }}</button>
+              </form>
+              </div>
               <div class="mt-1 flex items-center justify-between text-xs text-zinc-600">
                 <span>{{ zh ? '滾輪縮放・拖曳平移' : 'Scroll to zoom · drag to pan' }}</span>
                 <button class="hover:text-zinc-300" @click="resetGraphView">{{ zh ? '重設視圖' : 'Reset view' }}</button>
