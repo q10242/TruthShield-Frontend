@@ -14,6 +14,10 @@ const fields = {
   locale: document.getElementById('locale'),
 }
 const t = window.truthShieldT || ((key) => key)
+const statusCard = document.getElementById('statusCard')
+const status = document.getElementById('status')
+const version = document.getElementById('version')
+let savedSnapshot = null
 
 function resolveSelectedLocale(value) {
   return value === 'zh-TW' || value === 'en'
@@ -39,22 +43,55 @@ function applySettings(values) {
   fields.locale.value = values.locale || defaults.locale
 }
 
+function settingsEqual(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right)
+}
+
+function renderVersion() {
+  version.textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
+}
+
+function setStatus(message, state = 'info') {
+  statusCard.dataset.state = state
+  status.textContent = message
+}
+
+function refreshDirtyState(options = {}) {
+  const dirty = !savedSnapshot || !settingsEqual(currentSettings(), savedSnapshot)
+  document.getElementById('save').disabled = !dirty
+  if (dirty) {
+    setStatus(t('settingsStatusUnsaved'), 'warn')
+    return
+  }
+
+  if (!options.preserveMessage) setStatus(t('settingsStatusReady'), 'info')
+}
+
 async function initOptions() {
   await window.truthShieldI18nReady
   chrome.storage.sync.get(defaults, (values) => {
     applySettings(values)
-    document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
+    savedSnapshot = currentSettings()
+    renderVersion()
+    refreshDirtyState()
   })
 }
 
 initOptions()
 
+Object.values(fields).forEach((field) => {
+  field.addEventListener('input', refreshDirtyState)
+  field.addEventListener('change', refreshDirtyState)
+})
+
 document.getElementById('save').addEventListener('click', () => {
   const next = currentSettings()
   chrome.storage.sync.set(next, () => {
     window.truthShieldApplyI18n?.(resolveSelectedLocale(next.locale))
-    document.getElementById('status').textContent = t('saved')
-    document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
+    savedSnapshot = { ...next }
+    renderVersion()
+    setStatus(t('saved'), 'success')
+    refreshDirtyState({ preserveMessage: true })
   })
 })
 
@@ -62,14 +99,16 @@ document.getElementById('resetDefaults').addEventListener('click', () => {
   chrome.storage.sync.set(defaults, () => {
     applySettings(defaults)
     window.truthShieldApplyI18n?.(resolveSelectedLocale(defaults.locale))
-    document.getElementById('status').textContent = t('resetDone')
-    document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
+    savedSnapshot = { ...defaults }
+    renderVersion()
+    setStatus(t('resetDone'), 'success')
+    refreshDirtyState({ preserveMessage: true })
   })
 })
 
 document.getElementById('exportSettings').addEventListener('click', () => {
   document.getElementById('settingsJson').value = JSON.stringify(currentSettings(), null, 2)
-  document.getElementById('status').textContent = t('settingsExported')
+  setStatus(t('settingsExported'), 'success')
 })
 
 document.getElementById('importSettings').addEventListener('click', () => {
@@ -85,11 +124,13 @@ document.getElementById('importSettings').addEventListener('click', () => {
     chrome.storage.sync.set(next, () => {
       applySettings(next)
       window.truthShieldApplyI18n?.(resolveSelectedLocale(next.locale))
-      document.getElementById('status').textContent = t('settingsImported')
-      document.getElementById('version').textContent = `${t('extensionVersion')} ${chrome.runtime.getManifest().version}`
+      savedSnapshot = { ...next }
+      renderVersion()
+      setStatus(t('settingsImported'), 'success')
+      refreshDirtyState({ preserveMessage: true })
     })
   } catch {
-    document.getElementById('status').textContent = t('settingsImportFailed')
+    setStatus(t('settingsImportFailed'), 'error')
   }
 })
 
