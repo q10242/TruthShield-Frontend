@@ -73,7 +73,11 @@ const quickEntityForm = ref({
   entity_type: 'person',
   description: '',
   source_url: '',
+  global_entity_id: null,
 })
+const quickGlobalEntitySearch = ref('')
+const quickGlobalEntityResults = ref([])
+const quickGlobalEntitySearching = ref(false)
 const quickRelationshipForm = ref({
   from_entity_id: '',
   to_entity_id: '',
@@ -127,6 +131,34 @@ function clearGlobalEntity() {
   entityForm.value.global_entity_id = null
   globalEntitySearch.value = ''
   globalEntityResults.value = []
+}
+
+async function searchQuickGlobal() {
+  if (!quickGlobalEntitySearch.value.trim()) { quickGlobalEntityResults.value = []; return }
+  quickGlobalEntitySearching.value = true
+  try {
+    const payload = await searchGlobalEntities({ q: quickGlobalEntitySearch.value, limit: 10 })
+    quickGlobalEntityResults.value = payload.data || []
+  } catch {
+    quickGlobalEntityResults.value = []
+  } finally {
+    quickGlobalEntitySearching.value = false
+  }
+}
+
+function selectQuickGlobalEntity(ge) {
+  quickEntityForm.value.global_entity_id = ge.id
+  quickEntityForm.value.name = ge.name
+  quickEntityForm.value.entity_type = ge.entity_type
+  quickEntityForm.value.description = quickEntityForm.value.description || ge.description || ''
+  quickGlobalEntityResults.value = []
+  quickGlobalEntitySearch.value = ge.name
+}
+
+function clearQuickGlobalEntity() {
+  quickEntityForm.value.global_entity_id = null
+  quickGlobalEntitySearch.value = ''
+  quickGlobalEntityResults.value = []
 }
 const relationshipForm = ref({
   from_entity_id: '',
@@ -300,13 +332,18 @@ function resetGraphView() {
   graphScale.value = 1
 }
 
+function zoomGraph(factor) {
+  graphScale.value = Math.min(6, Math.max(0.15, graphScale.value * factor))
+}
+
 function closeGraphContextMenu() {
   graphContextMenu.value = { ...graphContextMenu.value, open: false, entity: null }
 }
 
 function closeQuickGraphPanel() {
   quickGraphPanel.value = { ...quickGraphPanel.value, open: false, anchorEntityId: '' }
-  quickEntityForm.value = { name: '', entity_type: 'person', description: '', source_url: '' }
+  quickEntityForm.value = { name: '', entity_type: 'person', description: '', source_url: '', global_entity_id: null }
+  clearQuickGlobalEntity()
   quickRelationshipForm.value = {
     from_entity_id: '',
     to_entity_id: '',
@@ -345,7 +382,8 @@ function openGraphContextMenu(event, entity = null) {
 
 function openQuickEntityPanel(entityType = 'person') {
   const menu = graphContextMenu.value
-  quickEntityForm.value = { name: '', entity_type: entityType, description: '', source_url: '' }
+  quickEntityForm.value = { name: '', entity_type: entityType, description: '', source_url: '', global_entity_id: null }
+  clearQuickGlobalEntity()
   quickGraphPanel.value = {
     open: true,
     mode: 'entity',
@@ -1141,72 +1179,16 @@ onUnmounted(() => { document.title = 'TruthShield' })
         </section>
 
         <section v-if="activeTab === 'graph'" class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
-          <div class="mb-5 grid gap-4 lg:grid-cols-2">
-            <form class="grid gap-3 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-4" @submit.prevent="submitEntity">
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <p class="text-sm font-semibold text-cyan-100">{{ zh ? '手動新增人物/組織' : 'Add Person/Organization' }}</p>
-                  <p class="mt-1 text-xs text-zinc-400">{{ zh ? '也可以在關係圖空白處按右鍵，直接把節點放到指定位置。' : 'You can also right-click the graph to place a node directly.' }}</p>
-                </div>
-                <RouterLink v-if="!token" class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100" to="/login">{{ zh ? '登入' : 'Sign in' }}</RouterLink>
+          <div class="mb-5 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-cyan-100">{{ zh ? '在圖上右鍵編輯' : 'Right-click to edit the graph' }}</p>
+                <p class="mt-1 text-xs leading-5 text-zinc-400">
+                  {{ zh ? '新增人物、組織、關係線都集中在關係圖右鍵選單；每次新增、修改、刪除都會留下公開編輯紀錄。' : 'Add people, organizations, and relationships from the graph context menu. Every change is publicly logged.' }}
+                </p>
               </div>
-              <!-- Global entity search -->
-              <div class="relative">
-                <div class="flex gap-2">
-                  <input v-model="globalEntitySearch" class="min-w-0 flex-1 rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '搜尋全域人物/組織（選填）' : 'Search global entities (optional)'" @keydown.enter.prevent="searchGlobal" />
-                  <button type="button" class="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300" @click="searchGlobal">{{ globalEntitySearching ? '…' : (zh ? '搜尋' : 'Search') }}</button>
-                  <button v-if="entityForm.global_entity_id" type="button" class="rounded-md border border-red-400/30 px-2 py-2 text-xs text-red-300" @click="clearGlobalEntity">✕</button>
-                </div>
-                <div v-if="globalEntityResults.length" class="absolute z-10 mt-1 w-full rounded-md border border-white/10 bg-zinc-900 shadow-xl">
-                  <button v-for="ge in globalEntityResults" :key="ge.id" type="button" class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-white/5" @click="selectGlobalEntity(ge)">
-                    <span class="font-semibold text-white">{{ ge.name }}</span>
-                    <span class="shrink-0 text-xs text-zinc-500">{{ ge.entity_type }} · {{ ge.event_entities_count ?? 0 }} {{ zh ? '個事件' : 'events' }}</span>
-                  </button>
-                </div>
-                <p v-if="entityForm.global_entity_id" class="mt-1 text-xs text-cyan-300">{{ zh ? '✓ 已連結全域人物' : '✓ Linked to global entity' }} #{{ entityForm.global_entity_id }}</p>
-              </div>
-              <div class="grid gap-3 md:grid-cols-[1fr_150px]">
-                <input v-model="entityForm.name" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '人名或組織名' : 'Name'" required />
-                <select v-model="entityForm.entity_type" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300">
-                  <option value="person">{{ zh ? '人物' : 'Person' }}</option>
-                  <option value="organization">{{ zh ? '組織' : 'Organization' }}</option>
-                </select>
-              </div>
-              <textarea v-model="entityForm.description" class="min-h-16 rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '簡短描述' : 'Short description'"></textarea>
-              <input v-model="entityForm.source_url" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '來源 URL（建議填）' : 'Source URL recommended'" />
-              <button class="rounded-md bg-cyan-300 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-50" :disabled="submitting || !token">{{ zh ? '新增節點' : 'Add Node' }}</button>
-            </form>
-
-            <form class="grid gap-3 rounded-lg border border-cyan-300/20 bg-cyan-300/[0.04] p-4" @submit.prevent="submitRelationship">
-              <p class="text-sm font-semibold text-cyan-100">{{ zh ? '手動新增關係' : 'Add Relationship' }}</p>
-              <p class="text-xs leading-5 text-zinc-400">{{ zh ? '預設使用既有節點建立連線；若缺少人物或組織，先新增節點，或在圖上右鍵新增。' : 'Relationships use existing nodes by default. Add the missing node first, or right-click the graph.' }}</p>
-              <div class="grid gap-3 md:grid-cols-2">
-                <select v-model="relationshipForm.from_entity_id" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" required>
-                  <option value="">{{ zh ? '起點：選擇既有節點' : 'From: existing node' }}</option>
-                  <option v-for="entity in graph.entities || []" :key="entity.id" :value="entity.id">{{ entity.name }} · {{ entity.entity_type }}</option>
-                </select>
-                <select v-model="relationshipForm.to_entity_id" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" required>
-                  <option value="">{{ zh ? '終點：選擇既有節點' : 'To: existing node' }}</option>
-                  <option v-for="entity in graph.entities || []" :key="entity.id" :value="entity.id">{{ entity.name }} · {{ entity.entity_type }}</option>
-                </select>
-              </div>
-              <input v-model="relationshipForm.relationship_type" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '關係類型，例如監督、任職、澄清' : 'Relationship type'" required />
-              <textarea v-model="relationshipForm.description" class="min-h-16 rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '關係說明' : 'Description'"></textarea>
-              <div class="grid gap-3 md:grid-cols-[180px_1fr]">
-                <select v-model="relationshipForm.source_type" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300">
-                  <option value="news">news</option>
-                  <option value="evidence">evidence</option>
-                  <option value="official_response">official_response</option>
-                  <option value="external">external</option>
-                </select>
-                <input v-model="relationshipForm.source_url" class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '參考資料 URL' : 'Reference URL'" required />
-              </div>
-              <label class="inline-flex items-center gap-2 text-xs text-zinc-300">
-                <input v-model="relationshipForm.is_bidirectional" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-zinc-950 text-cyan-300" />
-                {{ zh ? '雙向關係' : 'Bidirectional relationship' }}
-              </label>
-              <button class="rounded-md bg-cyan-300 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-50" :disabled="submitting || !token || !(graph.entities || []).length">{{ zh ? '新增關係' : 'Add Relationship' }}</button>
-            </form>
+              <RouterLink v-if="!token" class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100" to="/login">{{ zh ? '登入後編輯' : 'Sign in to edit' }}</RouterLink>
+            </div>
           </div>
 
           <div v-if="(graph.entities || []).length === 0" class="text-sm text-zinc-400">{{ zh ? '尚無人物/組織節點。可從新聞右鍵 Pin 進來。' : 'No people or organization nodes yet. Pin one from a news page.' }}</div>
@@ -1221,6 +1203,15 @@ onUnmounted(() => { document.title = 'TruthShield' })
                   <button class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100 hover:border-cyan-300/80" @click="downloadGraphImage('jpeg')">
                     {{ zh ? '下載 JPEG' : 'Download JPEG' }}
                   </button>
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-zinc-950/70 p-2 text-xs text-zinc-400">
+                <span>{{ zh ? '右鍵新增節點與關係線，左鍵拖曳節點或平移畫面。' : 'Right-click to add nodes and edges. Drag nodes or pan with left click.' }}</span>
+                <div class="flex items-center gap-1">
+                  <button type="button" class="grid h-8 w-8 place-items-center rounded-md border border-white/10 text-base font-semibold text-zinc-100 hover:border-cyan-300/60" :aria-label="zh ? '縮小' : 'Zoom out'" @click="zoomGraph(0.85)">−</button>
+                  <span class="min-w-14 text-center tabular-nums text-zinc-300">{{ Math.round(graphScale * 100) }}%</span>
+                  <button type="button" class="grid h-8 w-8 place-items-center rounded-md border border-white/10 text-base font-semibold text-zinc-100 hover:border-cyan-300/60" :aria-label="zh ? '放大' : 'Zoom in'" @click="zoomGraph(1.18)">+</button>
+                  <button type="button" class="ml-1 rounded-md border border-white/10 px-2 py-1.5 font-semibold text-zinc-300 hover:border-cyan-300/60" @click="resetGraphView">{{ zh ? '重設' : 'Reset' }}</button>
                 </div>
               </div>
               <div class="flex flex-wrap gap-2 rounded-md border border-white/10 bg-zinc-950/70 p-2 text-xs text-zinc-400">
@@ -1295,7 +1286,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
                   </p>
                   <button type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickEntityPanel('person')">{{ zh ? '在這裡新增人物' : 'Add person here' }}</button>
                   <button type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickEntityPanel('organization')">{{ zh ? '在這裡新增組織' : 'Add organization here' }}</button>
-                  <button v-if="graphContextMenu.entity" type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickRelationshipPanel('from')">{{ zh ? '從此節點新增關係線' : 'Add edge from this node' }}</button>
+                  <button type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickRelationshipPanel('from')">{{ graphContextMenu.entity ? (zh ? '從此節點新增關係線' : 'Add edge from this node') : (zh ? '新增既有節點關係線' : 'Add edge between existing nodes') }}</button>
                   <button v-if="graphContextMenu.entity" type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickRelationshipPanel('to')">{{ zh ? '新增指向此節點的關係線' : 'Add edge to this node' }}</button>
                   <div v-if="graphContextMenu.entity" class="my-1 border-t border-white/10"></div>
                   <button v-if="graphContextMenu.entity" type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="startEditEntity(graphContextMenu.entity); closeGraphContextMenu()">{{ zh ? '編輯節點資料' : 'Edit node details' }}</button>
@@ -1317,6 +1308,20 @@ onUnmounted(() => { document.title = 'TruthShield' })
                   <div class="flex items-center justify-between gap-2">
                     <p class="font-semibold text-cyan-100">{{ zh ? '新增節點' : 'Add node' }}</p>
                     <button type="button" class="text-zinc-500 hover:text-zinc-200" @click="closeQuickGraphPanel">✕</button>
+                  </div>
+                  <div class="relative">
+                    <div class="flex gap-2">
+                      <input v-model="quickGlobalEntitySearch" class="min-w-0 flex-1 rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" :placeholder="zh ? '搜尋全域人物/組織（選填）' : 'Search global entity optional'" @keydown.enter.prevent="searchQuickGlobal" />
+                      <button type="button" class="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300" @click="searchQuickGlobal">{{ quickGlobalEntitySearching ? '…' : (zh ? '搜尋' : 'Search') }}</button>
+                      <button v-if="quickEntityForm.global_entity_id" type="button" class="rounded-md border border-red-400/30 px-2 py-2 text-xs text-red-300" @click="clearQuickGlobalEntity">✕</button>
+                    </div>
+                    <div v-if="quickGlobalEntityResults.length" class="absolute z-30 mt-1 w-full rounded-md border border-white/10 bg-zinc-900 shadow-xl">
+                      <button v-for="ge in quickGlobalEntityResults" :key="ge.id" type="button" class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-white/5" @click="selectQuickGlobalEntity(ge)">
+                        <span class="font-semibold text-white">{{ ge.name }}</span>
+                        <span class="shrink-0 text-xs text-zinc-500">{{ ge.entity_type }} · {{ ge.event_entities_count ?? 0 }} {{ zh ? '個事件' : 'events' }}</span>
+                      </button>
+                    </div>
+                    <p v-if="quickEntityForm.global_entity_id" class="mt-1 text-xs text-cyan-300">{{ zh ? '已連結全域人物/組織' : 'Linked to global entity' }} #{{ quickEntityForm.global_entity_id }}</p>
                   </div>
                   <div class="grid grid-cols-[1fr_112px] gap-2">
                     <input v-model="quickEntityForm.name" class="rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" :placeholder="zh ? '名稱' : 'Name'" required />
@@ -1347,7 +1352,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
                     <select v-model="quickRelationshipForm.source_type" class="rounded-md border border-white/10 bg-black px-2 py-2 outline-none focus:border-cyan-300">
                       <option v-for="st in sourceTypes" :key="st.value" :value="st.value">{{ st.label }}</option>
                     </select>
-                    <input v-model="quickRelationshipForm.source_url" class="rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" :placeholder="zh ? '參考資料 URL' : 'Reference URL'" required />
+                    <input v-model="quickRelationshipForm.source_url" class="rounded-md border border-white/10 bg-black px-3 py-2 outline-none focus:border-cyan-300" :placeholder="zh ? '參考資料 URL（選填，高風險關係必填）' : 'Reference URL optional; required for high-risk relationships'" />
                   </div>
                   <label class="inline-flex items-center gap-2 text-xs text-zinc-300">
                     <input v-model="quickRelationshipForm.is_bidirectional" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-black text-cyan-300" />
@@ -1436,7 +1441,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
                 </div>
                 <p class="mt-1 text-xs text-cyan-200">{{ rel.relationship_type }} <span v-if="rel.is_high_risk" class="text-amber-200">· {{ zh ? '高風險待確認' : 'High-risk review' }}</span></p>
                 <p class="mt-2 text-sm text-zinc-400">{{ rel.description }}</p>
-                <a class="mt-2 inline-block break-all text-xs text-zinc-500 hover:text-cyan-100" :href="rel.source_url" target="_blank" rel="noopener noreferrer">{{ rel.source_url }}</a>
+                <a v-if="rel.source_url" class="mt-2 inline-block break-all text-xs text-zinc-500 hover:text-cyan-100" :href="rel.source_url" target="_blank" rel="noopener noreferrer">{{ rel.source_url }}</a>
                 <form v-if="relationshipEditId === String(rel.id)" class="mt-3 grid gap-2 rounded-md border border-cyan-300/20 bg-black/40 p-3" @submit.prevent="submitRelationshipEdit">
                   <div class="grid gap-2 md:grid-cols-2">
                     <select v-model="relationshipEditForm.from_entity_id" class="rounded-md border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-cyan-300" required>
@@ -1452,7 +1457,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
                     <select v-model="relationshipEditForm.source_type" class="rounded-md border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-cyan-300">
                       <option v-for="st in sourceTypes" :key="st.value" :value="st.value">{{ st.label }}</option>
                     </select>
-                    <input v-model="relationshipEditForm.source_url" class="rounded-md border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-cyan-300" required />
+                    <input v-model="relationshipEditForm.source_url" class="rounded-md border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-cyan-300" :placeholder="zh ? '參考資料 URL（選填，高風險關係必填）' : 'Reference URL optional; required for high-risk relationships'" />
                   </div>
                   <div class="flex gap-2">
                     <button class="rounded-md bg-cyan-300 px-3 py-2 text-sm font-semibold text-zinc-950" :disabled="submitting">{{ zh ? '儲存關係' : 'Save Relationship' }}</button>
