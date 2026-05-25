@@ -10,6 +10,7 @@ const packageDir = resolve(outputDir, 'extension-package')
 const manifest = JSON.parse(readFileSync(resolve(extensionDir, 'manifest.json'), 'utf8'))
 const version = manifest.version
 const outputFile = resolve(outputDir, `truthshield-extension-v${version}.zip`)
+const outputLatestFile = resolve(outputDir, 'truthshield-extension.zip')
 const publicOutputFile = resolve(root, 'public', 'truthshield-extension.zip')
 const publicVersionedOutputFile = resolve(root, 'public', `truthshield-extension-v${version}.zip`)
 const webOrigin = process.env.TRUTHSHIELD_EXTENSION_WEB_ORIGIN || process.env.VITE_WEB_ORIGIN || ''
@@ -18,6 +19,7 @@ const apiOrigin = process.env.TRUTHSHIELD_EXTENSION_API_ORIGIN || process.env.VI
 mkdirSync(outputDir, { recursive: true })
 rmSync(packageDir, { recursive: true, force: true })
 rmSync(outputFile, { force: true })
+rmSync(outputLatestFile, { force: true })
 rmSync(publicOutputFile, { force: true })
 rmSync(publicVersionedOutputFile, { force: true })
 
@@ -92,6 +94,8 @@ if (result.status !== 0) {
 
 copyFileSync(outputFile, publicOutputFile)
 copyFileSync(outputFile, publicVersionedOutputFile)
+copyFileSync(outputFile, outputLatestFile)
 console.log(outputFile)
+console.log(outputLatestFile)
 console.log(publicOutputFile)
 console.log(publicVersionedOutputFile)
