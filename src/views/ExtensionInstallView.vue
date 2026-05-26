@@ -13,6 +13,7 @@ const health = ref(null)
 const botConfig = ref(null)
 const extensionVersion = ref('0.1.0')
 const loading = ref(true)
+const copiedChromeUrl = ref(false)
 const zipGeneratedAt = new Date(import.meta.env.VITE_BUILD_TIME || document.lastModified || Date.now()).toLocaleString()
 
 const installSteps = computed(() => [
@@ -106,6 +107,15 @@ onMounted(async () => {
 function trackDownload() {
   trackEvent('extension_zip_download', { feature: 'extension_download' })
 }
+
+async function copyChromeExtensionsUrl() {
+  await navigator.clipboard?.writeText('chrome://extensions').catch(() => null)
+  copiedChromeUrl.value = true
+  trackEvent('chrome_extensions_url_copy', { feature: 'extension_install' })
+  window.setTimeout(() => {
+    copiedChromeUrl.value = false
+  }, 2400)
+}
 </script>
 
 <template>
@@ -151,11 +161,11 @@ function trackDownload() {
             <a class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" href="/truthshield-extension.zip" download @click="trackDownload">
               {{ t('extensionInstall.downloadZip') }}
             </a>
-            <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="chrome://extensions">
+            <button class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" type="button" @click="copyChromeExtensionsUrl">
               {{ t('extensionInstall.openChromeExtensions') }}
-            </a>
+            </button>
           </div>
-          <p class="mt-3 text-xs leading-5 text-zinc-500">{{ t('extensionInstall.zipNote') }}</p>
+          <p class="mt-3 text-xs leading-5 text-zinc-500">{{ copiedChromeUrl ? t('extensionInstall.chromeExtensionsCopied') : t('extensionInstall.zipNote') }}</p>
         </div>
 
         <aside class="rounded-lg border border-cyan-300/20 bg-zinc-900 p-5 shadow-2xl shadow-cyan-950/30">
@@ -225,9 +235,9 @@ function trackDownload() {
             <li>{{ t('extensionInstall.chromeGuide3') }}</li>
             <li>{{ t('extensionInstall.chromeGuide4') }}</li>
           </ol>
-          <a class="mt-4 inline-flex rounded-md border border-cyan-300/30 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10" href="chrome://extensions">
+          <button class="mt-4 inline-flex rounded-md border border-cyan-300/30 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10" type="button" @click="copyChromeExtensionsUrl">
             {{ t('extensionInstall.openChromeExtensions') }}
-          </a>
+          </button>
         </article>
 
         <article class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
