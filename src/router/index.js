@@ -44,6 +44,96 @@ import EventDetailView from '../views/EventDetailView.vue'
 import GlobalEntitiesView from '../views/GlobalEntitiesView.vue'
 import IframeEventPinView from '../views/IframeEventPinView.vue'
 
+const SITE_ORIGIN = 'https://truth-shield.otus.tw'
+const SITE_NAME = 'TruthShield 真相護盾'
+const DEFAULT_TITLE = SITE_NAME
+const DEFAULT_DESCRIPTION = 'TruthShield 真相護盾用社群證據、信用權重與透明治理，讓讀者在新聞頁旁查看可信度訊號、證據與投票結果。'
+const DEFAULT_IMAGE = `${SITE_ORIGIN}/brand/export/social-preview-1200x630.png`
+
+const routeMeta = {
+  home: {
+    title: SITE_NAME,
+    description: DEFAULT_DESCRIPTION,
+  },
+  'demo-news': {
+    title: `互動示範 - ${SITE_NAME}`,
+    description: '不用安裝插件，先看 TruthShield 在新聞頁上方橫幅、Hover Tooltip、右鍵入口與投票面板的實際體驗。',
+  },
+  'user-guide': {
+    title: `使用手冊 - ${SITE_NAME}`,
+    description: '從安裝、投票、補證據、YouTube 小標到反網軍機制，一頁看懂 TruthShield 的日常使用方式。',
+  },
+  'extension-install': {
+    title: `下載 Chrome 插件 - ${SITE_NAME}`,
+    description: '下載 TruthShield Chrome 插件 ZIP，依教學載入未封裝項目，把新聞可信度提示放進日常閱讀流程。',
+  },
+  mobile: {
+    title: `手機版 - ${SITE_NAME}`,
+    description: '在手機上貼上或分享新聞 URL，查看 TruthShield 加權結果、證據、澄清與投票入口。',
+  },
+  events: {
+    title: `事件脈絡 - ${SITE_NAME}`,
+    description: '用時間線與人物/組織關係圖整理多篇新聞，讓事件脈絡與公開來源更容易被檢查。',
+  },
+  'news-search': {
+    title: `新聞搜尋 - ${SITE_NAME}`,
+    description: '貼上新聞 URL 或搜尋已收錄新聞，查看目前標籤、加權結果、證據與定案狀態。',
+  },
+  'evidence-library': {
+    title: `證據庫 - ${SITE_NAME}`,
+    description: '瀏覽 TruthShield 社群提交的公開證據、澄清連結與來源品質訊號。',
+  },
+  transparency: {
+    title: `透明儀表板 - ${SITE_NAME}`,
+    description: '查看 TruthShield 系統健康、治理統計、社群任務、回報與公開營運指標。',
+  },
+  'extension-coverage': {
+    title: `插件覆蓋 - ${SITE_NAME}`,
+    description: '檢查 TruthShield 已支援的新聞網域、YouTube 頻道與插件相容性狀態。',
+  },
+}
+
+function setMetaTag(attribute, name, content) {
+  let element = document.head.querySelector(`meta[${attribute}="${name}"]`)
+  if (!element) {
+    element = document.createElement('meta')
+    element.setAttribute(attribute, name)
+    document.head.appendChild(element)
+  }
+  element.setAttribute('content', content)
+}
+
+function setCanonical(url) {
+  let element = document.head.querySelector('link[rel="canonical"]')
+  if (!element) {
+    element = document.createElement('link')
+    element.setAttribute('rel', 'canonical')
+    document.head.appendChild(element)
+  }
+  element.setAttribute('href', url)
+}
+
+function applyRouteMeta(route) {
+  const meta = routeMeta[route.name] || {}
+  const title = meta.title || DEFAULT_TITLE
+  const description = meta.description || DEFAULT_DESCRIPTION
+  const url = new URL(route.path || '/', SITE_ORIGIN).toString()
+
+  document.title = title
+  setCanonical(url)
+  setMetaTag('name', 'description', description)
+  setMetaTag('property', 'og:type', route.name === 'home' ? 'website' : 'article')
+  setMetaTag('property', 'og:site_name', SITE_NAME)
+  setMetaTag('property', 'og:title', title)
+  setMetaTag('property', 'og:description', description)
+  setMetaTag('property', 'og:url', url)
+  setMetaTag('property', 'og:image', DEFAULT_IMAGE)
+  setMetaTag('name', 'twitter:card', 'summary_large_image')
+  setMetaTag('name', 'twitter:title', title)
+  setMetaTag('name', 'twitter:description', description)
+  setMetaTag('name', 'twitter:image', DEFAULT_IMAGE)
+}
+
 const localRoutes = import.meta.env.DEV
   ? [
       { path: '/local-news-demo', name: 'local-news-demo', component: () => import('../views/LocalNewsDemoView.vue') },
@@ -104,6 +194,12 @@ const router = createRouter({
     { path: '/iframe-vote-panel', name: 'iframe-vote-panel', component: IframeVotePanelView },
     { path: '/iframe-event-pin', name: 'iframe-event-pin', component: IframeEventPinView },
   ],
+})
+
+router.afterEach((to) => {
+  if (typeof document !== 'undefined') {
+    applyRouteMeta(to)
+  }
 })
 
 export default router
