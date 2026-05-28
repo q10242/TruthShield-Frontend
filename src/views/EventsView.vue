@@ -166,7 +166,7 @@ onMounted(load)
           <label class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">{{ text.search }}</label>
           <p class="mt-3 text-sm leading-6 text-zinc-400">{{ text.searchHint }}</p>
           <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-            <input v-model="q" class="min-w-0 flex-1 rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300" />
+            <input v-model="q" class="min-w-0 flex-1 rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300" :aria-label="text.search" />
             <div class="flex gap-2">
               <button class="flex-1 rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 sm:flex-none" type="submit">{{ zh ? '搜尋' : 'Search' }}</button>
               <button v-if="hasQuery" class="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-zinc-300 hover:border-cyan-300/40 hover:text-cyan-100" type="button" @click="resetSearch">{{ text.clear }}</button>

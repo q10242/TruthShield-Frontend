@@ -43,9 +43,9 @@ onMounted(search)
       </AppNav>
       <h1 class="text-3xl font-semibold text-white">{{ t('remaining.newsSearchTitle') }}</h1>
       <form class="mt-5 grid gap-2 md:grid-cols-[1fr_180px_150px_auto]" @submit.prevent="search">
-        <input v-model="q" class="min-w-0 flex-1 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300" :placeholder="t('remaining.searchUrlTitle')" />
-        <input v-model="domain" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300" :placeholder="t('remaining.domain')" />
-        <select v-model="finalized" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300">
+        <input v-model="q" class="min-w-0 flex-1 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300" :aria-label="t('remaining.searchUrlTitle')" :placeholder="t('remaining.searchUrlTitle')" />
+        <input v-model="domain" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300" :aria-label="t('remaining.domain')" :placeholder="t('remaining.domain')" />
+        <select v-model="finalized" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300" :aria-label="t('remaining.statusFilter')">
           <option value="">{{ t('remaining.allStatuses') }}</option>
           <option value="0">{{ t('remaining.watching') }}</option>
           <option value="1">{{ t('remaining.finalized') }}</option>

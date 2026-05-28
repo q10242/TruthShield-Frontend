@@ -73,26 +73,26 @@ onMounted(load)
       </div>
 
       <form class="mt-6 grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[1fr_150px_150px_150px_170px_auto]" @submit.prevent="load">
-        <input v-model="q" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :placeholder="t('evidence.searchPlaceholder')" />
-        <select v-model="tag" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+        <input v-model="q" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :aria-label="t('evidence.searchPlaceholder')" :placeholder="t('evidence.searchPlaceholder')" />
+        <select v-model="tag" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :aria-label="t('evidence.allTags')">
           <option value="">{{ t('evidence.allTags') }}</option>
           <option value="clickbait-title">{{ t('evidence.tags.clickbaitTitle') }}</option>
           <option value="missing-context">{{ t('evidence.tags.missingContext') }}</option>
           <option value="out-of-context">{{ t('evidence.tags.outOfContext') }}</option>
           <option value="accurate-reporting">{{ t('evidence.tags.accurateReporting') }}</option>
         </select>
-        <select v-model="trusted" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+        <select v-model="trusted" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :aria-label="t('evidence.allSources')">
           <option value="">{{ t('evidence.allSources') }}</option>
           <option value="1">{{ t('evidence.trustedSource') }}</option>
           <option value="0">{{ t('evidence.unverifiedSource') }}</option>
         </select>
-        <select v-model="sort" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+        <select v-model="sort" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :aria-label="t('evidence.sortBy')">
           <option value="helpful">{{ t('evidence.sortHelpful') }}</option>
           <option value="quality">{{ t('evidence.sortQuality') }}</option>
           <option value="controversial">{{ t('evidence.sortControversial') }}</option>
           <option value="latest">{{ t('evidence.sortLatest') }}</option>
         </select>
-        <select v-model="focus" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+        <select v-model="focus" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :aria-label="t('evidence.allEvidence')">
           <option value="">{{ t('evidence.allEvidence') }}</option>
           <option value="community">{{ t('evidence.communityNeeds') }}</option>
           <option value="official">{{ t('evidence.officialClarifications') }}</option>

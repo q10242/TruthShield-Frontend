@@ -130,13 +130,13 @@ onMounted(load)
       </div>
 
       <form class="mt-6 grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[180px_220px_160px_auto]" @submit.prevent="load">
-        <select v-model="filters.status" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+        <select v-model="filters.status" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :aria-label="t('communityTasks.statusFilter')">
           <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ t(option.labelKey) }}</option>
         </select>
-        <select v-model="filters.type" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+        <select v-model="filters.type" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :aria-label="t('communityTasks.typeFilter')">
           <option v-for="option in typeOptions" :key="option.value" :value="option.value">{{ t(option.labelKey) }}</option>
         </select>
-        <input v-model="filters.priority" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" type="number" min="0" max="100" :placeholder="t('communityTasks.priorityFloor')" />
+        <input v-model="filters.priority" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" type="number" min="0" max="100" :aria-label="t('communityTasks.priorityFloor')" :placeholder="t('communityTasks.priorityFloor')" />
         <button type="submit" class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950">{{ t('communityTasks.apply') }}</button>
       </form>
 

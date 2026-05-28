@@ -115,7 +115,7 @@ onMounted(load)
         <form class="rounded-lg border border-white/10 bg-white/[0.03] p-4" @submit.prevent="load">
           <label class="text-xs font-semibold text-zinc-500">{{ text.search }}</label>
           <div class="mt-2 flex gap-2">
-            <input v-model="q" class="min-w-0 flex-1 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" />
+            <input v-model="q" class="min-w-0 flex-1 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :aria-label="text.search" />
             <button class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" type="submit">{{ text.searchButton }}</button>
           </div>
         </form>
