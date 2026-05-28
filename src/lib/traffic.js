@@ -27,12 +27,22 @@ export async function trackEvent(eventType, payload = {}) {
   const url = `${API_BASE_URL}/api/traffic/events`
   const blob = new Blob([body], { type: 'application/json' })
 
-  if (navigator.sendBeacon?.(url, blob)) {
+  const isSameOrigin = (() => {
+    try {
+      return new URL(url, window.location.href).origin === window.location.origin
+    } catch {
+      return false
+    }
+  })()
+
+  if (isSameOrigin && navigator.sendBeacon?.(url, blob)) {
     return
   }
 
   fetch(url, {
     method: 'POST',
+    mode: 'cors',
+    credentials: 'omit',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',

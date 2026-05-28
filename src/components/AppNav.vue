@@ -36,9 +36,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
-  <nav class="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
+  <nav class="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5 pr-32">
     <BrandLink />
-    <div class="flex items-center gap-3 text-sm">
+    <div class="flex flex-wrap items-center justify-end gap-3 text-sm">
       <!-- Events dropdown -->
       <div class="relative">
         <button
