@@ -44,7 +44,7 @@ onMounted(() => {
     }
   }
 
-  if (route.query.close === '1') {
+  if (done.value && route.query.close === '1') {
     window.setTimeout(() => window.close(), 650)
   }
 })
