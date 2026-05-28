@@ -109,7 +109,11 @@ function trackDownload() {
 }
 
 async function copyChromeExtensionsUrl() {
-  await navigator.clipboard?.writeText('chrome://extensions').catch(() => null)
+  try {
+    await navigator.clipboard?.writeText('chrome://extensions')
+  } catch {
+    // Clipboard access can be unavailable in embedded browsers or strict test contexts.
+  }
   copiedChromeUrl.value = true
   trackEvent('chrome_extensions_url_copy', { feature: 'extension_install' })
   window.setTimeout(() => {

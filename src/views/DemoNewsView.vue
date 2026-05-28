@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
@@ -10,8 +10,27 @@ const { t } = useI18n()
 const navKeys = ['navPolitics', 'navSociety', 'navInternational', 'navLife', 'navVideo']
 const trendingKeys = ['trending1', 'trending2', 'trending3', 'trending4']
 const resultKeys = ['panelTag1', 'panelTag2', 'panelTag3']
+const demoFeedback = ref('')
+let feedbackTimer = null
 
 onMounted(() => trackPageView('demo_news'))
+
+function showDemoFeedback(key) {
+  demoFeedback.value = t(`demoNews.${key}`)
+  window.clearTimeout(feedbackTimer)
+  feedbackTimer = window.setTimeout(() => {
+    demoFeedback.value = ''
+  }, 2600)
+}
+
+async function copyDemoLink() {
+  try {
+    await navigator.clipboard?.writeText(window.location.href)
+  } catch {
+    // Some browser test surfaces do not expose clipboard access.
+  }
+  showDemoFeedback('copyFeedback')
+}
 </script>
 
 <template>
@@ -52,7 +71,7 @@ onMounted(() => trackPageView('demo_news'))
         </header>
 
         <div class="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-cyan-300/25 bg-zinc-950 px-4 py-3 text-zinc-100 shadow-lg">
-          <button class="flex min-w-0 items-center gap-3 text-left" type="button">
+          <button class="flex min-w-0 items-center gap-3 text-left" type="button" @click="showDemoFeedback('panelFeedback')">
             <img class="h-8 w-8 shrink-0" src="/brand/truthshield-mark.svg" alt="" />
             <span class="min-w-0">
               <span class="block text-sm font-bold text-cyan-200">TruthShield</span>
@@ -78,13 +97,16 @@ onMounted(() => trackPageView('demo_news'))
                 <span>·</span>
                 <span>{{ t('demoNews.author') }}</span>
                 <span>·</span>
-                <button class="rounded-full border border-zinc-300 px-3 py-1 text-xs font-bold text-zinc-600" type="button">
+                <button class="rounded-full border border-zinc-300 px-3 py-1 text-xs font-bold text-zinc-600" type="button" @click="showDemoFeedback('shareFeedback')">
                   {{ t('demoNews.share') }}
                 </button>
-                <button class="rounded-full border border-zinc-300 px-3 py-1 text-xs font-bold text-zinc-600" type="button">
+                <button class="rounded-full border border-zinc-300 px-3 py-1 text-xs font-bold text-zinc-600" type="button" @click="copyDemoLink">
                   {{ t('demoNews.copyLink') }}
                 </button>
               </div>
+              <p v-if="demoFeedback" class="mt-3 rounded-md border border-cyan-300/30 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900" role="status">
+                {{ demoFeedback }}
+              </p>
             </div>
 
             <div class="relative mt-6">
@@ -173,7 +195,7 @@ onMounted(() => trackPageView('demo_news'))
             <section class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
               <h2 class="text-sm font-black text-zinc-950">{{ t('demoNews.newsletterTitle') }}</h2>
               <p class="mt-2 text-sm leading-6 text-zinc-600">{{ t('demoNews.newsletterDesc') }}</p>
-              <button class="mt-3 w-full rounded-md bg-zinc-950 px-4 py-2 text-sm font-bold text-white" type="button">
+              <button class="mt-3 w-full rounded-md bg-zinc-950 px-4 py-2 text-sm font-bold text-white" type="button" @click="showDemoFeedback('newsletterFeedback')">
                 {{ t('demoNews.newsletterButton') }}
               </button>
             </section>

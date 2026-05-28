@@ -10,16 +10,26 @@ const domain = ref('')
 const finalized = ref('')
 const rows = ref([])
 const meta = ref(null)
+const loading = ref(false)
+const error = ref('')
 const { t } = useI18n()
 
 async function search() {
-  const payload = await fetchNewsSearch({
-    q: q.value,
-    domain: domain.value,
-    finalized: finalized.value,
-  })
-  rows.value = payload.data || []
-  meta.value = payload.meta || null
+  loading.value = true
+  error.value = ''
+  try {
+    const payload = await fetchNewsSearch({
+      q: q.value,
+      domain: domain.value,
+      finalized: finalized.value,
+    })
+    rows.value = payload.data || []
+    meta.value = payload.meta || null
+  } catch {
+    error.value = t('remaining.searchFailed')
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(search)
@@ -40,8 +50,11 @@ onMounted(search)
           <option value="0">{{ t('remaining.watching') }}</option>
           <option value="1">{{ t('remaining.finalized') }}</option>
         </select>
-        <button type="submit" class="rounded-md bg-cyan-300 px-4 py-2 font-semibold text-zinc-950">{{ t('remaining.search') }}</button>
+        <button type="submit" class="rounded-md bg-cyan-300 px-4 py-2 font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-60" :disabled="loading">
+          {{ loading ? t('common.loading') : t('remaining.search') }}
+        </button>
       </form>
+      <p v-if="error" class="mt-3 rounded-md border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm text-amber-100" role="alert">{{ error }}</p>
       <p v-if="meta" class="mt-3 text-xs text-zinc-500">{{ t('evidence.resultMeta', { total: meta.total, limit: meta.limit }) }}</p>
       <div class="mt-5 space-y-2">
         <article v-for="row in rows" :key="row.id" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">

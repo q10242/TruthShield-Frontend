@@ -134,7 +134,7 @@ Generated files:
 - `dist/truthshield-extension.zip`
 - `public/truthshield-extension.zip`
 
-The zip can be hosted on the website before Chrome Web Store approval. Users can install it through Chrome developer mode using the guide at `/extension-install`.
+The ZIP is hosted on the website as a fallback and testing artifact alongside the Chrome Web Store listing. Users can install it through Chrome developer mode using the guide at `/extension-install`.
 
 ## Evidence Upload
 

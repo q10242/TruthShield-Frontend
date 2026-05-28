@@ -222,7 +222,7 @@ onMounted(() => trackPageView('user_guide'))
                 <div class="p-4">
                   <h3 class="text-base font-semibold text-white">{{ surface.title }}</h3>
                   <p class="mt-2 text-sm leading-6 text-zinc-400">{{ surface.description }}</p>
-                  <ul class="mt-3 space-y-1 text-sm leading-6 text-zinc-400">
+                  <ul v-if="surface.image" class="mt-3 space-y-1 text-sm leading-6 text-zinc-400">
                     <li v-for="item in surface.items" :key="item">• {{ item }}</li>
                   </ul>
                 </div>
