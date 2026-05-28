@@ -3,7 +3,6 @@ const defaults = {
   apiOrigin: 'https://truth-shield-api.otus.tw',
   enableTooltip: true,
   enablePanel: true,
-  enableReportButton: true,
   locale: 'auto',
 }
 
