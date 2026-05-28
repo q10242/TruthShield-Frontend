@@ -14,6 +14,11 @@ function write(id, value, ok = true) {
   element.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2)
 }
 
+function visibleSettings(settings = {}) {
+  const { enableReportButton, ...currentSettings } = settings
+  return currentSettings
+}
+
 async function fetchJson(url) {
   const response = await fetch(url, { headers: { Accept: 'application/json' } })
   const payload = await response.json().catch(() => ({}))
@@ -35,7 +40,7 @@ async function runDiagnostics() {
   })
 
   chrome.storage.sync.get(defaults, async (settings) => {
-    write('storage', settings)
+    write('storage', visibleSettings(settings))
 
     try {
       const health = await fetchJson(`${settings.apiOrigin}/api/system/health`)
