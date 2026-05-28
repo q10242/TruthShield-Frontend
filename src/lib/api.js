@@ -324,6 +324,16 @@ export async function fetchCommunityTask(id) {
   })
 }
 
+export async function createCommunityTask(token, payload) {
+  return request('/api/community/tasks', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(withChallengePayload(payload)),
+  })
+}
+
 export async function fetchEvents(params = {}) {
   const query = toQuery(params)
   return request(`/api/events${query ? `?${query}` : ''}`, {

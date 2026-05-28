@@ -1,20 +1,31 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { fetchCommunityTasks, fetchCommunityTaskStats } from '../lib/api'
+import { createCommunityTask, fetchCommunityTasks, fetchCommunityTaskStats } from '../lib/api'
 import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
 
 const { t } = useI18n()
+const TOKEN_KEY = 'truthshield_api_token'
 const loading = ref(true)
 const error = ref('')
 const tasks = ref([])
 const meta = ref(null)
 const stats = ref(null)
+const proposalSubmitting = ref(false)
+const proposalMessage = ref('')
+const proposalError = ref('')
 const filters = ref({
   status: 'open',
   type: '',
   priority: '',
+})
+const proposal = ref({
+  type: 'fact_check_request',
+  source_url: '',
+  title: '',
+  description: '',
+  note: '',
 })
 
 const typeOptions = [
@@ -25,6 +36,13 @@ const typeOptions = [
   { value: 'evidence_quality_review', labelKey: 'communityTasks.typeEvidence' },
   { value: 'controversial_news', labelKey: 'communityTasks.typeControversy' },
   { value: 'needs_official_response', labelKey: 'communityTasks.typeOfficialResponse' },
+  { value: 'fact_check_request', labelKey: 'communityTasks.typeFactCheck' },
+]
+
+const proposalTypeOptions = [
+  { value: 'fact_check_request', labelKey: 'communityTasks.typeFactCheck' },
+  { value: 'needs_official_response', labelKey: 'communityTasks.typeOfficialResponse' },
+  { value: 'controversial_news', labelKey: 'communityTasks.typeControversy' },
 ]
 
 const statusOptions = [
@@ -86,6 +104,7 @@ function actionLabel(task) {
     evidence_quality_review: t('communityTasks.actionEvidence'),
     controversial_news: t('communityTasks.actionControversy'),
     needs_official_response: t('communityTasks.actionOfficialResponse'),
+    fact_check_request: t('communityTasks.actionFactCheck'),
   }
 
   return map[task.type] || t('communityTasks.openDetail')
@@ -99,9 +118,39 @@ function taskImpact(task) {
     evidence_quality_review: t('communityTasks.impactEvidence'),
     controversial_news: t('communityTasks.impactControversy'),
     needs_official_response: t('communityTasks.impactOfficialResponse'),
+    fact_check_request: t('communityTasks.impactFactCheck'),
   }
 
   return map[task.type] || t('communityTasks.impactDefault')
+}
+
+async function submitProposal() {
+  proposalMessage.value = ''
+  proposalError.value = ''
+  const token = localStorage.getItem(TOKEN_KEY) || ''
+  if (!token) {
+    proposalError.value = t('communityTasks.proposalSignInRequired')
+    return
+  }
+
+  proposalSubmitting.value = true
+  try {
+    await createCommunityTask(token, proposal.value)
+    proposalMessage.value = t('communityTasks.proposalSaved')
+    proposal.value = {
+      type: 'fact_check_request',
+      source_url: '',
+      title: '',
+      description: '',
+      note: '',
+    }
+    filters.value.status = 'open'
+    await load()
+  } catch (err) {
+    proposalError.value = err.message || t('communityTasks.proposalFailed')
+  } finally {
+    proposalSubmitting.value = false
+  }
 }
 
 onMounted(load)
@@ -141,6 +190,35 @@ onMounted(load)
       </form>
 
       <p v-if="meta" class="mt-3 text-xs text-zinc-500">{{ t('communityTasks.resultMeta', { total: meta.total, limit: meta.limit }) }}</p>
+
+      <section class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+          <div>
+            <h2 class="text-lg font-semibold text-white">{{ t('communityTasks.proposalTitle') }}</h2>
+            <p class="mt-2 text-sm leading-6 text-zinc-400">{{ t('communityTasks.proposalIntro') }}</p>
+            <p class="mt-3 text-xs leading-5 text-zinc-500">{{ t('communityTasks.proposalPolicyNote') }}</p>
+          </div>
+          <form class="grid gap-3" @submit.prevent="submitProposal">
+            <div class="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+              <select v-model="proposal.type" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :aria-label="t('communityTasks.proposalType')">
+                <option v-for="option in proposalTypeOptions" :key="option.value" :value="option.value">{{ t(option.labelKey) }}</option>
+              </select>
+              <input v-model="proposal.source_url" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" type="url" :placeholder="t('communityTasks.proposalSourceUrl')" />
+            </div>
+            <input v-model="proposal.title" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" required maxlength="160" :placeholder="t('communityTasks.proposalTitlePlaceholder')" />
+            <textarea v-model="proposal.description" class="min-h-24 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" required maxlength="1000" :placeholder="t('communityTasks.proposalDescriptionPlaceholder')"></textarea>
+            <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <input v-model="proposal.note" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" maxlength="500" :placeholder="t('communityTasks.proposalNotePlaceholder')" />
+              <button type="submit" class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" :disabled="proposalSubmitting">
+                {{ proposalSubmitting ? t('communityTasks.proposalSubmitting') : t('communityTasks.proposalSubmit') }}
+              </button>
+            </div>
+            <p v-if="proposalMessage" class="text-sm text-emerald-200">{{ proposalMessage }}</p>
+            <p v-if="proposalError" class="text-sm text-red-200">{{ proposalError }}</p>
+          </form>
+        </div>
+      </section>
+
       <div v-if="error" class="mt-6 rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{{ error }}</div>
       <div v-else-if="loading" class="mt-6 rounded-lg border border-white/10 p-4 text-sm text-zinc-400">{{ t('common.loading') }}</div>
 
