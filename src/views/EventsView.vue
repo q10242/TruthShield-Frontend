@@ -1,12 +1,16 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import { fetchEvents } from '../lib/api'
+import { RouterLink, useRouter } from 'vue-router'
+import { createEvent, fetchEvents } from '../lib/api'
 import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
 
+const TOKEN_KEY = 'truthshield_api_token'
+
 const { locale } = useI18n()
+const router = useRouter()
 const zh = computed(() => locale.value !== 'en')
+const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const q = ref('')
 const sort = ref('updated')
 const page = ref(1)
@@ -15,6 +19,17 @@ const loading = ref(false)
 const error = ref('')
 const events = ref([])
 const meta = ref({ total: 0, last_page: 1, page: 1 })
+const createOpen = ref(false)
+const createSubmitting = ref(false)
+const createError = ref('')
+const createMessage = ref('')
+const createErrors = ref({})
+const createForm = ref({
+  name: '',
+  summary: '',
+  news_url: '',
+  title_snapshot: '',
+})
 
 const text = computed(() => ({
   title: zh.value ? '事件時間線與關係圖' : 'Event Timelines and Relationship Graphs',
@@ -42,6 +57,22 @@ const text = computed(() => ({
   activeNow: zh.value ? '最近活躍' : 'Active now',
   highTraffic: zh.value ? '高瀏覽' : 'High traffic',
   disputed: zh.value ? '爭議中' : 'Disputed',
+  createTitle: zh.value ? '建立事件' : 'Create event',
+  createIntro: zh.value
+    ? '先用一篇公開新聞作為主要來源建立事件，之後可在事件頁補時間線、人物/組織與關係。'
+    : 'Start with one public article as the primary source, then add timeline entries, people, organizations, and relationships.',
+  createButton: zh.value ? '新增事件' : 'New event',
+  createCta: zh.value ? '建立新事件' : 'Create new event',
+  createClose: zh.value ? '收合' : 'Collapse',
+  signInToCreate: zh.value ? '登入後可建立事件。' : 'Sign in to create events.',
+  signIn: zh.value ? '登入' : 'Sign in',
+  eventName: zh.value ? '事件名稱 *' : 'Event name *',
+  eventSummary: zh.value ? '事件摘要' : 'Event summary',
+  primaryUrl: zh.value ? '主要新聞 URL *' : 'Primary article URL *',
+  primaryTitle: zh.value ? '新聞標題（選填）' : 'Article title optional',
+  creating: zh.value ? '建立中...' : 'Creating...',
+  createSuccess: zh.value ? '事件已建立，正在開啟事件頁。' : 'Event created. Opening the event page.',
+  createFailed: zh.value ? '建立事件失敗。' : 'Failed to create event.',
 }))
 
 const sortOptions = computed(() => [
@@ -52,6 +83,12 @@ const sortOptions = computed(() => [
 ])
 
 const hasQuery = computed(() => q.value.trim().length > 0)
+const canSubmitCreate = computed(() => Boolean(
+  token.value &&
+  createForm.value.name.trim() &&
+  createForm.value.news_url.trim() &&
+  !createSubmitting.value,
+))
 const activeSortLabel = computed(() => sortOptions.value.find((option) => option.value === sort.value)?.label || '')
 const resultSummary = computed(() => {
   if (hasQuery.value) {
@@ -110,6 +147,57 @@ async function load() {
   }
 }
 
+function fieldError(field) {
+  const value = createErrors.value?.[field]
+  return Array.isArray(value) ? value[0] : ''
+}
+
+async function submitCreate() {
+  token.value = localStorage.getItem(TOKEN_KEY) || ''
+  createError.value = ''
+  createMessage.value = ''
+  createErrors.value = {}
+
+  if (!token.value) {
+    router.push({ path: '/login', query: { redirect: '/events' } })
+    return
+  }
+
+  if (!createForm.value.name.trim() || !createForm.value.news_url.trim()) {
+    createError.value = zh.value ? '請填寫事件名稱與主要新聞 URL。' : 'Enter an event name and primary article URL.'
+    return
+  }
+
+  createSubmitting.value = true
+  try {
+    const payload = await createEvent(token.value, {
+      name: createForm.value.name.trim(),
+      summary: createForm.value.summary.trim() || undefined,
+      news_url: createForm.value.news_url.trim(),
+      title_snapshot: createForm.value.title_snapshot.trim() || undefined,
+    })
+    createMessage.value = text.value.createSuccess
+    createForm.value = { name: '', summary: '', news_url: '', title_snapshot: '' }
+    await load()
+    const eventId = payload?.data?.id
+    if (eventId) {
+      router.push(`/events/${eventId}`)
+    }
+  } catch (err) {
+    if (err.status === 401) {
+      localStorage.removeItem(TOKEN_KEY)
+      token.value = ''
+      createError.value = zh.value ? '登入已失效，請重新登入後建立事件。' : 'Your session expired. Sign in again to create the event.'
+      return
+    }
+
+    createErrors.value = err.errors || {}
+    createError.value = err.message || text.value.createFailed
+  } finally {
+    createSubmitting.value = false
+  }
+}
+
 function setSort(value) {
   sort.value = value
   page.value = 1
@@ -133,7 +221,10 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString(zh.value ? 'zh-TW' : 'en', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-onMounted(load)
+onMounted(() => {
+  token.value = localStorage.getItem(TOKEN_KEY) || ''
+  load()
+})
 </script>
 
 <template>
@@ -162,17 +253,73 @@ onMounted(load)
             </div>
           </div>
         </div>
-        <form class="rounded-3xl border border-white/10 bg-white/[0.03] p-5" @submit.prevent="page = 1; load()">
-          <label class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">{{ text.search }}</label>
-          <p class="mt-3 text-sm leading-6 text-zinc-400">{{ text.searchHint }}</p>
-          <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-            <input v-model="q" class="min-w-0 flex-1 rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300" :aria-label="text.search" />
-            <div class="flex gap-2">
-              <button class="flex-1 rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 sm:flex-none" type="submit">{{ zh ? '搜尋' : 'Search' }}</button>
-              <button v-if="hasQuery" class="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-zinc-300 hover:border-cyan-300/40 hover:text-cyan-100" type="button" @click="resetSearch">{{ text.clear }}</button>
+        <div class="space-y-4">
+          <form class="rounded-3xl border border-white/10 bg-white/[0.03] p-5" @submit.prevent="page = 1; load()">
+            <label class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">{{ text.search }}</label>
+            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ text.searchHint }}</p>
+            <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+              <input v-model="q" class="min-w-0 flex-1 rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300" :aria-label="text.search" />
+              <div class="flex gap-2">
+                <button class="flex-1 rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 sm:flex-none" type="submit">{{ zh ? '搜尋' : 'Search' }}</button>
+                <button v-if="hasQuery" class="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-zinc-300 hover:border-cyan-300/40 hover:text-cyan-100" type="button" @click="resetSearch">{{ text.clear }}</button>
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+
+          <section class="rounded-3xl border border-cyan-300/20 bg-cyan-300/[0.04] p-5">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p class="text-sm font-semibold text-cyan-100">{{ text.createTitle }}</p>
+                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ text.createIntro }}</p>
+              </div>
+              <button
+                v-if="token"
+                type="button"
+                class="shrink-0 rounded-xl bg-cyan-300 px-4 py-2.5 text-sm font-semibold text-zinc-950"
+                @click="createOpen = !createOpen"
+              >
+                {{ createOpen ? text.createClose : text.createButton }}
+              </button>
+              <RouterLink
+                v-else
+                class="shrink-0 rounded-xl bg-cyan-300 px-4 py-2.5 text-sm font-semibold text-zinc-950"
+                :to="{ path: '/login', query: { redirect: '/events' } }"
+              >
+                {{ text.signIn }}
+              </RouterLink>
+            </div>
+
+            <p v-if="!token" class="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">{{ text.signInToCreate }}</p>
+
+            <form v-if="token && createOpen" class="mt-4 grid gap-3" @submit.prevent="submitCreate">
+              <label class="grid gap-1.5 text-sm">
+                <span class="text-zinc-300">{{ text.eventName }}</span>
+                <input v-model="createForm.name" class="rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-cyan-300" maxlength="160" required />
+                <span v-if="fieldError('name')" class="text-xs text-red-300">{{ fieldError('name') }}</span>
+              </label>
+              <label class="grid gap-1.5 text-sm">
+                <span class="text-zinc-300">{{ text.eventSummary }}</span>
+                <textarea v-model="createForm.summary" rows="3" class="resize-none rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-cyan-300" maxlength="2000"></textarea>
+                <span v-if="fieldError('summary')" class="text-xs text-red-300">{{ fieldError('summary') }}</span>
+              </label>
+              <label class="grid gap-1.5 text-sm">
+                <span class="text-zinc-300">{{ text.primaryUrl }}</span>
+                <input v-model="createForm.news_url" type="url" class="rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-cyan-300" required />
+                <span v-if="fieldError('news_url')" class="text-xs text-red-300">{{ fieldError('news_url') }}</span>
+              </label>
+              <label class="grid gap-1.5 text-sm">
+                <span class="text-zinc-300">{{ text.primaryTitle }}</span>
+                <input v-model="createForm.title_snapshot" class="rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-cyan-300" maxlength="255" />
+                <span v-if="fieldError('title_snapshot')" class="text-xs text-red-300">{{ fieldError('title_snapshot') }}</span>
+              </label>
+              <p v-if="createError" class="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-100">{{ createError }}</p>
+              <p v-if="createMessage" class="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">{{ createMessage }}</p>
+              <button class="rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-50" type="submit" :disabled="!canSubmitCreate">
+                {{ createSubmitting ? text.creating : text.createCta }}
+              </button>
+            </form>
+          </section>
+        </div>
       </div>
 
       <div class="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
