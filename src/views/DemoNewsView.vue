@@ -10,6 +10,11 @@ const { t } = useI18n()
 const navKeys = ['navPolitics', 'navSociety', 'navInternational', 'navLife', 'navVideo']
 const trendingKeys = ['trending1', 'trending2', 'trending3', 'trending4']
 const resultKeys = ['panelTag1', 'panelTag2', 'panelTag3']
+const demoLinks = {
+  primary: 'https://example.com/article',
+  related1: 'https://www.cna.com.tw/news/aipl/202605160202.aspx',
+  related2: 'https://www.cna.com.tw/news/afe/202605240093.aspx',
+}
 const demoFeedback = ref('')
 let feedbackTimer = null
 
@@ -123,7 +128,7 @@ async function copyDemoLink() {
                   <p>
                     {{ t('demoNews.paragraph2Before') }}
                     <span class="group relative inline-flex">
-                      <a class="rounded bg-cyan-100 px-1 font-bold text-cyan-800 underline decoration-cyan-500 decoration-2 underline-offset-4" href="#" @click.prevent>
+                      <a class="rounded bg-cyan-100 px-1 font-bold text-cyan-800 underline decoration-cyan-500 decoration-2 underline-offset-4" :href="demoLinks.primary" target="_blank" rel="noopener noreferrer">
                         {{ t('demoNews.relatedLink') }}
                       </a>
                       <span class="pointer-events-none absolute left-0 top-8 z-30 hidden w-80 rounded-lg border border-cyan-300/30 bg-zinc-950 p-4 text-sm leading-6 text-white shadow-2xl group-hover:block">
@@ -144,10 +149,10 @@ async function copyDemoLink() {
                   <section class="border-y border-zinc-200 py-5">
                     <p class="text-sm font-bold text-zinc-500">{{ t('demoNews.relatedHeading') }}</p>
                     <div class="mt-3 grid gap-3 md:grid-cols-2">
-                      <a class="block border border-zinc-200 bg-zinc-50 p-4 text-sm font-bold leading-6 text-zinc-800 hover:border-cyan-300" href="#" @click.prevent>
+                      <a class="block border border-zinc-200 bg-zinc-50 p-4 text-sm font-bold leading-6 text-zinc-800 hover:border-cyan-300" :href="demoLinks.related1" target="_blank" rel="noopener noreferrer">
                         {{ t('demoNews.related1') }}
                       </a>
-                      <a class="block border border-zinc-200 bg-zinc-50 p-4 text-sm font-bold leading-6 text-zinc-800 hover:border-cyan-300" href="#" @click.prevent>
+                      <a class="block border border-zinc-200 bg-zinc-50 p-4 text-sm font-bold leading-6 text-zinc-800 hover:border-cyan-300" :href="demoLinks.related2" target="_blank" rel="noopener noreferrer">
                         {{ t('demoNews.related2') }}
                       </a>
                     </div>
