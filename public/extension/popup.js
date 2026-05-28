@@ -21,6 +21,41 @@ function setStatus(message, danger = false) {
   byId('status').style.color = danger ? '#fca5a5' : '#86efac'
 }
 
+function normalizeOrigin(value, fallback) {
+  const trimmed = String(value || '').trim()
+  if (!trimmed) return fallback
+  return trimmed.replace(/\/+$/, '')
+}
+
+function normalizedSettings(settings) {
+  return {
+    ...defaults,
+    ...settings,
+    tooltipOrigin: normalizeOrigin(settings?.tooltipOrigin, defaults.tooltipOrigin),
+    apiOrigin: normalizeOrigin(settings?.apiOrigin, defaults.apiOrigin),
+  }
+}
+
+function usingProductionOrigins() {
+  return state.settings.tooltipOrigin === defaults.tooltipOrigin
+    && state.settings.apiOrigin === defaults.apiOrigin
+}
+
+function renderOriginWarning() {
+  const card = byId('originWarning')
+  if (!card) return
+
+  const customOrigins = !usingProductionOrigins()
+  card.hidden = !customOrigins
+  const text = byId('originWarningText')
+  if (text && customOrigins) {
+    text.textContent = t('originWarningBody', {
+      web: state.settings.tooltipOrigin,
+      api: state.settings.apiOrigin,
+    })
+  }
+}
+
 function setPageContextSummary(textKey, badgeKey, tone = 'ok') {
   const summary = byId('popupSummary')
   const badge = byId('pageContextBadge')
@@ -116,6 +151,18 @@ function openWindow(url, width = 460, height = 720) {
 
 function openAuthSyncWindow() {
   openWindow(truthUrl('/extension-auth-sync', { close: '1' }), 360, 260)
+}
+
+function writeSyncSettings(values) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.sync.set(values, () => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message))
+        return
+      }
+      resolve()
+    })
+  })
 }
 
 function sendRuntimeMessage(message) {
@@ -256,6 +303,33 @@ async function resyncAuth() {
 
     openAuthSyncWindow()
     setStatus(t('authSyncOpened'))
+  } finally {
+    btn.disabled = false
+  }
+}
+
+async function resetProductionOrigins() {
+  const btn = byId('resetProductionOrigins')
+  btn.disabled = true
+  setStatus(t('productionOriginsRestoring'))
+
+  try {
+    await writeSyncSettings({
+      tooltipOrigin: defaults.tooltipOrigin,
+      apiOrigin: defaults.apiOrigin,
+    })
+    state.settings = normalizedSettings({
+      ...state.settings,
+      tooltipOrigin: defaults.tooltipOrigin,
+      apiOrigin: defaults.apiOrigin,
+    })
+    renderOriginWarning()
+    setStatus(t('productionOriginsRestored'))
+    await loadPageDebug()
+    await loadAuthSummary()
+    await loadSummary()
+  } catch {
+    setStatus(t('productionOriginsRestoreFailed'), true)
   } finally {
     btn.disabled = false
   }
@@ -760,6 +834,10 @@ function bindActions() {
     trackPopupEvent('popup_action', 'resync_auth')
     resyncAuth()
   })
+  byId('resetProductionOrigins').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'reset_production_origins')
+    resetProductionOrigins()
+  })
   byId('signOut').addEventListener('click', () => {
     signOut()
   })
@@ -888,7 +966,7 @@ async function initPopup() {
   await window.truthShieldI18nReady
 
   chrome.storage.sync.get(defaults, async (settings) => {
-    state.settings = settings
+    state.settings = normalizedSettings(settings)
     applyStaticEventLabels()
     state.tab = await activeTab()
 
@@ -900,6 +978,7 @@ async function initPopup() {
     byId('openReport').disabled = disabled
     setPageContextSummary(disabled ? 'popupSummaryUnsupported' : 'popupSummaryDefault', disabled ? 'popupBadgeUnsupported' : 'popupBadgeChecking', disabled ? 'bad' : 'ok')
     setStatus(disabled ? t('unsupportedTab') : t('readyStatus'))
+    renderOriginWarning()
 
     bindActions()
     chrome.storage.local.get({ truthshield_onboarding_dismissed: false }, (local) => {

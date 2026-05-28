@@ -148,6 +148,22 @@
       .auth-actions { display: flex; gap: 8px; margin-top: 10px; }
       .auth-actions button { margin-top: 0; padding: 8px; text-align: center; }
       .auth-actions .danger { border-color: #7f1d1d; background: rgba(127, 29, 29, 0.35); color: #fecaca; }
+      .origin-warning {
+        margin-top: 10px;
+        border: 1px solid rgba(245, 158, 11, 0.32);
+        border-radius: 12px;
+        padding: 10px;
+        background: rgba(245, 158, 11, 0.08);
+      }
+      .origin-warning strong { display: block; color: #fde68a; font-size: 12px; }
+      .origin-warning p { margin-top: 6px; font-size: 12px; color: #d4d4d8; word-break: break-word; }
+      .origin-warning button {
+        margin-top: 10px;
+        border-color: rgba(245, 158, 11, 0.38);
+        background: rgba(120, 53, 15, 0.34);
+        color: #fef3c7;
+        text-align: center;
+      }
       .onboarding {
         margin-top: 12px;
         border: 1px solid rgba(103, 232, 249, 0.25);
@@ -419,6 +435,11 @@
               <button id="openLogin" type="button" data-i18n="signIn">登入</button>
               <button id="signOut" class="danger" type="button" data-i18n="signOut" hidden>登出</button>
             </div>
+          </div>
+          <div id="originWarning" class="origin-warning" hidden>
+            <strong data-i18n="originWarningTitle">目前使用非正式站來源</strong>
+            <p id="originWarningText"></p>
+            <button id="resetProductionOrigins" type="button" data-i18n="resetProductionOrigins">切回正式站</button>
           </div>
 
           <div id="achievementCard" class="achievement" hidden>
