@@ -9,6 +9,7 @@ const state = {
   tab: null,
   auth: null,
   pageContext: null,
+  onboardingDismissed: false,
 }
 const t = window.truthShieldT || ((key) => key)
 
@@ -54,6 +55,13 @@ function renderOriginWarning() {
       api: state.settings.apiOrigin,
     })
   }
+}
+
+function updateOnboardingVisibility() {
+  const onboarding = byId('onboarding')
+  if (!onboarding) return
+
+  onboarding.hidden = Boolean(state.auth?.token) || state.onboardingDismissed
 }
 
 function setPageContextSummary(textKey, badgeKey, tone = 'ok') {
@@ -251,6 +259,7 @@ async function loadAuthSummary() {
     openLogin.hidden = true
     signOut.hidden = false
     await loadAchievementSummary(auth)
+    updateOnboardingVisibility()
     return
   }
 
@@ -260,6 +269,7 @@ async function loadAuthSummary() {
   openLogin.hidden = false
   signOut.hidden = true
   byId('achievementCard').hidden = true
+  updateOnboardingVisibility()
 }
 
 async function loadAchievementSummary(auth) {
@@ -914,8 +924,9 @@ function bindActions() {
     openTab(truthUrl('/user-guide'))
   })
   byId('dismissOnboarding').addEventListener('click', () => {
+    state.onboardingDismissed = true
     chrome.storage.local.set({ truthshield_onboarding_dismissed: true })
-    byId('onboarding').hidden = true
+    updateOnboardingVisibility()
   })
 
   // Tab switching
@@ -982,7 +993,8 @@ async function initPopup() {
 
     bindActions()
     chrome.storage.local.get({ truthshield_onboarding_dismissed: false }, (local) => {
-      byId('onboarding').hidden = Boolean(local.truthshield_onboarding_dismissed)
+      state.onboardingDismissed = Boolean(local.truthshield_onboarding_dismissed)
+      updateOnboardingVisibility()
     })
     trackPopupEvent('popup_opened', 'popup')
     await loadPageDebug()
