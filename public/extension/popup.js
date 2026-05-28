@@ -114,6 +114,10 @@ function openWindow(url, width = 460, height = 720) {
   })
 }
 
+function openAuthSyncWindow() {
+  openWindow(truthUrl('/extension-auth-sync', { close: '1' }), 360, 260)
+}
+
 function sendRuntimeMessage(message) {
   return new Promise((resolve) => {
     try {
@@ -245,7 +249,13 @@ async function resyncAuth() {
   try {
     await syncAuthFromActiveTab()
     await loadAuthSummary()
-    setStatus(state.auth?.token ? t('authSynced') : t('authSyncNeedsLogin'), !state.auth?.token)
+    if (state.auth?.token) {
+      setStatus(t('authSynced'))
+      return
+    }
+
+    openAuthSyncWindow()
+    setStatus(t('authSyncOpened'))
   } finally {
     btn.disabled = false
   }
