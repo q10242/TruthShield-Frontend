@@ -13,6 +13,14 @@ const state = {
 }
 const t = window.truthShieldT || ((key) => key)
 
+function hasExtensionContext() {
+  return typeof chrome !== 'undefined'
+    && Boolean(chrome.runtime?.getManifest)
+    && Boolean(chrome.storage?.sync)
+    && Boolean(chrome.storage?.local)
+    && Boolean(chrome.tabs?.query)
+}
+
 function byId(id) {
   return document.getElementById(id)
 }
@@ -975,6 +983,28 @@ function bindActions() {
 
 async function initPopup() {
   await window.truthShieldI18nReady
+
+  if (!hasExtensionContext()) {
+    state.settings = normalizedSettings(defaults)
+    byId('version').textContent = 'web-preview'
+    byId('currentUrl').textContent = window.location.href
+    byId('domains').textContent = '-'
+    byId('votes').textContent = '-'
+    byId('apiStatus').textContent = '-'
+    byId('authStatus').textContent = t('popupBadgeUnsupported')
+    byId('authUser').textContent = selectedLocale() === 'zh-TW'
+      ? '請從 Chrome 插件彈出視窗開啟'
+      : 'Open this from the Chrome extension popup'
+    byId('achievementCard').hidden = true
+    setPageContextSummary('popupSummaryUnsupported', 'popupBadgeUnsupported', 'bad')
+    setStatus(selectedLocale() === 'zh-TW'
+      ? '這個頁面需要 Chrome 插件環境'
+      : 'This page requires the Chrome extension context', true)
+    document.querySelectorAll('button').forEach((button) => {
+      button.disabled = true
+    })
+    return
+  }
 
   chrome.storage.sync.get(defaults, async (settings) => {
     state.settings = normalizedSettings(settings)

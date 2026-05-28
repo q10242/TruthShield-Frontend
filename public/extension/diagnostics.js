@@ -19,6 +19,12 @@ function visibleSettings(settings = {}) {
   return currentSettings
 }
 
+function hasExtensionContext() {
+  return typeof chrome !== 'undefined'
+    && Boolean(chrome.runtime?.getManifest)
+    && Boolean(chrome.storage?.sync)
+}
+
 async function fetchJson(url) {
   const response = await fetch(url, { headers: { Accept: 'application/json' } })
   const payload = await response.json().catch(() => ({}))
@@ -31,6 +37,26 @@ async function fetchJson(url) {
 }
 
 async function runDiagnostics() {
+  if (!hasExtensionContext()) {
+    write('manifest', t('diagNoContentHint'), false)
+    write('storage', t('diagNoContentHint'), false)
+
+    try {
+      const health = await fetchJson(`${defaults.apiOrigin}/api/system/health`)
+      write('health', health, Boolean(health.ok))
+    } catch (error) {
+      write('health', `${t('apiUnreachable')}: ${error.message}`, false)
+    }
+
+    try {
+      const summary = await fetchJson(`${defaults.apiOrigin}/api/extension/summary`)
+      write('summary', summary)
+    } catch (error) {
+      write('summary', `${t('apiUnreachable')}: ${error.message}`, false)
+    }
+    return
+  }
+
   const manifest = chrome.runtime.getManifest()
   write('manifest', {
     name: manifest.name,
