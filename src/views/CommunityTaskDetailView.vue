@@ -19,7 +19,7 @@ const message = ref('')
 const task = computed(() => detail.value?.task || null)
 const summaryRows = computed(() => Object.entries(detail.value?.summary || {}))
 const snapshotRows = computed(() => Object.entries(task.value?.generation_snapshot?.metrics || {}).slice(0, 6))
-const canSignal = computed(() => Boolean(token.value && detail.value?.actions?.length && task.value?.status !== 'resolved'))
+const canSignal = computed(() => Boolean(detail.value?.actions?.length && task.value?.status !== 'resolved' && !submitting.value))
 
 async function load() {
   loading.value = true
@@ -130,7 +130,7 @@ onMounted(load)
               v-for="action in detail.actions"
               :key="action.value"
               class="rounded-md border border-cyan-300/40 px-3 py-2 text-sm font-semibold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="!canSignal || submitting"
+              :disabled="!canSignal"
               @click="signal(action)"
             >
               {{ submitting === action.value ? t('communityTasks.submitting') : action.label }}
