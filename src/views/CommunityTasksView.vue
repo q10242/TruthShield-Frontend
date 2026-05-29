@@ -16,6 +16,7 @@ const proposalSubmitting = ref(false)
 const proposalMessage = ref('')
 const proposalError = ref('')
 const filters = ref({
+  q: '',
   status: 'open',
   type: '',
   priority: '',
@@ -67,6 +68,7 @@ async function load() {
   try {
     const [taskPayload, statsPayload] = await Promise.all([
       fetchCommunityTasks({
+        q: filters.value.q,
         status: filters.value.status,
         type: filters.value.type,
         priority: filters.value.priority,
@@ -182,7 +184,8 @@ onMounted(load)
         </div>
       </div>
 
-      <form class="mt-6 grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[180px_220px_160px_auto]" @submit.prevent="load">
+      <form class="mt-6 grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 lg:grid-cols-[minmax(220px,1fr)_180px_220px_160px_auto]" @submit.prevent="load">
+        <input v-model="filters.q" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" type="search" :aria-label="t('communityTasks.search')" :placeholder="t('communityTasks.searchPlaceholder')" />
         <select v-model="filters.status" class="rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300" :aria-label="t('communityTasks.statusFilter')">
           <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ t(option.labelKey) }}</option>
         </select>

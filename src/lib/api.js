@@ -170,6 +170,15 @@ export async function markAllNotificationsRead(token) {
   })
 }
 
+export async function markNotificationRead(token, id) {
+  return request(`/api/me/notifications/${encodeURIComponent(id)}/read`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
 export async function logout(token) {
   return request('/api/auth/logout', {
     method: 'POST',
