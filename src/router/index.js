@@ -139,7 +139,9 @@ const localRoutes = import.meta.env.DEV
       { path: '/local-news-demo', name: 'local-news-demo', component: () => import('../views/LocalNewsDemoView.vue') },
       { path: '/local-qa-checklist', name: 'local-qa-checklist', component: () => import('../views/LocalQaChecklistView.vue') },
     ]
-  : []
+  : [
+      { path: '/local-news-demo', redirect: '/demo-news' },
+    ]
 
 const router = createRouter({
   history: createWebHistory(),

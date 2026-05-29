@@ -44,7 +44,8 @@ flowchart LR
 | `/login` | Dev login and OAuth entry UI |
 | `/iframe-tooltip` | Lightweight tooltip iframe |
 | `/iframe-vote-panel` | Article voting, evidence, official response, and results panel |
-| `/local-news-demo` | Local article page for testing extension behavior |
+| `/demo-news` | Public interactive article demo for testing the extension user flow |
+| `/local-news-demo` | Local-only article page for unpacked extension QA; production redirects to `/demo-news` |
 | `/extension-install` | Extension download and sideload instructions |
 | `/profile` | Trust score, badges, profile, identity claims, notifications |
 | `/evidence-library` | Searchable public evidence library |
@@ -199,11 +200,11 @@ npm run build
 npm run package:extension
 ```
 
-Then install `public/extension` as an unpacked Chrome extension and test `/local-news-demo`.
+Then install `public/extension` as an unpacked Chrome extension and test `/local-news-demo` locally or `/demo-news` on production.
 
 Recommended browser QA:
 
-- Confirm the top banner appears once on `/local-news-demo`.
+- Confirm the top banner appears once on `/local-news-demo` locally, and that the production demo opens at `/demo-news`.
 - Close the banner and confirm it does not reappear until refresh.
 - Open the vote panel from the banner and confirm iframe resize works.
 - Hover a tracked news link and confirm tooltip appears, then disappears on mouseout.
