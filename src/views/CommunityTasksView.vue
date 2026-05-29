@@ -37,10 +37,12 @@ const typeOptions = [
   { value: 'controversial_news', labelKey: 'communityTasks.typeControversy' },
   { value: 'needs_official_response', labelKey: 'communityTasks.typeOfficialResponse' },
   { value: 'fact_check_request', labelKey: 'communityTasks.typeFactCheck' },
+  { value: 'event_creation_request', labelKey: 'communityTasks.typeEventCreation' },
 ]
 
 const proposalTypeOptions = [
   { value: 'fact_check_request', labelKey: 'communityTasks.typeFactCheck' },
+  { value: 'event_creation_request', labelKey: 'communityTasks.typeEventCreation' },
   { value: 'needs_official_response', labelKey: 'communityTasks.typeOfficialResponse' },
   { value: 'controversial_news', labelKey: 'communityTasks.typeControversy' },
 ]
@@ -105,6 +107,7 @@ function actionLabel(task) {
     controversial_news: t('communityTasks.actionControversy'),
     needs_official_response: t('communityTasks.actionOfficialResponse'),
     fact_check_request: t('communityTasks.actionFactCheck'),
+    event_creation_request: t('communityTasks.actionEventCreation'),
   }
 
   return map[task.type] || t('communityTasks.openDetail')
@@ -119,6 +122,7 @@ function taskImpact(task) {
     controversial_news: t('communityTasks.impactControversy'),
     needs_official_response: t('communityTasks.impactOfficialResponse'),
     fact_check_request: t('communityTasks.impactFactCheck'),
+    event_creation_request: t('communityTasks.impactEventCreation'),
   }
 
   return map[task.type] || t('communityTasks.impactDefault')
