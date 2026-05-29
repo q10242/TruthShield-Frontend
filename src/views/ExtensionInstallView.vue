@@ -9,6 +9,7 @@ import AppNav from '../components/AppNav.vue'
 const { t } = useI18n()
 const PRODUCTION_WEB_ORIGIN = 'https://truth-shield.otus.tw'
 const PRODUCTION_API_ORIGIN = 'https://truth-shield-api.otus.tw'
+const CHROME_WEB_STORE_URL = 'https://chromewebstore.google.com/detail/truthshield/liobfmdknkkpbpogdfefmglpgcijmkfk'
 const health = ref(null)
 const botConfig = ref(null)
 const extensionVersion = ref('0.1.0')
@@ -18,24 +19,24 @@ const zipGeneratedAt = new Date(import.meta.env.VITE_BUILD_TIME || document.last
 
 const installSteps = computed(() => [
   {
-    title: t('extensionInstall.stepDownloadTitle'),
-    description: t('extensionInstall.stepDownloadDesc'),
-    code: 'truthshield-extension.zip',
+    title: t('extensionInstall.stepStoreTitle'),
+    description: t('extensionInstall.stepStoreDesc'),
+    code: 'Chrome Web Store',
   },
   {
-    title: t('extensionInstall.stepChromeTitle'),
-    description: t('extensionInstall.stepChromeDesc'),
-    code: 'chrome://extensions',
+    title: t('extensionInstall.stepPinTitle'),
+    description: t('extensionInstall.stepPinDesc'),
+    code: t('extensionInstall.stepPinCode'),
   },
   {
-    title: t('extensionInstall.stepLoadTitle'),
-    description: t('extensionInstall.stepLoadDesc'),
-    code: 'folder containing manifest.json',
+    title: t('extensionInstall.stepArticleTitle'),
+    description: t('extensionInstall.stepArticleDesc'),
+    code: 'https://www.cna.com.tw/',
   },
   {
     title: t('extensionInstall.stepVerifyTitle'),
     description: t('extensionInstall.stepVerifyDesc'),
-    code: 'https://www.cna.com.tw/',
+    code: t('extensionInstall.stepVerifyCode'),
   },
 ])
 
@@ -108,6 +109,10 @@ function trackDownload() {
   trackEvent('extension_zip_download', { feature: 'extension_download' })
 }
 
+function trackStoreClick() {
+  trackEvent('chrome_web_store_click', { feature: 'extension_install' })
+}
+
 async function copyChromeExtensionsUrl() {
   try {
     await navigator.clipboard?.writeText('chrome://extensions')
@@ -162,14 +167,23 @@ async function copyChromeExtensionsUrl() {
             </ul>
           </div>
           <div class="mt-6 flex flex-wrap gap-3">
-            <a class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" href="/truthshield-extension.zip" download @click="trackDownload">
+            <a
+              class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200"
+              :href="CHROME_WEB_STORE_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+              @click="trackStoreClick"
+            >
+              {{ t('extensionInstall.installStore') }}
+            </a>
+            <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="/truthshield-extension.zip" download @click="trackDownload">
               {{ t('extensionInstall.downloadZip') }}
             </a>
             <button class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" type="button" @click="copyChromeExtensionsUrl">
               {{ t('extensionInstall.openChromeExtensions') }}
             </button>
           </div>
-          <p class="mt-3 text-xs leading-5 text-zinc-500">{{ copiedChromeUrl ? t('extensionInstall.chromeExtensionsCopied') : t('extensionInstall.zipNote') }}</p>
+          <p class="mt-3 text-xs leading-5 text-zinc-500">{{ copiedChromeUrl ? t('extensionInstall.chromeExtensionsCopied') : t('extensionInstall.storeNote') }}</p>
         </div>
 
         <aside class="rounded-lg border border-cyan-300/20 bg-zinc-900 p-5 shadow-2xl shadow-cyan-950/30">
@@ -214,8 +228,8 @@ async function copyChromeExtensionsUrl() {
         <h2 class="text-lg font-semibold text-white">{{ t('extensionInstall.packageTitle') }}</h2>
         <p class="mt-2 text-sm leading-6 text-zinc-400">{{ t('extensionInstall.packageDesc') }}</p>
         <div class="mt-4 grid gap-3 md:grid-cols-2">
+          <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">Chrome Web Store</code>
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">/truthshield-extension.zip</code>
-          <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">manifest.json</code>
         </div>
       </section>
 
