@@ -23,9 +23,10 @@ const vp = inject('votePanel')
         class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-emerald-300"
         @change="vp.selectReactionEvent($event.target.value)"
       >
+        <option value="">{{ vp.t('votePanel.readerReactionTargetNews') }}</option>
         <option v-for="ev in vp.relatedEvents.value" :key="ev.id" :value="String(ev.id)">{{ ev.name }}</option>
       </select>
-      <p v-else class="text-[11px] text-zinc-500">{{ vp.reactionTargetLabel.value }}</p>
+      <p class="text-[11px] text-zinc-500">{{ vp.reactionTargetLabel.value }}</p>
 
       <div v-if="vp.hoverReactionRows.value.length" class="flex flex-wrap gap-2">
         <span

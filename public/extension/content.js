@@ -1353,10 +1353,6 @@ async function submitArticleBannerReaction(key) {
     feelings = [key, ...feelings.filter((item) => item !== key)].slice(0, 3)
   }
 
-  const relatedEventId = currentPayload?.target?.subject_type === 'news_event'
-    ? currentPayload.target.subject_id
-    : ''
-
   articleBannerReactionSubmittingKey = key
   articleBannerReactionMessage = ''
   renderArticleBannerFromCache(articleBannerUrl || window.location.href)
@@ -1371,7 +1367,6 @@ async function submitArticleBannerReaction(key) {
       },
       body: {
         news_url: targetUrl,
-        event_id: relatedEventId || undefined,
         feelings,
         needs,
       },

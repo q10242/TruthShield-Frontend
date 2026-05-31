@@ -666,8 +666,6 @@ export function useVotePanel(route) {
       relatedEvents.value = relatedEvents.value.length ? relatedEvents.value : payload.related_events
     }
 
-    const target = payload.target || {}
-    selectedReactionEventId.value = target.subject_type === 'news_event' ? String(target.subject_id) : ''
     selectedFeelings.value = Array.isArray(payload.my_reaction?.feelings) ? [...payload.my_reaction.feelings] : []
     selectedNeeds.value = Array.isArray(payload.my_reaction?.needs) ? [...payload.my_reaction.needs] : []
   }
