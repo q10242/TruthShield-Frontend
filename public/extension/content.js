@@ -11,6 +11,15 @@ const TELEMETRY_FLUSH_DELAY_MS = 5000
 const VOTE_PANEL_POSITION_KEY = 'truthShieldVotePanelPosition'
 const AUTH_TOKEN_KEY = 'truthshield_api_token'
 const AUTH_USER_KEY = 'truthshield_user'
+const BANNER_REACTION_KEYS = ['confused', 'worried', 'angry', 'sad', 'clear', 'credible']
+const FALLBACK_REACTION_FEELINGS = [
+  { key: 'confused', emoji: '😕', label: '資訊混亂' },
+  { key: 'worried', emoji: '😟', label: '擔心' },
+  { key: 'angry', emoji: '😠', label: '憤怒' },
+  { key: 'sad', emoji: '😔', label: '難過' },
+  { key: 'clear', emoji: '🙂', label: '覺得清楚' },
+  { key: 'credible', emoji: '✅', label: '覺得可信' },
+]
 let enableTooltip = true
 let enablePanel = true
 let contentLocale = navigator.language?.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en'
@@ -142,6 +151,11 @@ const articleBannerStatusCache = new Map()
 const articleBannerStatusRequests = new Map()
 const articleBannerReportedUrls = new Set()
 const articleBannerSkippedUrls = new Set()
+let articleBannerReactionLoading = false
+let articleBannerReactionFailed = false
+let articleBannerReactionSubmittingKey = ''
+let articleBannerReactionMessage = ''
+let articleBannerReactionMessageTimer = null
 let votePanelFrame = null
 let votePanelBackdrop = null
 let votePanelShell = null
@@ -187,6 +201,11 @@ const contentMessages = {
     readerReactionTitle: '讀者心情',
     readerReactionHoverHint: 'hover 顯示',
     readerReactionEmpty: '尚無心情',
+    readerReactionVote: '心情',
+    readerReactionVoteHint: '點 emoji 快速投心情',
+    readerReactionSaved: '已送出',
+    readerReactionFailed: '送出失敗',
+    readerReactionLogin: '登入後投心情',
     checking: '檢查中',
     live: '即時',
     newsStatus: 'TruthShield 新聞狀態',
@@ -209,6 +228,11 @@ const contentMessages = {
     readerReactionTitle: 'Reader mood',
     readerReactionHoverHint: 'shown on hover',
     readerReactionEmpty: 'No mood yet',
+    readerReactionVote: 'Mood',
+    readerReactionVoteHint: 'Tap an emoji to react',
+    readerReactionSaved: 'Saved',
+    readerReactionFailed: 'Failed',
+    readerReactionLogin: 'Sign in to react',
     checking: 'Checking',
     live: 'Live',
     newsStatus: 'TruthShield news status',
@@ -1291,6 +1315,90 @@ async function fetchReactionSummary(url) {
   return response.json()
 }
 
+async function fetchArticleBannerReactions(url) {
+  const path = `/api/reactions/summary?news_url=${encodeURIComponent(url)}`
+  const auth = await storedExtensionAuth()
+  const headers = { Accept: 'application/json' }
+  if (auth?.token) headers.Authorization = `Bearer ${auth.token}`
+
+  if (chrome.runtime?.sendMessage) {
+    return fetchApiViaBackground(path, { headers })
+  }
+
+  const response = await fetch(`${API_ORIGIN}${path}`, {
+    headers: extensionRequestHeaders(headers),
+  })
+
+  if (!response.ok) throw new Error(`status ${response.status}`)
+  return response.json()
+}
+
+async function submitArticleBannerReaction(key) {
+  const targetUrl = canonicalStatusUrl(articleBannerUrl || window.location.href)
+  const auth = await storedExtensionAuth()
+  if (!auth?.token) {
+    openVotePanelModal(window.location.href, '/iframe-vote-panel', { tab: 'reactions' }, 'vote_panel_opened')
+    return
+  }
+
+  const currentPayload = articleBannerReactionPayload(targetUrl)
+  const currentReaction = currentPayload?.my_reaction || currentPayload?.reaction || null
+  let feelings = Array.isArray(currentReaction?.feelings) ? [...currentReaction.feelings] : []
+  const needs = Array.isArray(currentReaction?.needs) ? [...currentReaction.needs].slice(0, 3) : []
+
+  if (feelings.includes(key)) {
+    const nextFeelings = feelings.filter((item) => item !== key)
+    feelings = nextFeelings.length || needs.length ? nextFeelings : feelings
+  } else {
+    feelings = [key, ...feelings.filter((item) => item !== key)].slice(0, 3)
+  }
+
+  const relatedEventId = currentPayload?.target?.subject_type === 'news_event'
+    ? currentPayload.target.subject_id
+    : ''
+
+  articleBannerReactionSubmittingKey = key
+  articleBannerReactionMessage = ''
+  renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+
+  try {
+    const payload = await fetchApiViaBackground('/api/reactions', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${auth.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: {
+        news_url: targetUrl,
+        event_id: relatedEventId || undefined,
+        feelings,
+        needs,
+      },
+    })
+    const nextPayload = {
+      ...payload,
+      related_events: currentPayload?.related_events || payload.related_events || [],
+      my_reaction: payload.reaction || currentPayload?.my_reaction || null,
+    }
+    setTooltipReactionCache(targetUrl, { state: 'success', payload: nextPayload })
+    articleBannerReactionFailed = false
+    articleBannerReactionMessage = t('readerReactionSaved')
+    reportExtensionEvent('reader_reaction_submitted', true, { mode: 'article_banner', key })
+    renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+    scheduleArticleBannerReactionMessageClear()
+  } catch (error) {
+    articleBannerReactionFailed = true
+    articleBannerReactionMessage = t('readerReactionFailed')
+    reportExtensionEvent('reader_reaction_submitted', false, { mode: 'article_banner', key, reason: error?.message || 'failed' })
+    renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+    scheduleArticleBannerReactionMessageClear()
+  } finally {
+    articleBannerReactionSubmittingKey = ''
+    renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+  }
+}
+
 function ensureArticleBanner() {
   debugLog('ensureArticleBanner:start', { dismissed: articleBannerDismissed, href: window.location.href })
   if (articleBannerDismissed) {
@@ -1349,6 +1457,14 @@ function ensureArticleBanner() {
       return
     }
 
+    const reactionButton = target?.closest?.('[data-truthshield-reaction-key]')
+    if (reactionButton?.dataset?.truthshieldReactionKey) {
+      event.preventDefault()
+      event.stopPropagation()
+      submitArticleBannerReaction(reactionButton.dataset.truthshieldReactionKey)
+      return
+    }
+
     ensureVotePanelFrame()
   })
 
@@ -1384,7 +1500,77 @@ function dismissArticleBanner() {
   removeArticleBanner()
 }
 
-function renderArticleBanner(payload, loading = false, failed = false) {
+function articleBannerReactionPayload(url = articleBannerUrl || window.location.href) {
+  const cacheKey = canonicalStatusUrl(url)
+  return getTooltipReactionCache(cacheKey)?.payload || null
+}
+
+function articleBannerReactionOptions(payload) {
+  const options = payload?.options?.feelings?.length ? payload.options.feelings : FALLBACK_REACTION_FEELINGS
+
+  return BANNER_REACTION_KEYS
+    .map((key) => options.find((option) => option.key === key) || FALLBACK_REACTION_FEELINGS.find((option) => option.key === key))
+    .filter(Boolean)
+}
+
+function renderArticleBannerReactionControls(payload, compact = false) {
+  const topRows = payload?.hover_reactions || []
+  const selected = Array.isArray(payload?.my_reaction?.feelings) ? payload.my_reaction.feelings : []
+  const topEmoji = topRows.length
+    ? topRows.map((row) => `<span title="${escapeHtml(`${row.label || row.key} · ${row.count || 0}`)}" style="font-size:${compact ? '14px' : '15px'};line-height:1;">${escapeHtml(row.emoji || '')}</span>`).join('')
+    : compact
+      ? '<span style="color:#71717a;font-size:13px;line-height:1;">♡</span>'
+      : `<span style="color:#71717a;font-size:11px;white-space:nowrap;">${escapeHtml(t('readerReactionEmpty'))}</span>`
+  const buttons = articleBannerReactionOptions(payload)
+    .slice(0, compact ? 3 : 6)
+    .map((option) => {
+      const active = selected.includes(option.key)
+      const loading = articleBannerReactionSubmittingKey === option.key
+      const background = active ? 'rgba(110,231,183,.92)' : 'rgba(255,255,255,.06)'
+      const color = active ? '#09090b' : '#f4f4f5'
+      const border = active ? 'rgba(167,243,208,.98)' : 'rgba(255,255,255,.14)'
+
+      return `
+        <button
+          data-truthshield-reaction-key="${escapeHtml(option.key)}"
+          type="button"
+          title="${escapeHtml(`${t('readerReactionVote')}: ${option.label}`)}"
+          aria-label="${escapeHtml(`${t('readerReactionVote')}: ${option.label}`)}"
+          style="display:inline-flex;align-items:center;justify-content:center;width:${compact ? '24px' : '28px'};height:${compact ? '24px' : '28px'};border:1px solid ${border};border-radius:999px;background:${background};color:${color};font:${compact ? '14px' : '16px'} system-ui;cursor:pointer;padding:0;line-height:1;"
+        >${loading ? '…' : escapeHtml(option.emoji || '')}</button>
+      `
+    })
+    .join('')
+  const statusColor = articleBannerReactionFailed ? '#fca5a5' : articleBannerReactionMessage ? '#86efac' : '#a1a1aa'
+
+  if (compact) {
+    return `
+      <div data-truthshield-reaction-zone style="display:inline-flex;align-items:center;gap:5px;min-width:0;flex-wrap:wrap;">
+        <span style="display:inline-flex;align-items:center;gap:2px;max-width:44px;overflow:hidden;">${topEmoji}</span>
+        <span style="display:inline-flex;gap:3px;">${buttons}</span>
+      </div>
+    `
+  }
+
+  return `
+    <div data-truthshield-reaction-zone style="display:flex;align-items:center;gap:8px;min-width:0;flex:0 1 auto;flex-wrap:wrap;">
+      <div style="display:flex;min-width:54px;align-items:center;gap:3px;justify-content:flex-end;">${topEmoji}</div>
+      <div style="display:flex;align-items:center;gap:4px;">${buttons}</div>
+      <span style="color:${statusColor};font:700 11px system-ui;white-space:nowrap;">${escapeHtml(articleBannerReactionMessage || t('readerReactionVote'))}</span>
+    </div>
+  `
+}
+
+function scheduleArticleBannerReactionMessageClear() {
+  window.clearTimeout(articleBannerReactionMessageTimer)
+  articleBannerReactionMessageTimer = window.setTimeout(() => {
+    articleBannerReactionMessage = ''
+    articleBannerReactionFailed = false
+    renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+  }, 2200)
+}
+
+function renderArticleBanner(payload, loading = false, failed = false, reactionPayload = null) {
   if (!articleBanner) {
     return
   }
@@ -1404,15 +1590,17 @@ function renderArticleBanner(payload, loading = false, failed = false) {
     : isPayloadVotingClosed(payload)
       ? t('voteClosed')
       : t('readEvidence')
+  const reactionControls = renderArticleBannerReactionControls(reactionPayload, articleBanner.dataset.truthshieldMode === 'youtube_chip')
 
   if (articleBanner.dataset.truthshieldMode === 'youtube_chip') {
     articleBanner.innerHTML = `
-      <div style="display:flex;align-items:center;gap:7px;min-width:0;">
+      <div style="display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap;">
         <a data-truthshield-brand-link href="${escapeHtml(TOOLTIP_ORIGIN)}/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;color:${tone.accent};text-decoration:none;white-space:nowrap;">
           <img src="${escapeHtml(TOOLTIP_ORIGIN)}/brand/truthshield-mark.svg" alt="" style="width:18px;height:18px;display:block;" />
           <strong style="font-size:12px;letter-spacing:0;">TruthShield</strong>
         </a>
-        <span style="max-width:178px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.2;">${escapeHtml(displayText)}</span>
+        <span style="max-width:128px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.2;">${escapeHtml(displayText)}</span>
+        ${reactionControls}
         <span style="border:1px solid ${tone.border};border-radius:999px;color:${tone.accent};background:rgba(255,255,255,.04);padding:3px 7px;font:700 11px system-ui;white-space:nowrap;">${t('open')}</span>
         <button data-truthshield-close-banner type="button" aria-label="${t('closeBanner')}" style="border:0;background:transparent;color:#a1a1aa;padding:2px 3px;font:800 13px system-ui;cursor:pointer;">×</button>
       </div>
@@ -1422,15 +1610,16 @@ function renderArticleBanner(payload, loading = false, failed = false) {
   }
 
   articleBanner.innerHTML = `
-    <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;max-width:1180px;margin:0 auto;">
+    <div style="display:flex;align-items:center;gap:10px;max-width:1180px;margin:0 auto;flex-wrap:wrap;">
       <a data-truthshield-brand-link href="${escapeHtml(TOOLTIP_ORIGIN)}/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:7px;color:${tone.accent};text-decoration:none;white-space:nowrap;">
         <img src="${escapeHtml(TOOLTIP_ORIGIN)}/brand/truthshield-mark.svg" alt="" style="width:22px;height:22px;display:block;" />
         <strong style="font-size:12px;letter-spacing:0;">TruthShield</strong>
       </a>
-      <div style="min-width:0;">
+      <div style="min-width:140px;flex:1 1 220px;">
         <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.35;">${escapeHtml(displayText)}</div>
         <div style="margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;">${escapeHtml(statusText)}</div>
       </div>
+      ${reactionControls}
       <span style="border:1px solid ${tone.border};border-radius:6px;color:${tone.accent};background:rgba(255,255,255,.04);padding:5px 8px;font:700 12px system-ui;white-space:nowrap;">${t('open')}</span>
       <button data-truthshield-close-banner type="button" aria-label="${t('closeBanner')}" style="border:1px solid rgba(255,255,255,.16);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 9px;font:700 12px system-ui;cursor:pointer;">×</button>
     </div>
@@ -1440,18 +1629,19 @@ function renderArticleBanner(payload, loading = false, failed = false) {
 function renderArticleBannerFromCache(url) {
   const cacheKey = canonicalStatusUrl(url)
   const cached = articleBannerStatusCache.get(cacheKey)
+  const reactionPayload = articleBannerReactionPayload(cacheKey)
 
   if (cached?.state === 'success') {
-    renderArticleBanner(cached.payload)
+    renderArticleBanner(cached.payload, false, false, reactionPayload)
     return
   }
 
   if (cached?.state === 'failed') {
-    renderArticleBanner(null, false, true)
+    renderArticleBanner(null, false, true, reactionPayload)
     return
   }
 
-  renderArticleBanner(null, true)
+  renderArticleBanner(null, true, false, reactionPayload)
 }
 
 function loadArticleBannerStatusOnce(url) {
@@ -1464,17 +1654,65 @@ function loadArticleBannerStatusOnce(url) {
   const request = fetchStatus(cacheKey)
     .then((payload) => {
       articleBannerStatusCache.set(cacheKey, { state: 'success', payload })
-      if (articleBannerUrl === url) renderArticleBanner(payload)
+      if (articleBannerUrl === url) renderArticleBannerFromCache(url)
     })
     .catch(() => {
       articleBannerStatusCache.set(cacheKey, { state: 'failed' })
-      if (articleBannerUrl === url) renderArticleBanner(null, false, true)
+      if (articleBannerUrl === url) renderArticleBannerFromCache(url)
     })
     .finally(() => {
       articleBannerStatusRequests.delete(cacheKey)
     })
 
   articleBannerStatusRequests.set(cacheKey, request)
+  loadArticleBannerReactionsOnce(url)
+}
+
+function loadArticleBannerReactionsOnce(url) {
+  const cacheKey = canonicalStatusUrl(url)
+  const cached = getTooltipReactionCache(cacheKey)
+  if (cached?.state === 'success' || tooltipReactionRequests.has(cacheKey)) {
+    return
+  }
+
+  articleBannerReactionLoading = true
+  articleBannerReactionFailed = false
+  renderArticleBannerFromCache(url)
+
+  const request = fetchArticleBannerReactions(cacheKey)
+    .then((payload) => {
+      setTooltipReactionCache(cacheKey, { state: 'success', payload })
+      articleBannerReactionFailed = false
+      if (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey) {
+        renderArticleBannerFromCache(url)
+      }
+      return payload
+    })
+    .catch((error) => {
+      setTooltipReactionCache(cacheKey, { state: 'failed' })
+      articleBannerReactionFailed = true
+      throw error
+    })
+    .finally(() => {
+      articleBannerReactionLoading = false
+      tooltipReactionRequests.delete(cacheKey)
+      if (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey) {
+        renderArticleBannerFromCache(url)
+      }
+    })
+
+  tooltipReactionRequests.set(cacheKey, request)
+}
+
+function refreshArticleBannerReactions(url = articleBannerUrl || window.location.href) {
+  if (!articleBanner) return
+
+  const cacheKey = canonicalStatusUrl(url)
+  tooltipReactionCache.delete(cacheKey)
+  tooltipReactionRequests.delete(cacheKey)
+  articleBannerReactionLoading = false
+  articleBannerReactionFailed = false
+  loadArticleBannerReactionsOnce(url)
 }
 
 function clearStatusCachesForUrl(url) {
@@ -1493,7 +1731,7 @@ async function refreshArticleBannerStatus(url = window.location.href, knownStatu
   if (knownStatus) {
     articleBannerStatusCache.set(cacheKey, { state: 'success', payload: knownStatus })
     if (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey) {
-      renderArticleBanner(knownStatus)
+      renderArticleBannerFromCache(url)
     }
     return
   }
@@ -1501,21 +1739,23 @@ async function refreshArticleBannerStatus(url = window.location.href, knownStatu
   const cachedBeforeRefresh = articleBannerStatusCache.get(cacheKey)
   clearStatusCachesForUrl(cacheKey)
   if (!cachedBeforeRefresh?.payload && (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey)) {
-    renderArticleBanner(null, true)
+    renderArticleBannerFromCache(url)
   }
 
   try {
     const payload = await fetchStatus(cacheKey)
     articleBannerStatusCache.set(cacheKey, { state: 'success', payload })
     if (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey) {
-      renderArticleBanner(payload)
+      renderArticleBannerFromCache(url)
     }
   } catch {
     articleBannerStatusCache.set(cacheKey, { state: 'failed' })
     if (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey) {
-      renderArticleBanner(null, false, true)
+      renderArticleBannerFromCache(url)
     }
   }
+
+  loadArticleBannerReactionsOnce(url)
 }
 
 function ensureVotePanelFrame(url = window.location.href) {
@@ -1967,10 +2207,12 @@ window.addEventListener('message', (event) => {
         updatedAt: Date.now(),
       },
     })
+    refreshArticleBannerReactions()
   }
 
   if (isTruthShieldWebOrigin() && event.data?.type === 'TRUTH_SHIELD_AUTH_CLEARED') {
     sendRuntimeMessage({ type: 'TRUTH_SHIELD_CLEAR_AUTH' })
+    refreshArticleBannerReactions()
   }
 
   if (event.data?.type === 'TRUTH_SHIELD_VOTE_PANEL_RESIZE' && votePanelFrame) {
@@ -1990,6 +2232,7 @@ window.addEventListener('message', (event) => {
         updatedAt: Date.now(),
       },
     })
+    refreshArticleBannerReactions()
   }
 
   if (event.data?.type === 'TRUTH_SHIELD_VOTE_UPDATED') {

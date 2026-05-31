@@ -36,7 +36,8 @@ const USER_KEY = 'truthshield_user'
 export function useVotePanel(route) {
   const { locale, t } = useI18n()
   const collapsed = ref(route.query.expanded !== '1')
-  const activeTab = ref('results')
+  const initialTab = ['results', 'reactions', 'vote', 'evidence', 'events'].includes(route.query.tab) ? route.query.tab : 'results'
+  const activeTab = ref(initialTab)
   const loading = ref(true)
   const statusLoading = ref(true)
   const hasLoadedStatus = ref(false)
