@@ -130,6 +130,8 @@ let extensionNonce = null
 let tooltipBox = null
 const tooltipStatusCache = new Map()
 const tooltipStatusRequests = new Map()
+const tooltipReactionCache = new Map()
+const tooltipReactionRequests = new Map()
 const telemetryCache = new Map()
 const telemetryQueue = []
 let telemetryFlushTimer = null
@@ -182,6 +184,9 @@ const contentMessages = {
     finalized: '已定案',
     voteClosed: '投票已截止',
     tooltipHint: 'TruthShield 標籤提示',
+    readerReactionTitle: '讀者心情',
+    readerReactionHoverHint: 'hover 顯示',
+    readerReactionEmpty: '尚無心情',
     checking: '檢查中',
     live: '即時',
     newsStatus: 'TruthShield 新聞狀態',
@@ -201,6 +206,9 @@ const contentMessages = {
     finalized: 'Finalized',
     voteClosed: 'Voting closed',
     tooltipHint: 'TruthShield label hint',
+    readerReactionTitle: 'Reader mood',
+    readerReactionHoverHint: 'shown on hover',
+    readerReactionEmpty: 'No mood yet',
     checking: 'Checking',
     live: 'Live',
     newsStatus: 'TruthShield news status',
@@ -995,11 +1003,22 @@ function tooltipToneStyle(tone) {
   return { border: 'rgba(103, 232, 249, 0.45)', background: '#09090b', accent: '#67e8f9' }
 }
 
-function renderTooltip(payload, loading = false, failed = false) {
+function renderTooltip(payload, loading = false, failed = false, reactionPayload = null) {
   const box = ensureTooltipBox()
   const tone = tooltipToneStyle(payload?.tone)
   box.style.borderColor = tone.border
   box.style.background = tone.background
+  const reactions = reactionPayload?.hover_reactions || []
+  const reactionTitle = t('readerReactionTitle')
+  const reactionHint = reactions.length ? t('readerReactionHoverHint') : t('readerReactionEmpty')
+  const reactionHtml = reactions.length
+    ? reactions.map((row) => `
+        <span
+          title="${escapeHtml(`${row.label || row.key} · ${row.count || 0}`)}"
+          style="display:inline-flex;height:28px;width:28px;align-items:center;justify-content:center;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(9,9,11,0.78);font-size:17px;"
+        >${escapeHtml(row.emoji || '')}</span>
+      `).join('')
+    : ''
 
   const displayText = loading
     ? t('checkingLink')
@@ -1021,6 +1040,13 @@ function renderTooltip(payload, loading = false, failed = false) {
       </div>
       <div style="font-weight:700;line-height:1.45;">${escapeHtml(displayText)}</div>
       <div style="margin-top:6px;color:#d4d4d8;font-size:12px;line-height:1.45;">${escapeHtml(meta)}</div>
+      <div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span style="color:#d4d4d8;font-size:11px;font-weight:700;">${escapeHtml(reactionTitle)}</span>
+          <span style="color:#71717a;font-size:11px;">${escapeHtml(reactionHint)}</span>
+        </div>
+        ${reactionHtml ? `<div style="display:flex;gap:7px;margin-top:7px;">${reactionHtml}</div>` : ''}
+      </div>
     </div>
   `
 }
@@ -1050,16 +1076,23 @@ async function showTooltip(anchor) {
   const box = ensureTooltipBox()
   const statusUrl = canonicalStatusUrl(anchor.href)
   const cached = getTooltipStatusCache(statusUrl)
-  renderTooltip(cached?.payload || null, !cached, cached?.state === 'failed')
+  const cachedReactions = getTooltipReactionCache(statusUrl)
+  renderTooltip(cached?.payload || null, !cached, cached?.state === 'failed', cachedReactions?.payload || null)
   box.style.display = 'block'
   positionTooltip(anchor)
   reportExtensionEvent('tooltip_shown', true, { href_host: new URL(anchor.href).hostname, mode: 'inline_dom' })
 
   try {
-    const payload = await fetchTooltipStatus(statusUrl)
-    if (activeAnchor === anchor) renderTooltip(payload)
+    const [statusResult, reactionResult] = await Promise.allSettled([
+      fetchTooltipStatus(statusUrl),
+      fetchTooltipReactions(statusUrl),
+    ])
+    const payload = statusResult.status === 'fulfilled' ? statusResult.value : null
+    const reactions = reactionResult.status === 'fulfilled' ? reactionResult.value : cachedReactions?.payload || null
+    if (statusResult.status === 'rejected') throw statusResult.reason
+    if (activeAnchor === anchor) renderTooltip(payload, false, false, reactions)
   } catch {
-    if (activeAnchor === anchor) renderTooltip(null, false, true)
+    if (activeAnchor === anchor) renderTooltip(null, false, true, cachedReactions?.payload || null)
   }
 }
 
@@ -1094,6 +1127,33 @@ async function fetchTooltipStatus(url) {
   return request
 }
 
+async function fetchTooltipReactions(url) {
+  const cached = getTooltipReactionCache(url)
+  if (cached?.state === 'success') {
+    return cached.payload
+  }
+
+  if (tooltipReactionRequests.has(url)) {
+    return tooltipReactionRequests.get(url)
+  }
+
+  const request = fetchReactionSummary(url)
+    .then((payload) => {
+      setTooltipReactionCache(url, { state: 'success', payload })
+      return payload
+    })
+    .catch((error) => {
+      setTooltipReactionCache(url, { state: 'failed' })
+      throw error
+    })
+    .finally(() => {
+      tooltipReactionRequests.delete(url)
+    })
+
+  tooltipReactionRequests.set(url, request)
+  return request
+}
+
 function getTooltipStatusCache(url) {
   const cached = tooltipStatusCache.get(url)
   if (!cached) {
@@ -1118,6 +1178,33 @@ function setTooltipStatusCache(url, value) {
   const oldestKey = tooltipStatusCache.keys().next().value
   if (oldestKey) {
     tooltipStatusCache.delete(oldestKey)
+  }
+}
+
+function getTooltipReactionCache(url) {
+  const cached = tooltipReactionCache.get(url)
+  if (!cached) {
+    return null
+  }
+
+  if (Date.now() - cached.cachedAt > TOOLTIP_STATUS_CACHE_TTL_MS) {
+    tooltipReactionCache.delete(url)
+    return null
+  }
+
+  return cached
+}
+
+function setTooltipReactionCache(url, value) {
+  tooltipReactionCache.set(url, { ...value, cachedAt: Date.now() })
+
+  if (tooltipReactionCache.size <= TOOLTIP_STATUS_CACHE_MAX) {
+    return
+  }
+
+  const oldestKey = tooltipReactionCache.keys().next().value
+  if (oldestKey) {
+    tooltipReactionCache.delete(oldestKey)
   }
 }
 
@@ -1180,6 +1267,23 @@ async function fetchStatus(url) {
   }
 
   const response = await fetch(`${API_ORIGIN}/api/news/status?url=${encodeURIComponent(url)}`, {
+    headers: extensionRequestHeaders({ Accept: 'application/json' }),
+  })
+
+  if (!response.ok) throw new Error(`status ${response.status}`)
+  return response.json()
+}
+
+async function fetchReactionSummary(url) {
+  const path = `/api/reactions/summary?news_url=${encodeURIComponent(url)}`
+
+  if (chrome.runtime?.sendMessage) {
+    const response = await chrome.runtime.sendMessage({ type: 'TRUTH_SHIELD_FETCH_API', path })
+    if (!response?.ok) throw new Error(response?.message || `status ${response?.status || 0}`)
+    return response.payload
+  }
+
+  const response = await fetch(`${API_ORIGIN}${path}`, {
     headers: extensionRequestHeaders({ Accept: 'application/json' }),
   })
 
@@ -1377,6 +1481,8 @@ function clearStatusCachesForUrl(url) {
   const cacheKey = canonicalStatusUrl(url || window.location.href)
   tooltipStatusCache.delete(cacheKey)
   tooltipStatusRequests.delete(cacheKey)
+  tooltipReactionCache.delete(cacheKey)
+  tooltipReactionRequests.delete(cacheKey)
   articleBannerStatusCache.delete(cacheKey)
   articleBannerStatusRequests.delete(cacheKey)
 }
