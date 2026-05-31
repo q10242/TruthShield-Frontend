@@ -201,6 +201,16 @@
       }
       .achievement strong { display: block; color: #cffafe; font-size: 12px; }
       .achievement p { margin-top: 6px; font-size: 12px; }
+      .support-card {
+        margin-top: 10px;
+        border: 1px solid rgba(103, 232, 249, 0.18);
+        border-radius: 12px;
+        padding: 10px;
+        background: rgba(8, 145, 178, 0.08);
+      }
+      .support-card strong { display: block; color: #cffafe; font-size: 12px; }
+      .support-card p { margin-top: 5px; color: #a1a1aa; font-size: 12px; line-height: 1.45; }
+      .support-card button { margin-top: 8px; padding: 8px 9px; font-size: 12px; text-align: center; }
       .action-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -475,7 +485,13 @@
           </div>
           <div class="action-grid compact">
             <button id="openHub" class="ghost" type="button" data-i18n="openHub">開啟真相總部</button>
+            <button id="openDonate" class="ghost" type="button" data-i18n="openDonate">支持專案</button>
             <button id="openOptions" class="ghost" type="button" data-i18n="settings">設定</button>
+          </div>
+          <div class="support-card">
+            <strong data-i18n="popupSupportTitle">支持 TruthShield 持續運作</strong>
+            <p data-i18n="popupSupportDesc">如果這個工具對你有幫助，可以小額捐款支持伺服器、備份與插件維護。</p>
+            <button id="openDonateCard" class="secondary" type="button" data-i18n="popupSupportCta">前往捐款頁</button>
           </div>
           <div id="status"></div>
         </section>

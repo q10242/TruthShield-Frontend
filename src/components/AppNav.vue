@@ -84,6 +84,15 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       </div>
 
       <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/global-entities">{{ zh ? '人物/組織' : 'Entities' }}</RouterLink>
+      <RouterLink class="text-zinc-400 hover:text-cyan-100" to="/donate">{{ zh ? '支持專案' : 'Support' }}</RouterLink>
+      <a
+        class="rounded-md border border-white/10 px-3 py-1.5 text-zinc-400 hover:border-cyan-300/60 hover:text-cyan-100"
+        href="https://www.otus.tw/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{ zh ? 'Otus 官網' : 'Otus' }}
+      </a>
 
       <!-- slot for view-specific links -->
       <slot />

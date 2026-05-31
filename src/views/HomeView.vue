@@ -150,6 +150,14 @@ onMounted(async () => {
           </RouterLink>
           <a
             class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100"
+            href="https://www.otus.tw/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ t('common.companyWebsite') }}
+          </a>
+          <a
+            class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100"
             href="https://github.com/q10242/TruthShield-Frontend"
             target="_blank"
             rel="noopener noreferrer"
@@ -203,6 +211,18 @@ onMounted(async () => {
               </RouterLink>
               <RouterLink class="rounded-md border border-amber-200/40 px-3 py-2 text-xs font-semibold text-amber-100" to="/extension-install">
                 {{ t('common.extensionInstall') }}
+              </RouterLink>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="max-w-2xl">
+                <p class="text-sm font-semibold text-cyan-100">{{ t('home.supportPromptTitle') }}</p>
+                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ t('home.supportPromptDesc') }}</p>
+              </div>
+              <RouterLink class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100 hover:border-cyan-200" to="/donate">
+                {{ t('home.supportPromptCta') }}
               </RouterLink>
             </div>
           </div>
@@ -529,6 +549,7 @@ onMounted(async () => {
         <RouterLink class="hover:text-cyan-100" to="/label-guide">{{ t('common.labelGuide') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/vision-readiness">{{ t('common.visionReadiness') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/donate">{{ t('common.donate') }}</RouterLink>
+        <a class="hover:text-cyan-100" href="https://www.otus.tw/" target="_blank" rel="noopener noreferrer">{{ t('common.companyWebsite') }}</a>
         <a
           v-for="link in githubLinks"
           :key="link.href"

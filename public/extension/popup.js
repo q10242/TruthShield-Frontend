@@ -844,6 +844,14 @@ function bindActions() {
     trackPopupEvent('popup_action', 'open_hub')
     openTab(state.settings.tooltipOrigin)
   })
+  byId('openDonate').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'open_donate')
+    openTab(truthUrl('/donate'))
+  })
+  byId('openDonateCard').addEventListener('click', () => {
+    trackPopupEvent('popup_action', 'open_donate_card')
+    openTab(truthUrl('/donate'))
+  })
   byId('openLogin').addEventListener('click', () => {
     trackPopupEvent('popup_action', 'open_login')
     openWindow(truthUrl('/login', { redirect: '/extension-auth-sync?close=1' }), 460, 720)
