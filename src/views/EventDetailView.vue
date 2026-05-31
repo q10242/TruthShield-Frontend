@@ -12,6 +12,7 @@ import {
   fetchEvent,
   fetchEventEditLogs,
   fetchEventGraph,
+  fetchReactionSummary,
   fetchEventTimeline,
   mergeEventEntity,
   searchGlobalEntities,
@@ -39,6 +40,7 @@ const event = ref(null)
 const timeline = ref([])
 const graph = ref({ entities: [], relationships: [] })
 const logs = ref([])
+const reactionSummary = ref(null)
 const loading = ref(true)
 const error = ref('')
 const graphSvg = ref(null)
@@ -206,6 +208,11 @@ const overviewStats = computed(() => {
     { key: 'entities', label: zh.value ? '人物與組織' : 'People and orgs', value: counts.entities ?? 0, tone: 'border-white/10 bg-white/[0.03] text-white' },
   ]
 })
+const eventReactionRows = computed(() => [
+  ...(reactionSummary.value?.summary?.feelings || []),
+  ...(reactionSummary.value?.summary?.needs || []),
+].slice(0, 8))
+const eventReactionTop = computed(() => reactionSummary.value?.hover_reactions || [])
 
 function setMeta(title, description) {
   document.title = title
@@ -228,17 +235,19 @@ async function load() {
   error.value = ''
   try {
     const id = route.params.id
-    const [eventPayload, timelinePayload, graphPayload, logPayload] = await Promise.all([
+    const [eventPayload, timelinePayload, graphPayload, logPayload, reactionPayload] = await Promise.all([
       fetchEvent(id),
       fetchEventTimeline(id),
       fetchEventGraph(id),
       fetchEventEditLogs(id),
+      fetchReactionSummary({ event_id: id }).catch(() => null),
     ])
     event.value = eventPayload.data
     setMeta(event.value.name + ' — TruthShield', event.value.summary || event.value.name)
     timeline.value = timelinePayload
     graph.value = graphPayload
     logs.value = logPayload
+    reactionSummary.value = reactionPayload
   } catch (err) {
     error.value = err.message || 'Failed to load event'
   } finally {
@@ -1107,10 +1116,33 @@ onUnmounted(() => { document.title = 'TruthShield' })
         </div>
 
         <section v-if="activeTab === 'overview'" class="mt-6 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div v-for="stat in overviewStats" :key="stat.key" class="rounded-2xl border p-5" :class="stat.tone">
-              <p class="text-xs uppercase tracking-[0.18em] text-zinc-500">{{ stat.label }}</p>
-              <p class="mt-3 text-3xl font-semibold">{{ stat.value }}</p>
+          <div class="space-y-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div v-for="stat in overviewStats" :key="stat.key" class="rounded-2xl border p-5" :class="stat.tone">
+                <p class="text-xs uppercase tracking-[0.18em] text-zinc-500">{{ stat.label }}</p>
+                <p class="mt-3 text-3xl font-semibold">{{ stat.value }}</p>
+              </div>
+            </div>
+            <div class="rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.04] p-5">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">{{ zh ? '事件反應雷達' : 'Reaction Radar' }}</p>
+                  <h2 class="mt-3 text-lg font-semibold text-white">{{ zh ? '讀者對這個事件的感受與需求' : 'How readers feel about this event' }}</h2>
+                </div>
+                <span class="rounded-full bg-zinc-950 px-3 py-1 text-xs font-semibold text-zinc-300">
+                  {{ reactionSummary?.summary?.total_users || 0 }} {{ zh ? '人' : 'people' }}
+                </span>
+              </div>
+              <div v-if="eventReactionTop.length" class="mt-4 flex flex-wrap gap-2">
+                <span v-for="row in eventReactionTop" :key="`top-${row.key}`" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-xl" :title="`${row.label} · ${row.count}`">{{ row.emoji }}</span>
+              </div>
+              <div v-if="eventReactionRows.length" class="mt-4 grid gap-2 sm:grid-cols-2">
+                <div v-for="row in eventReactionRows" :key="row.key" class="flex items-center justify-between gap-3 rounded border border-white/10 bg-zinc-950/80 px-3 py-2 text-sm">
+                  <span class="min-w-0 truncate text-zinc-200"><span class="mr-2">{{ row.emoji }}</span>{{ row.label }}</span>
+                  <span class="shrink-0 text-xs font-semibold text-emerald-200">{{ row.count }}</span>
+                </div>
+              </div>
+              <p v-else class="mt-4 text-sm text-zinc-500">{{ zh ? '尚無事件反應。使用插件 pop-out 可以留下心情或想看的補充。' : 'No event reactions yet. Use the extension pop-out to leave a feeling or request.' }}</p>
             </div>
           </div>
           <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">

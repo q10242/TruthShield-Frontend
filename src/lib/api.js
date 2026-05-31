@@ -61,6 +61,27 @@ export async function fetchNewsStatus(url) {
   })
 }
 
+export async function fetchReactionSummary(params = {}, token = '') {
+  const query = toQuery(params)
+
+  return request(`/api/reactions/summary${query ? `?${query}` : ''}`, {
+    headers: {
+      Authorization: token ? `Bearer ${token}` : undefined,
+      'Content-Type': undefined,
+    },
+  })
+}
+
+export async function submitReaderReaction(token, payload) {
+  return request('/api/reactions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function fetchNewsEvidence(url) {
   const payload = await request(`/api/news/evidence?url=${encodeURIComponent(url)}&locale=${encodeURIComponent(currentLocale())}`, {
     headers: { 'Content-Type': undefined },

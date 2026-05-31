@@ -6,6 +6,7 @@ import {
   createEventTimelineEntry,
   createVote,
   fetchCurrentUser,
+  fetchReactionSummary,
   fetchMyVote,
   fetchNewsEvidence,
   fetchNewsStatus,
@@ -23,6 +24,7 @@ import {
   reportNewsChange,
   reportEvidence,
   createOfficialResponse,
+  submitReaderReaction,
 } from '../lib/api'
 import { evidenceUploadConfig, uploadEvidenceImage, validateEvidenceImage } from '../lib/evidenceUpload'
 import { trackEvent } from '../lib/traffic'
@@ -51,6 +53,15 @@ export function useVotePanel(route) {
   const evidence = ref([])
   const officialResponses = ref([])
   const relatedEvents = ref([])
+  const reactionSummary = ref(null)
+  const reactionOptions = ref({ feelings: [], needs: [] })
+  const reactionLoading = ref(false)
+  const reactionSubmitting = ref(false)
+  const reactionError = ref('')
+  const reactionMessage = ref('')
+  const selectedReactionEventId = ref('')
+  const selectedFeelings = ref([])
+  const selectedNeeds = ref([])
   const eventDetailTab = ref(null) // { eventId, mode: 'timeline'|'graph' }
   const eventTimeline = ref([])
   const eventGraph = ref({ entities: [], relationships: [] })
@@ -115,7 +126,7 @@ export function useVotePanel(route) {
     { key: 'events', number: 4, label: t('votePanel.tabs.context') },
   ])
   const visibleTabSteps = computed(() => {
-    if (advancedMode.value || relatedEvents.value.length) return tabSteps.value
+    if (advancedMode.value || relatedEvents.value.length || hasLoadedStatus.value) return tabSteps.value
 
     return tabSteps.value.filter((step) => step.key !== 'events')
   })
@@ -293,6 +304,20 @@ export function useVotePanel(route) {
     return null
   })
   const activeStepNumber = computed(() => visibleTabSteps.value.find((step) => step.key === activeTab.value)?.number || 1)
+  const readerReactionRows = computed(() => [
+    ...(reactionSummary.value?.summary?.feelings || []),
+    ...(reactionSummary.value?.summary?.needs || []),
+  ].slice(0, 6))
+  const hoverReactionRows = computed(() => reactionSummary.value?.hover_reactions || [])
+  const reactionTotalUsers = computed(() => reactionSummary.value?.summary?.total_users || 0)
+  const reactionTargetLabel = computed(() => {
+    if (selectedReactionEventId.value) {
+      const event = relatedEvents.value.find((item) => String(item.id) === String(selectedReactionEventId.value))
+      return event?.name || t('votePanel.readerReactionTargetEvent')
+    }
+
+    return t('votePanel.readerReactionTargetNews')
+  })
 
   const toneClass = computed(() => {
     const tone = status.value?.tone
@@ -593,13 +618,14 @@ export function useVotePanel(route) {
         fetchEvidenceReportReasons(),
         fetchOfficialResponses(newsUrl.value),
         fetchEvents({ news_url: newsUrl.value, limit: 5 }).catch(() => ({ data: [] })),
+        fetchReactionSummary({ news_url: newsUrl.value }, token.value).catch(() => null),
       ]
 
       if (token.value) {
         requests.push(fetchMyVote(token.value, newsUrl.value).catch(() => ({ vote: null })))
       }
 
-      const [statusPayload, tagPayload, evidencePayload, reportReasonsPayload, officialResponsesPayload, eventPayload, myVotePayload] = await Promise.all(requests)
+      const [statusPayload, tagPayload, evidencePayload, reportReasonsPayload, officialResponsesPayload, eventPayload, reactionPayload, myVotePayload] = await Promise.all(requests)
 
       status.value = statusPayload
       hasLoadedStatus.value = true
@@ -608,6 +634,7 @@ export function useVotePanel(route) {
       reportReasons.value = reportReasonsPayload
       officialResponses.value = officialResponsesPayload
       relatedEvents.value = eventPayload?.data || []
+      applyReactionPayload(reactionPayload)
       myVote.value = myVotePayload?.vote || null
 
       if (myVote.value) {
@@ -624,6 +651,99 @@ export function useVotePanel(route) {
     } finally {
       loading.value = false
       statusLoading.value = false
+      notifyHeight()
+    }
+  }
+
+  function applyReactionPayload(payload) {
+    if (!payload) return
+
+    reactionSummary.value = payload
+    reactionOptions.value = payload.options || reactionOptions.value
+    if (Array.isArray(payload.related_events) && payload.related_events.length) {
+      relatedEvents.value = relatedEvents.value.length ? relatedEvents.value : payload.related_events
+    }
+
+    const target = payload.target || {}
+    selectedReactionEventId.value = target.subject_type === 'news_event' ? String(target.subject_id) : ''
+    selectedFeelings.value = Array.isArray(payload.my_reaction?.feelings) ? [...payload.my_reaction.feelings] : []
+    selectedNeeds.value = Array.isArray(payload.my_reaction?.needs) ? [...payload.my_reaction.needs] : []
+  }
+
+  async function loadReactionSummary(eventId = selectedReactionEventId.value) {
+    reactionLoading.value = true
+    reactionError.value = ''
+    try {
+      const payload = await fetchReactionSummary({
+        news_url: newsUrl.value,
+        event_id: eventId || undefined,
+      }, token.value)
+      applyReactionPayload(payload)
+    } catch (err) {
+      reactionError.value = friendlyError(err, t('votePanel.readerReactionLoadFailed'))
+    } finally {
+      reactionLoading.value = false
+      notifyHeight()
+    }
+  }
+
+  async function selectReactionEvent(eventId) {
+    selectedReactionEventId.value = eventId ? String(eventId) : ''
+    await loadReactionSummary(selectedReactionEventId.value)
+  }
+
+  function toggleReaderReaction(kind, key) {
+    const target = kind === 'need' ? selectedNeeds : selectedFeelings
+    const existing = target.value.includes(key)
+    reactionError.value = ''
+
+    if (existing) {
+      target.value = target.value.filter((item) => item !== key)
+      return
+    }
+
+    if (target.value.length >= 3) {
+      reactionError.value = t('votePanel.readerReactionLimit')
+      return
+    }
+
+    target.value = [...target.value, key]
+  }
+
+  async function submitReaction() {
+    if (!isLoggedIn.value) { openLogin(); return }
+    if (!selectedFeelings.value.length && !selectedNeeds.value.length) {
+      reactionError.value = t('votePanel.readerReactionRequired')
+      return
+    }
+
+    reactionSubmitting.value = true
+    reactionError.value = ''
+    reactionMessage.value = ''
+    try {
+      const currentRelatedEvents = reactionSummary.value?.related_events || relatedEvents.value
+      const payload = await submitReaderReaction(token.value, {
+        news_url: newsUrl.value,
+        event_id: selectedReactionEventId.value || undefined,
+        feelings: selectedFeelings.value,
+        needs: selectedNeeds.value,
+      })
+      applyReactionPayload({ ...payload, related_events: currentRelatedEvents })
+      reactionMessage.value = t('votePanel.readerReactionSaved')
+      trackEvent('reader_reaction_submitted', {
+        source: 'extension',
+        feature: 'vote_panel',
+        url: newsUrl.value,
+        metadata: {
+          target: payload.target?.subject_type || 'news_url',
+          feelings: selectedFeelings.value,
+          needs: selectedNeeds.value,
+        },
+      })
+    } catch (err) {
+      reactionError.value = friendlyError(err, t('votePanel.readerReactionFailed'))
+    } finally {
+      reactionSubmitting.value = false
       notifyHeight()
     }
   }
@@ -1240,7 +1360,7 @@ export function useVotePanel(route) {
     }
   })
 
-  watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, evidenceUploading, evidenceUploadMessage, voteError, voteMessage, achievementToastMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText], notifyHeight)
+  watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, evidenceUploading, evidenceUploadMessage, voteError, voteMessage, achievementToastMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, reactionSummary, reactionLoading, reactionError, reactionMessage, selectedFeelings, selectedNeeds], notifyHeight)
 
   onMounted(async () => {
     trackEvent('vote_panel_open', { source: 'extension', feature: 'vote_panel', url: newsUrl.value })
@@ -1279,6 +1399,15 @@ export function useVotePanel(route) {
     evidence,
     officialResponses,
     relatedEvents,
+    reactionSummary,
+    reactionOptions,
+    reactionLoading,
+    reactionSubmitting,
+    reactionError,
+    reactionMessage,
+    selectedReactionEventId,
+    selectedFeelings,
+    selectedNeeds,
     eventDetailTab,
     eventTimeline,
     eventGraph,
@@ -1375,6 +1504,10 @@ export function useVotePanel(route) {
     snapshot,
     snapshotAlert,
     activeStepNumber,
+    readerReactionRows,
+    hoverReactionRows,
+    reactionTotalUsers,
+    reactionTargetLabel,
     toneClass,
     graphLayout,
     groupedVotingTags,
@@ -1411,6 +1544,10 @@ export function useVotePanel(route) {
     tagPlainHint,
     friendlyError,
     openEventDetail,
+    loadReactionSummary,
+    selectReactionEvent,
+    toggleReaderReaction,
+    submitReaction,
     searchPinEvents,
     loadPinEventGraph,
     submitPinEntry,
