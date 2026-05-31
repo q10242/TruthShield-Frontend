@@ -121,12 +121,13 @@ export function useVotePanel(route) {
 
   const tabSteps = computed(() => [
     { key: 'results', number: 1, label: t('votePanel.tabs.results') },
-    { key: 'vote', number: 2, label: t('votePanel.tabs.vote') },
-    { key: 'evidence', number: 3, label: t('votePanel.tabs.evidence') },
-    { key: 'events', number: 4, label: t('votePanel.tabs.context') },
+    { key: 'reactions', number: 2, label: t('votePanel.tabs.reactions') },
+    { key: 'vote', number: 3, label: t('votePanel.tabs.vote') },
+    { key: 'evidence', number: 4, label: t('votePanel.tabs.evidence') },
+    { key: 'events', number: 5, label: t('votePanel.tabs.context') },
   ])
   const visibleTabSteps = computed(() => {
-    if (advancedMode.value || relatedEvents.value.length || hasLoadedStatus.value) return tabSteps.value
+    if (advancedMode.value || relatedEvents.value.length) return tabSteps.value
 
     return tabSteps.value.filter((step) => step.key !== 'events')
   })

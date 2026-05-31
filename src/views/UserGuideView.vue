@@ -12,6 +12,7 @@ const chapters = computed(() => [
   { id: 'start', title: t('userGuide.chapterStart') },
   { id: 'extension', title: t('userGuide.chapterExtension') },
   { id: 'vote', title: t('userGuide.chapterVote') },
+  { id: 'reactions', title: t('userGuide.chapterReactions') },
   { id: 'search', title: t('userGuide.chapterSearch') },
   { id: 'events', title: zh.value ? '事件時間線與關係圖' : 'Event timelines and graphs' },
   { id: 'evidence', title: t('userGuide.chapterEvidence') },
@@ -250,6 +251,26 @@ onMounted(() => trackPageView('user_guide'))
                   <p class="mt-2 text-sm leading-6 text-zinc-400">{{ item.description }}</p>
                 </article>
               </div>
+            </div>
+          </section>
+
+          <section id="reactions" class="rounded-lg border border-emerald-300/20 bg-emerald-300/[0.04] p-5">
+            <p class="text-sm font-semibold text-emerald-200">{{ t('userGuide.chapterReactions') }}</p>
+            <h2 class="mt-2 text-2xl font-semibold text-white">{{ t('userGuide.reactionsTitle') }}</h2>
+            <p class="mt-3 text-sm leading-7 text-zinc-300">{{ t('userGuide.reactionsDesc') }}</p>
+            <div class="mt-5 grid gap-3 md:grid-cols-3">
+              <article class="rounded-md border border-white/10 bg-zinc-950 p-4">
+                <h3 class="text-sm font-semibold text-white">{{ t('userGuide.reactionsPoint1Title') }}</h3>
+                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ t('userGuide.reactionsPoint1Desc') }}</p>
+              </article>
+              <article class="rounded-md border border-white/10 bg-zinc-950 p-4">
+                <h3 class="text-sm font-semibold text-white">{{ t('userGuide.reactionsPoint2Title') }}</h3>
+                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ t('userGuide.reactionsPoint2Desc') }}</p>
+              </article>
+              <article class="rounded-md border border-white/10 bg-zinc-950 p-4">
+                <h3 class="text-sm font-semibold text-white">{{ t('userGuide.reactionsPoint3Title') }}</h3>
+                <p class="mt-2 text-sm leading-6 text-zinc-400">{{ t('userGuide.reactionsPoint3Desc') }}</p>
+              </article>
             </div>
           </section>
 

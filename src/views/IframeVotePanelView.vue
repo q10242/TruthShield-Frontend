@@ -3,6 +3,7 @@ import { provide } from 'vue'
 import { useRoute } from 'vue-router'
 import { useVotePanel } from '../composables/useVotePanel'
 import VotePanelResultsTab from '../components/votePanel/VotePanelResultsTab.vue'
+import VotePanelReactionsTab from '../components/votePanel/VotePanelReactionsTab.vue'
 import VotePanelVoteTab from '../components/votePanel/VotePanelVoteTab.vue'
 import VotePanelEvidenceTab from '../components/votePanel/VotePanelEvidenceTab.vue'
 import VotePanelEventsTab from '../components/votePanel/VotePanelEventsTab.vue'
@@ -93,7 +94,7 @@ function toggleAdvancedMode() {
 
       <div
         class="grid rounded-md border border-white/10 bg-white/[0.03] p-1 text-xs font-semibold"
-        :class="visibleTabSteps.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'"
+        :class="visibleTabSteps.length === 5 ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'"
       >
         <button
           v-for="step in visibleTabSteps"
@@ -231,6 +232,7 @@ function toggleAdvancedMode() {
       </div>
 
       <VotePanelResultsTab v-if="activeTab === 'results'" />
+      <VotePanelReactionsTab v-else-if="activeTab === 'reactions'" />
       <VotePanelVoteTab v-else-if="activeTab === 'vote'" />
       <VotePanelEventsTab v-else-if="activeTab === 'events'" />
       <VotePanelEvidenceTab v-else />
