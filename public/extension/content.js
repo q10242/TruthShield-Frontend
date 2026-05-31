@@ -1435,7 +1435,7 @@ function ensureArticleBanner() {
   articleBanner.style.borderRadius = youtubeMode ? '999px' : '0'
   articleBanner.style.background = 'rgba(9, 9, 11, 0.96)'
   articleBanner.style.color = '#f4f4f5'
-  articleBanner.style.boxShadow = youtubeMode ? '0 10px 30px rgba(0, 0, 0, 0.34)' : '0 18px 48px rgba(0, 0, 0, 0.34)'
+  articleBanner.style.boxShadow = youtubeMode ? '0 10px 30px rgba(0, 0, 0, 0.34)' : '0 1px 0 rgba(0, 0, 0, 0.26)'
   articleBanner.style.font = '13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   articleBanner.style.colorScheme = 'normal'
   articleBanner.style.backdropFilter = 'blur(12px)'
