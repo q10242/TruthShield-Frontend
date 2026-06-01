@@ -371,9 +371,25 @@ export async function fetchEvents(params = {}) {
   })
 }
 
+export async function fetchEventOptions() {
+  return request('/api/events/options', {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
 export async function createEvent(token, payload) {
   return request('/api/events', {
     method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateEvent(token, id, payload) {
+  return request(`/api/events/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
     headers: {
       Authorization: `Bearer ${token}`,
     },

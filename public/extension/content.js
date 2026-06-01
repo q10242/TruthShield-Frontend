@@ -11,12 +11,14 @@ const TELEMETRY_FLUSH_DELAY_MS = 5000
 const VOTE_PANEL_POSITION_KEY = 'truthShieldVotePanelPosition'
 const AUTH_TOKEN_KEY = 'truthshield_api_token'
 const AUTH_USER_KEY = 'truthshield_user'
-const BANNER_REACTION_KEYS = ['confused', 'worried', 'angry', 'sad', 'clear', 'credible']
+const BANNER_REACTION_KEYS = ['confused', 'worried', 'angry', 'sad', 'happy', 'indifferent', 'clear', 'credible']
 const FALLBACK_REACTION_FEELINGS = [
   { key: 'confused', emoji: '😕', label: '資訊混亂' },
   { key: 'worried', emoji: '😟', label: '擔心' },
   { key: 'angry', emoji: '😠', label: '憤怒' },
   { key: 'sad', emoji: '😔', label: '難過' },
+  { key: 'happy', emoji: '😊', label: '看了開心' },
+  { key: 'indifferent', emoji: '😐', label: '無所謂' },
   { key: 'clear', emoji: '🙂', label: '覺得清楚' },
   { key: 'credible', emoji: '✅', label: '覺得可信' },
 ]
@@ -137,6 +139,7 @@ let domainConfigs = [...FALLBACK_DOMAIN_CONFIGS]
 let youtubeChannels = FALLBACK_YOUTUBE_CHANNELS.map(normalizeYoutubeChannelRecord).filter(Boolean)
 let extensionNonce = null
 let tooltipBox = null
+let reactionTooltip = null
 const tooltipStatusCache = new Map()
 const tooltipStatusRequests = new Map()
 const tooltipReactionCache = new Map()
@@ -206,6 +209,7 @@ const contentMessages = {
     readerReactionSaved: '已送出',
     readerReactionFailed: '送出失敗',
     readerReactionLogin: '登入後投心情',
+    eventContext: '事件',
     checking: '檢查中',
     live: '即時',
     newsStatus: 'TruthShield 新聞狀態',
@@ -233,6 +237,7 @@ const contentMessages = {
     readerReactionSaved: 'Saved',
     readerReactionFailed: 'Failed',
     readerReactionLogin: 'Sign in to react',
+    eventContext: 'Event',
     checking: 'Checking',
     live: 'Live',
     newsStatus: 'TruthShield news status',
@@ -1003,10 +1008,60 @@ function ensureTooltipBox() {
   tooltipBox.style.font = '13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   tooltipBox.style.display = 'none'
   tooltipBox.style.overflow = 'hidden'
-  tooltipBox.style.pointerEvents = 'none'
+  tooltipBox.style.pointerEvents = 'auto'
+  tooltipBox.addEventListener('mouseenter', () => window.clearTimeout(hideTimer))
+  tooltipBox.addEventListener('mouseleave', scheduleHideTooltip)
   document.body.appendChild(tooltipBox)
 
   return tooltipBox
+}
+
+function ensureReactionTooltip() {
+  if (reactionTooltip && document.body.contains(reactionTooltip)) {
+    return reactionTooltip
+  }
+
+  reactionTooltip = document.createElement('div')
+  reactionTooltip.setAttribute('role', 'tooltip')
+  reactionTooltip.style.position = 'fixed'
+  reactionTooltip.style.zIndex = '2147483647'
+  reactionTooltip.style.display = 'none'
+  reactionTooltip.style.maxWidth = '220px'
+  reactionTooltip.style.padding = '6px 8px'
+  reactionTooltip.style.border = '1px solid rgba(255, 255, 255, 0.16)'
+  reactionTooltip.style.borderRadius = '6px'
+  reactionTooltip.style.background = 'rgba(9, 9, 11, 0.96)'
+  reactionTooltip.style.boxShadow = '0 14px 34px rgba(0, 0, 0, 0.38)'
+  reactionTooltip.style.color = '#f4f4f5'
+  reactionTooltip.style.font = '700 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+  reactionTooltip.style.lineHeight = '1.35'
+  reactionTooltip.style.pointerEvents = 'none'
+  reactionTooltip.style.whiteSpace = 'nowrap'
+  document.body.appendChild(reactionTooltip)
+
+  return reactionTooltip
+}
+
+function showReactionTooltip(target) {
+  const text = target?.dataset?.truthshieldReactionTooltip
+  if (!text) return
+
+  const box = ensureReactionTooltip()
+  const rect = target.getBoundingClientRect()
+  box.textContent = text
+  box.style.display = 'block'
+
+  const boxWidth = Math.min(box.offsetWidth || 160, 220)
+  const top = rect.top - box.offsetHeight - 8
+  const left = rect.left + (rect.width / 2) - (boxWidth / 2)
+  box.style.top = `${Math.max(8, top)}px`
+  box.style.left = `${Math.max(8, Math.min(left, document.documentElement.clientWidth - boxWidth - 8))}px`
+}
+
+function hideReactionTooltip() {
+  if (reactionTooltip) {
+    reactionTooltip.style.display = 'none'
+  }
 }
 
 function positionTooltip(anchor) {
@@ -1033,15 +1088,21 @@ function renderTooltip(payload, loading = false, failed = false, reactionPayload
   box.style.borderColor = tone.border
   box.style.background = tone.background
   const reactions = reactionPayload?.hover_reactions || []
+  const eventContext = relatedEventContextText(reactionPayload)
   const reactionTitle = t('readerReactionTitle')
   const reactionHint = reactions.length ? t('readerReactionHoverHint') : t('readerReactionEmpty')
   const reactionHtml = reactions.length
-    ? reactions.map((row) => `
+    ? reactions.map((row) => {
+      const text = reactionTooltipText(row.label || row.key, row.count || 0)
+
+      return `
         <span
-          title="${escapeHtml(`${row.label || row.key} · ${row.count || 0}`)}"
-          style="display:inline-flex;height:28px;width:28px;align-items:center;justify-content:center;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(9,9,11,0.78);font-size:17px;"
+          data-truthshield-reaction-tooltip="${escapeHtml(text)}"
+          title="${escapeHtml(text)}"
+          style="display:inline-flex;height:28px;width:28px;align-items:center;justify-content:center;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(9,9,11,0.78);font-size:17px;cursor:help;"
         >${escapeHtml(row.emoji || '')}</span>
-      `).join('')
+      `
+    }).join('')
     : ''
 
   const displayText = loading
@@ -1064,6 +1125,7 @@ function renderTooltip(payload, loading = false, failed = false, reactionPayload
       </div>
       <div style="font-weight:700;line-height:1.45;">${escapeHtml(displayText)}</div>
       <div style="margin-top:6px;color:#d4d4d8;font-size:12px;line-height:1.45;">${escapeHtml(meta)}</div>
+      ${eventContext ? `<div style="margin-top:6px;color:#a7f3d0;font-size:12px;line-height:1.45;">${escapeHtml(t('eventContext'))}: ${escapeHtml(eventContext)}</div>` : ''}
       <div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,0.1);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
           <span style="color:#d4d4d8;font-size:11px;font-weight:700;">${escapeHtml(reactionTitle)}</span>
@@ -1086,6 +1148,27 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;')
+}
+
+function reactionTooltipText(label, count = null) {
+  const safeLabel = label || ''
+  if (count === null || count === undefined || count === '') {
+    return safeLabel
+  }
+
+  return `${safeLabel} · ${count}`
+}
+
+function relatedEventContextText(reactionPayload) {
+  const relatedEvent = Array.isArray(reactionPayload?.related_events) ? reactionPayload.related_events[0] : null
+  if (!relatedEvent) {
+    return ''
+  }
+
+  return [
+    relatedEvent.primary_category_label,
+    relatedEvent.progress_status_label,
+  ].filter(Boolean).join(' · ')
 }
 
 async function showTooltip(anchor) {
@@ -1512,25 +1595,36 @@ function renderArticleBannerReactionControls(payload, compact = false) {
   const topRows = payload?.hover_reactions || []
   const selected = Array.isArray(payload?.my_reaction?.feelings) ? payload.my_reaction.feelings : []
   const topEmoji = topRows.length
-    ? topRows.map((row) => `<span title="${escapeHtml(`${row.label || row.key} · ${row.count || 0}`)}" style="font-size:${compact ? '14px' : '15px'};line-height:1;">${escapeHtml(row.emoji || '')}</span>`).join('')
+    ? topRows.map((row) => {
+      const text = reactionTooltipText(row.label || row.key, row.count || 0)
+
+      return `<span data-truthshield-reaction-tooltip="${escapeHtml(text)}" title="${escapeHtml(text)}" style="font-size:${compact ? '14px' : '15px'};line-height:1;cursor:help;">${escapeHtml(row.emoji || '')}</span>`
+    }).join('')
     : compact
       ? '<span style="color:#71717a;font-size:13px;line-height:1;">♡</span>'
       : `<span style="color:#71717a;font-size:11px;white-space:nowrap;">${escapeHtml(t('readerReactionEmpty'))}</span>`
-  const buttons = articleBannerReactionOptions(payload)
-    .slice(0, compact ? 3 : 6)
+  const availableOptions = articleBannerReactionOptions(payload)
+  const visibleOptions = compact
+    ? ['confused', 'worried', 'happy', 'clear']
+      .map((key) => availableOptions.find((option) => option.key === key))
+      .filter(Boolean)
+    : availableOptions.slice(0, 8)
+  const buttons = visibleOptions
     .map((option) => {
       const active = selected.includes(option.key)
       const loading = articleBannerReactionSubmittingKey === option.key
       const background = active ? 'rgba(110,231,183,.92)' : 'rgba(255,255,255,.06)'
       const color = active ? '#09090b' : '#f4f4f5'
       const border = active ? 'rgba(167,243,208,.98)' : 'rgba(255,255,255,.14)'
+      const label = `${t('readerReactionVote')}: ${option.label}`
 
       return `
         <button
           data-truthshield-reaction-key="${escapeHtml(option.key)}"
+          data-truthshield-reaction-tooltip="${escapeHtml(label)}"
           type="button"
-          title="${escapeHtml(`${t('readerReactionVote')}: ${option.label}`)}"
-          aria-label="${escapeHtml(`${t('readerReactionVote')}: ${option.label}`)}"
+          title="${escapeHtml(label)}"
+          aria-label="${escapeHtml(label)}"
           style="display:inline-flex;align-items:center;justify-content:center;width:${compact ? '24px' : '28px'};height:${compact ? '24px' : '28px'};border:1px solid ${border};border-radius:999px;background:${background};color:${color};font:${compact ? '14px' : '16px'} system-ui;cursor:pointer;padding:0;line-height:1;"
         >${loading ? '…' : escapeHtml(option.emoji || '')}</button>
       `
@@ -1585,6 +1679,8 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
     : isPayloadVotingClosed(payload)
       ? t('voteClosed')
       : t('readEvidence')
+  const eventContext = relatedEventContextText(reactionPayload)
+  const secondaryText = eventContext ? `${statusText} · ${eventContext}` : statusText
   const reactionControls = renderArticleBannerReactionControls(reactionPayload, articleBanner.dataset.truthshieldMode === 'youtube_chip')
 
   if (articleBanner.dataset.truthshieldMode === 'youtube_chip') {
@@ -1600,7 +1696,7 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
         <button data-truthshield-close-banner type="button" aria-label="${t('closeBanner')}" style="border:0;background:transparent;color:#a1a1aa;padding:2px 3px;font:800 13px system-ui;cursor:pointer;">×</button>
       </div>
     `
-    articleBanner.title = `${displayText} · ${statusText}`
+    articleBanner.title = `${displayText} · ${secondaryText}`
     return
   }
 
@@ -1612,7 +1708,7 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
       </a>
       <div style="min-width:140px;flex:1 1 220px;">
         <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.35;">${escapeHtml(displayText)}</div>
-        <div style="margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;">${escapeHtml(statusText)}</div>
+        <div style="margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;">${escapeHtml(secondaryText)}</div>
       </div>
       ${reactionControls}
       <span style="border:1px solid ${tone.border};border-radius:6px;color:${tone.accent};background:rgba(255,255,255,.04);padding:5px 8px;font:700 12px system-ui;white-space:nowrap;">${t('open')}</span>
@@ -2153,6 +2249,11 @@ function scheduleHideTooltip() {
 document.addEventListener(
   'mouseover',
   (event) => {
+    const reactionTarget = event.target?.closest?.('[data-truthshield-reaction-tooltip]')
+    if (reactionTarget) {
+      showReactionTooltip(reactionTarget)
+    }
+
     const anchor = event.target.closest?.('a[href]')
     if (!enableTooltip || shouldSuppressHoverTooltip() || !anchor || !isNewsLink(anchor)) {
       return
@@ -2167,9 +2268,36 @@ document.addEventListener(
 document.addEventListener(
   'mouseout',
   (event) => {
+    const reactionTarget = event.target?.closest?.('[data-truthshield-reaction-tooltip]')
+    if (reactionTarget && !reactionTarget.contains(event.relatedTarget)) {
+      hideReactionTooltip()
+    }
+
     const anchor = event.target.closest?.('a[href]')
     if (anchor && anchor === activeAnchor) {
       scheduleHideTooltip()
+    }
+  },
+  true,
+)
+
+document.addEventListener(
+  'focusin',
+  (event) => {
+    const reactionTarget = event.target?.closest?.('[data-truthshield-reaction-tooltip]')
+    if (reactionTarget) {
+      showReactionTooltip(reactionTarget)
+    }
+  },
+  true,
+)
+
+document.addEventListener(
+  'focusout',
+  (event) => {
+    const reactionTarget = event.target?.closest?.('[data-truthshield-reaction-tooltip]')
+    if (reactionTarget) {
+      hideReactionTooltip()
     }
   },
   true,
@@ -2179,6 +2307,7 @@ window.addEventListener('scroll', () => {
   if (tooltipBox?.style.display === 'block' && activeAnchor) {
     positionTooltip(activeAnchor)
   }
+  hideReactionTooltip()
 })
 
 window.addEventListener('pagehide', flushExtensionTelemetry)

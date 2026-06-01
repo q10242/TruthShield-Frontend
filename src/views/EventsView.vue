@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { createEvent, fetchEvents } from '../lib/api'
+import { createEvent, fetchEventOptions, fetchEvents } from '../lib/api'
 import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
 
@@ -13,11 +13,14 @@ const zh = computed(() => locale.value !== 'en')
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const q = ref('')
 const sort = ref('updated')
+const categoryFilter = ref('')
+const progressFilter = ref('')
 const page = ref(1)
 const perPage = 20
 const loading = ref(false)
 const error = ref('')
 const events = ref([])
+const eventOptions = ref({ primary_categories: [], tags: [], progress_statuses: [] })
 const meta = ref({ total: 0, last_page: 1, page: 1 })
 const createOpen = ref(false)
 const createSubmitting = ref(false)
@@ -29,6 +32,9 @@ const createForm = ref({
   summary: '',
   news_url: '',
   title_snapshot: '',
+  primary_category: '',
+  tags: [],
+  progress_status: 'collecting',
 })
 
 const text = computed(() => ({
@@ -70,6 +76,13 @@ const text = computed(() => ({
   eventSummary: zh.value ? '事件摘要' : 'Event summary',
   primaryUrl: zh.value ? '主要新聞 URL *' : 'Primary article URL *',
   primaryTitle: zh.value ? '新聞標題（選填）' : 'Article title optional',
+  primaryCategory: zh.value ? '事件主分類' : 'Primary category',
+  supplementalTags: zh.value ? '補充標籤' : 'Supplemental tags',
+  progressStatus: zh.value ? '進度狀態' : 'Progress status',
+  categoryFilter: zh.value ? '分類' : 'Category',
+  progressFilter: zh.value ? '進度' : 'Progress',
+  allCategories: zh.value ? '全部分類' : 'All categories',
+  allProgress: zh.value ? '全部進度' : 'All progress',
   creating: zh.value ? '建立中...' : 'Creating...',
   createSuccess: zh.value ? '事件已建立，正在開啟事件頁。' : 'Event created. Opening the event page.',
   createFailed: zh.value ? '建立事件失敗。' : 'Failed to create event.',
@@ -137,13 +150,28 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const payload = await fetchEvents({ q: q.value, sort: sort.value, per_page: perPage, page: page.value })
+    const payload = await fetchEvents({
+      q: q.value,
+      sort: sort.value,
+      primary_category: categoryFilter.value || undefined,
+      progress_status: progressFilter.value || undefined,
+      per_page: perPage,
+      page: page.value,
+    })
     events.value = payload.data || []
     meta.value = payload.meta || { total: 0, last_page: 1, page: 1 }
   } catch (err) {
     error.value = err.message || 'Failed to load events'
   } finally {
     loading.value = false
+  }
+}
+
+async function loadOptions() {
+  try {
+    eventOptions.value = await fetchEventOptions()
+  } catch {
+    eventOptions.value = { primary_categories: [], tags: [], progress_statuses: [] }
   }
 }
 
@@ -175,9 +203,12 @@ async function submitCreate() {
       summary: createForm.value.summary.trim() || undefined,
       news_url: createForm.value.news_url.trim(),
       title_snapshot: createForm.value.title_snapshot.trim() || undefined,
+      primary_category: createForm.value.primary_category || undefined,
+      tags: createForm.value.tags,
+      progress_status: createForm.value.progress_status || 'collecting',
     })
     createMessage.value = text.value.createSuccess
-    createForm.value = { name: '', summary: '', news_url: '', title_snapshot: '' }
+    createForm.value = { name: '', summary: '', news_url: '', title_snapshot: '', primary_category: '', tags: [], progress_status: 'collecting' }
     await load()
     const eventId = payload?.data?.id
     if (eventId) {
@@ -212,6 +243,8 @@ function goPage(p) {
 
 function resetSearch() {
   q.value = ''
+  categoryFilter.value = ''
+  progressFilter.value = ''
   page.value = 1
   load()
 }
@@ -223,6 +256,7 @@ function formatDate(iso) {
 
 onMounted(() => {
   token.value = localStorage.getItem(TOKEN_KEY) || ''
+  loadOptions()
   load()
 })
 </script>
@@ -312,6 +346,30 @@ onMounted(() => {
                 <input v-model="createForm.title_snapshot" class="rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-cyan-300" maxlength="255" />
                 <span v-if="fieldError('title_snapshot')" class="text-xs text-red-300">{{ fieldError('title_snapshot') }}</span>
               </label>
+              <div class="grid gap-3 md:grid-cols-2">
+                <label class="grid gap-1.5 text-sm">
+                  <span class="text-zinc-300">{{ text.primaryCategory }}</span>
+                  <select v-model="createForm.primary_category" class="rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-cyan-300">
+                    <option value="">{{ text.allCategories }}</option>
+                    <option v-for="option in eventOptions.primary_categories" :key="option.value" :value="option.value">{{ option.label }}</option>
+                  </select>
+                  <span v-if="fieldError('primary_category')" class="text-xs text-red-300">{{ fieldError('primary_category') }}</span>
+                </label>
+                <label class="grid gap-1.5 text-sm">
+                  <span class="text-zinc-300">{{ text.progressStatus }}</span>
+                  <select v-model="createForm.progress_status" class="rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-cyan-300">
+                    <option v-for="option in eventOptions.progress_statuses" :key="option.value" :value="option.value">{{ option.label }}</option>
+                  </select>
+                  <span v-if="fieldError('progress_status')" class="text-xs text-red-300">{{ fieldError('progress_status') }}</span>
+                </label>
+              </div>
+              <label class="grid gap-1.5 text-sm">
+                <span class="text-zinc-300">{{ text.supplementalTags }}</span>
+                <select v-model="createForm.tags" multiple size="5" class="rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-cyan-300">
+                  <option v-for="option in eventOptions.tags" :key="option.value" :value="option.value">{{ option.label }}</option>
+                </select>
+                <span v-if="fieldError('tags')" class="text-xs text-red-300">{{ fieldError('tags') }}</span>
+              </label>
               <p v-if="createError" class="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-100">{{ createError }}</p>
               <p v-if="createMessage" class="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">{{ createMessage }}</p>
               <button class="rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-50" type="submit" :disabled="!canSubmitCreate">
@@ -329,6 +387,14 @@ onMounted(() => {
             <p class="mt-2 text-sm text-zinc-300">{{ resultSummary }}</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
+            <select v-model="categoryFilter" class="rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-300 outline-none focus:border-cyan-300" @change="page = 1; load()">
+              <option value="">{{ text.allCategories }}</option>
+              <option v-for="option in eventOptions.primary_categories" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+            <select v-model="progressFilter" class="rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-300 outline-none focus:border-cyan-300" @change="page = 1; load()">
+              <option value="">{{ text.allProgress }}</option>
+              <option v-for="option in eventOptions.progress_statuses" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
             <span class="text-xs text-zinc-500">{{ zh ? '排序：' : 'Sort:' }}</span>
             <button
               v-for="opt in sortOptions"
@@ -354,12 +420,16 @@ onMounted(() => {
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2 text-xs">
-                <span class="rounded-full bg-cyan-300/10 px-3 py-1 font-semibold text-cyan-100">{{ statusLabel(event.status) }}</span>
+                <span v-if="event.primary_category_label" class="rounded-full bg-cyan-300/10 px-3 py-1 font-semibold text-cyan-100">{{ event.primary_category_label }}</span>
+                <span class="rounded-full bg-emerald-300/10 px-3 py-1 font-semibold text-emerald-100">{{ event.progress_status_label || statusLabel(event.progress_status) }}</span>
                 <span v-if="event.is_disputed" class="rounded-full bg-amber-500/10 px-3 py-1 font-semibold text-amber-100">{{ text.disputed }}</span>
                 <span class="rounded-full border border-white/10 px-3 py-1 text-zinc-400">{{ eventStateTone(event) }}</span>
               </div>
               <h2 class="mt-3 text-xl font-semibold text-white md:text-2xl">{{ event.name }}</h2>
               <p class="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">{{ event.summary || text.summaryFallback }}</p>
+              <div v-if="event.tag_labels?.length" class="mt-3 flex flex-wrap gap-2 text-xs">
+                <span v-for="label in event.tag_labels.slice(0, 3)" :key="label" class="rounded-full border border-white/10 px-2.5 py-1 text-zinc-300">{{ label }}</span>
+              </div>
             </div>
             <RouterLink class="rounded-xl border border-cyan-300/40 px-4 py-2.5 text-sm font-semibold text-cyan-100 transition hover:border-cyan-300/80 hover:bg-cyan-300/8" :to="`/events/${event.id}`">{{ text.open }}</RouterLink>
           </div>

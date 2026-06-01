@@ -14,6 +14,7 @@ import {
   fetchEvidenceReportReasons,
   fetchOfficialResponses,
   fetchEvents,
+  fetchEventOptions,
   fetchEventTimeline,
   fetchEventGraph,
   fetchProfile,
@@ -73,6 +74,10 @@ export function useVotePanel(route) {
   const pinSelectedEventId = ref('')
   const pinNewEventName = ref('')
   const pinNewEventSummary = ref('')
+  const pinEventOptions = ref({ primary_categories: [], tags: [], progress_statuses: [] })
+  const pinNewEventPrimaryCategory = ref('')
+  const pinNewEventTags = ref([])
+  const pinNewEventProgressStatus = ref('collecting')
   const pinMode = ref('timeline')
   const pinEntryTitle = ref(route.query.title_snapshot || '')
   const pinEntrySummary = ref('')
@@ -627,6 +632,7 @@ export function useVotePanel(route) {
         fetchEvidenceReportReasons(),
         fetchOfficialResponses(newsUrl.value),
         fetchEvents({ news_url: newsUrl.value, limit: 5 }).catch(() => ({ data: [] })),
+        fetchEventOptions().catch(() => ({ primary_categories: [], tags: [], progress_statuses: [] })),
         fetchReactionSummary({ news_url: newsUrl.value }, token.value).catch(() => null),
       ]
 
@@ -634,7 +640,7 @@ export function useVotePanel(route) {
         requests.push(fetchMyVote(token.value, newsUrl.value).catch(() => ({ vote: null })))
       }
 
-      const [statusPayload, tagPayload, evidencePayload, reportReasonsPayload, officialResponsesPayload, eventPayload, reactionPayload, myVotePayload] = await Promise.all(requests)
+      const [statusPayload, tagPayload, evidencePayload, reportReasonsPayload, officialResponsesPayload, eventPayload, eventOptionsPayload, reactionPayload, myVotePayload] = await Promise.all(requests)
 
       status.value = statusPayload
       hasLoadedStatus.value = true
@@ -643,6 +649,7 @@ export function useVotePanel(route) {
       reportReasons.value = reportReasonsPayload
       officialResponses.value = officialResponsesPayload
       relatedEvents.value = eventPayload?.data || []
+      pinEventOptions.value = eventOptionsPayload
       applyReactionPayload(reactionPayload)
       myVote.value = myVotePayload?.vote || null
 
@@ -1276,6 +1283,9 @@ export function useVotePanel(route) {
           summary: pinNewEventSummary.value.trim() || undefined,
           news_url: newsUrl.value,
           title_snapshot: route.query.title_snapshot || undefined,
+          primary_category: pinNewEventPrimaryCategory.value || undefined,
+          tags: pinNewEventTags.value,
+          progress_status: pinNewEventProgressStatus.value || 'collecting',
         })
         eventId = created.data?.id
         pinSelectedEventId.value = String(eventId)
@@ -1429,6 +1439,10 @@ export function useVotePanel(route) {
     pinSelectedEventId,
     pinNewEventName,
     pinNewEventSummary,
+    pinEventOptions,
+    pinNewEventPrimaryCategory,
+    pinNewEventTags,
+    pinNewEventProgressStatus,
     pinMode,
     pinEntryTitle,
     pinEntrySummary,

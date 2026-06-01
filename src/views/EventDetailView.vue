@@ -5,12 +5,14 @@ import {
   createEventEntity,
   createEventRelationship,
   createEventTimelineEntry,
+  fetchCurrentUser,
   createGlobalEntity,
   deleteEventEntity,
   deleteEventRelationship,
   deleteEventTimelineEntry,
   fetchEvent,
   fetchEventEditLogs,
+  fetchEventOptions,
   fetchEventGraph,
   fetchReactionSummary,
   fetchEventTimeline,
@@ -18,6 +20,7 @@ import {
   searchGlobalEntities,
   updateEventEntity,
   updateEventEntityPosition,
+  updateEvent,
   updateEventRelationship,
   updateEventTimelineEntry,
 } from '../lib/api'
@@ -28,6 +31,8 @@ const route = useRoute()
 const { locale } = useI18n()
 const zh = computed(() => locale.value !== 'en')
 const token = ref(localStorage.getItem('truthshield_api_token') || '')
+const currentUser = ref(null)
+const eventOptions = ref({ primary_categories: [], tags: [], progress_statuses: [] })
 
 const sourceTypes = computed(() => [
   { value: 'news', label: zh.value ? '新聞' : 'News' },
@@ -54,6 +59,12 @@ const panAnchor = ref(null)
 const submitting = ref(false)
 const formMessage = ref('')
 const formError = ref('')
+const metadataEditOpen = ref(false)
+const metadataForm = ref({
+  primary_category: '',
+  tags: [],
+  progress_status: 'collecting',
+})
 const graphContextMenu = ref({
   open: false,
   x: 0,
@@ -190,6 +201,13 @@ const relationshipEditForm = ref({
   source_url: '',
 })
 const entityFilter = ref('all')
+const canUseEventSystem = computed(() => {
+  if (!token.value) return false
+  if (!currentUser.value) return false
+  if (typeof currentUser.value?.can_use_event_system === 'boolean') return currentUser.value.can_use_event_system
+
+  return Boolean(currentUser.value?.is_admin) || Number(currentUser.value?.trust_score ?? 1.0) >= Number(currentUser.value?.event_system_min_trust_score ?? 1.0)
+})
 
 const tabs = computed(() => [
   { key: 'overview', label: zh.value ? '總覽' : 'Overview' },
@@ -235,23 +253,62 @@ async function load() {
   error.value = ''
   try {
     const id = route.params.id
-    const [eventPayload, timelinePayload, graphPayload, logPayload, reactionPayload] = await Promise.all([
+    const [eventPayload, timelinePayload, graphPayload, logPayload, reactionPayload, optionsPayload, userPayload] = await Promise.all([
       fetchEvent(id),
       fetchEventTimeline(id),
       fetchEventGraph(id),
       fetchEventEditLogs(id),
       fetchReactionSummary({ event_id: id }).catch(() => null),
+      fetchEventOptions().catch(() => ({ primary_categories: [], tags: [], progress_statuses: [] })),
+      token.value ? fetchCurrentUser(token.value).catch(() => null) : Promise.resolve(null),
     ])
     event.value = eventPayload.data
+    metadataForm.value = {
+      primary_category: event.value.primary_category || '',
+      tags: event.value.tags || [],
+      progress_status: event.value.progress_status || 'collecting',
+    }
     setMeta(event.value.name + ' — TruthShield', event.value.summary || event.value.name)
     timeline.value = timelinePayload
     graph.value = graphPayload
     logs.value = logPayload
     reactionSummary.value = reactionPayload
+    eventOptions.value = optionsPayload
+    currentUser.value = userPayload
   } catch (err) {
     error.value = err.message || 'Failed to load event'
   } finally {
     loading.value = false
+  }
+}
+
+async function saveEventMetadata() {
+  if (!token.value || !canUseEventSystem.value) {
+    formError.value = zh.value ? '登入且信用分數達標後才能編輯事件分類與進度。' : 'Sign in with enough trust score to edit event classification and progress.'
+    return
+  }
+
+  resetMessages()
+  submitting.value = true
+  try {
+    const payload = await updateEvent(token.value, route.params.id, {
+      primary_category: metadataForm.value.primary_category || null,
+      tags: metadataForm.value.tags || [],
+      progress_status: metadataForm.value.progress_status || 'collecting',
+    })
+    event.value = payload.data
+    metadataForm.value = {
+      primary_category: event.value.primary_category || '',
+      tags: event.value.tags || [],
+      progress_status: event.value.progress_status || 'collecting',
+    }
+    metadataEditOpen.value = false
+    formMessage.value = zh.value ? '事件分類與進度已更新，編輯紀錄已保存。' : 'Event classification and progress updated and logged.'
+    await load()
+  } catch (err) {
+    formError.value = err.message || (zh.value ? '更新事件分類失敗。' : 'Failed to update event metadata.')
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -1092,11 +1149,46 @@ onUnmounted(() => { document.title = 'TruthShield' })
           <h1 class="mt-2 text-3xl font-semibold text-white md:text-4xl">{{ event.name }}</h1>
           <p class="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">{{ event.summary || (zh ? '這個事件還需要社群補充摘要。' : 'This event still needs a community summary.') }}</p>
           <div class="mt-4 flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-cyan-300/10 px-3 py-1 font-semibold text-cyan-100">{{ event.status }}</span>
+            <span v-if="event.primary_category_label" class="rounded-full bg-cyan-300/10 px-3 py-1 font-semibold text-cyan-100">{{ event.primary_category_label }}</span>
+            <span class="rounded-full bg-emerald-300/10 px-3 py-1 font-semibold text-emerald-100">{{ event.progress_status_label || event.progress_status }}</span>
+            <span v-for="label in event.tag_labels || []" :key="label" class="rounded-full border border-white/10 px-3 py-1 text-zinc-300">{{ label }}</span>
             <span v-if="event.is_disputed" class="rounded-full bg-amber-500/10 px-3 py-1 font-semibold text-amber-100">{{ zh ? '爭議中' : 'Disputed' }}</span>
             <span class="rounded-full bg-white/10 px-3 py-1 text-zinc-300">{{ zh ? '觀看' : 'Views' }} {{ (event.view_count ?? 0).toLocaleString() }}</span>
             <span class="rounded-full bg-white/10 px-3 py-1 text-zinc-300">{{ zh ? '最後活動' : 'Last activity' }} {{ fmtDate(event.last_activity_at || event.created_at) }}</span>
+            <button
+              v-if="canUseEventSystem"
+              type="button"
+              class="rounded-full border border-cyan-300/40 px-3 py-1 font-semibold text-cyan-100 hover:border-cyan-300/80"
+              @click="metadataEditOpen = !metadataEditOpen"
+            >
+              {{ zh ? '編輯分類/進度' : 'Edit classification' }}
+            </button>
           </div>
+          <form v-if="metadataEditOpen" class="mt-4 grid gap-3 rounded-2xl border border-cyan-300/20 bg-zinc-950/60 p-4 md:grid-cols-3" @submit.prevent="saveEventMetadata">
+            <label class="grid gap-1.5 text-sm">
+              <span class="text-zinc-400">{{ zh ? '主分類' : 'Primary category' }}</span>
+              <select v-model="metadataForm.primary_category" class="rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300">
+                <option value="">{{ zh ? '未分類' : 'Uncategorized' }}</option>
+                <option v-for="option in eventOptions.primary_categories" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label class="grid gap-1.5 text-sm">
+              <span class="text-zinc-400">{{ zh ? '進度狀態' : 'Progress' }}</span>
+              <select v-model="metadataForm.progress_status" class="rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300">
+                <option v-for="option in eventOptions.progress_statuses" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label class="grid gap-1.5 text-sm">
+              <span class="text-zinc-400">{{ zh ? '補充標籤' : 'Tags' }}</span>
+              <select v-model="metadataForm.tags" multiple size="4" class="rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-cyan-300">
+                <option v-for="option in eventOptions.tags" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <div class="flex gap-2 md:col-span-3">
+              <button class="rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-60" :disabled="submitting" type="submit">{{ zh ? '儲存' : 'Save' }}</button>
+              <button class="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-zinc-300" type="button" @click="metadataEditOpen = false">{{ zh ? '取消' : 'Cancel' }}</button>
+            </div>
+          </form>
           <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div v-for="stat in overviewStats" :key="stat.key" class="rounded-2xl border p-4" :class="stat.tone">
               <p class="text-xs uppercase tracking-[0.18em] text-zinc-500">{{ stat.label }}</p>

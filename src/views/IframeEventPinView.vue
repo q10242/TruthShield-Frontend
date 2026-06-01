@@ -6,6 +6,7 @@ import {
   createEventEntity,
   createEventRelationship,
   createEventTimelineEntry,
+  fetchEventOptions,
   fetchEventGraph,
   fetchEvents,
 } from '../lib/api'
@@ -20,6 +21,7 @@ const zh = computed(() => locale.value !== 'en')
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const user = ref(readUser())
 const events = ref([])
+const taxonomyOptions = ref({ primary_categories: [], tags: [], progress_statuses: [] })
 const selectedEventId = ref('')
 const graph = ref({ entities: [], relationships: [] })
 const loading = ref(true)
@@ -45,6 +47,9 @@ const canUseEventSystem = computed(() => {
 
 const eventName = ref('')
 const eventSummary = ref('')
+const eventPrimaryCategory = ref('')
+const eventTags = ref([])
+const eventProgressStatus = ref('collecting')
 const timelineTitle = ref(pageTitle.value || (zh.value ? '新聞事件' : 'News event'))
 const timelineSummary = ref('')
 const occurredAt = ref(new Date().toISOString().slice(0, 16))
@@ -72,6 +77,10 @@ const text = computed(() => ({
   createEvent: zh.value ? '或建立新事件' : 'Or create a new event',
   eventName: zh.value ? '事件名稱' : 'Event name',
   eventSummary: zh.value ? '事件摘要' : 'Event summary',
+  primaryCategory: zh.value ? '事件主分類' : 'Primary category',
+  tags: zh.value ? '補充標籤' : 'Tags',
+  progressStatus: zh.value ? '進度狀態' : 'Progress',
+  uncategorized: zh.value ? '未分類' : 'Uncategorized',
   entryTitle: zh.value ? '時間線標題' : 'Entry title',
   summary: zh.value ? '摘要' : 'Summary',
   time: zh.value ? '時間點' : 'Time',
@@ -112,7 +121,8 @@ async function loadEvents() {
     } else if (!selectedEventId.value && events.value[0]) {
       selectedEventId.value = String(events.value[0].id)
     }
-    await loadGraph()
+      await loadGraph()
+      taxonomyOptions.value = await fetchEventOptions().catch(() => ({ primary_categories: [], tags: [], progress_statuses: [] }))
   } catch (err) {
     error.value = err.message || 'Failed to load events'
   } finally {
@@ -140,6 +150,9 @@ async function ensureEvent() {
     summary: eventSummary.value || timelineSummary.value || relationshipDescription.value || undefined,
     news_url: newsUrl.value,
     title_snapshot: pageTitle.value || undefined,
+    primary_category: eventPrimaryCategory.value || undefined,
+    tags: eventTags.value,
+    progress_status: eventProgressStatus.value || 'collecting',
   })
   const id = payload.data?.id
   createdEventId.value = id
@@ -280,6 +293,25 @@ onMounted(() => {
         <label class="block">
           <span class="text-xs font-semibold text-zinc-500">{{ text.eventSummary }}</span>
           <textarea v-model="eventSummary" class="mt-1 min-h-16 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"></textarea>
+        </label>
+        <label class="block">
+          <span class="text-xs font-semibold text-zinc-500">{{ text.primaryCategory }}</span>
+          <select v-model="eventPrimaryCategory" class="mt-1 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+            <option value="">{{ text.uncategorized }}</option>
+            <option v-for="option in taxonomyOptions.primary_categories" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-xs font-semibold text-zinc-500">{{ text.progressStatus }}</span>
+          <select v-model="eventProgressStatus" class="mt-1 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+            <option v-for="option in taxonomyOptions.progress_statuses" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-xs font-semibold text-zinc-500">{{ text.tags }}</span>
+          <select v-model="eventTags" multiple size="4" class="mt-1 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+            <option v-for="option in taxonomyOptions.tags" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
         </label>
       </div>
 
