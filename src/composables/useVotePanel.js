@@ -207,11 +207,18 @@ export function useVotePanel(route) {
   const distribution = computed(() => status.value?.distribution || [])
   const secondaryDistribution = computed(() => status.value?.secondary_distribution || [])
   const evidenceReactionMinTrustScore = computed(() => Number(user.value?.evidence_reaction_min_trust_score ?? 0.5))
+  const eventSystemMinTrustScore = computed(() => Number(user.value?.event_system_min_trust_score ?? 1.0))
   const canReactToEvidence = computed(() => {
     if (!isLoggedIn.value) return true
     if (typeof user.value?.can_react_to_evidence === 'boolean') return user.value.can_react_to_evidence
 
     return Number(user.value?.trust_score || 0) >= evidenceReactionMinTrustScore.value
+  })
+  const canUseEventSystem = computed(() => {
+    if (!isLoggedIn.value) return true
+    if (typeof user.value?.can_use_event_system === 'boolean') return user.value.can_use_event_system
+
+    return Boolean(user.value?.is_admin) || Number(user.value?.trust_score ?? 1.0) >= eventSystemMinTrustScore.value
   })
   const isWeightLimited = computed(() => {
     if (!isLoggedIn.value) return false
@@ -1253,6 +1260,10 @@ export function useVotePanel(route) {
 
   async function submitPinEntry() {
     if (!isLoggedIn.value) { openLogin(); return }
+    if (!canUseEventSystem.value) {
+      pinError.value = t('votePanel.eventSystemMinTrust', { score: eventSystemMinTrustScore.value.toFixed(2) })
+      return
+    }
     pinError.value = ''
     pinMessage.value = ''
     pinSubmitting.value = true
@@ -1479,7 +1490,9 @@ export function useVotePanel(route) {
     distribution,
     secondaryDistribution,
     evidenceReactionMinTrustScore,
+    eventSystemMinTrustScore,
     canReactToEvidence,
+    canUseEventSystem,
     isWeightLimited,
     approvedClaimants,
     unlockedAchievements,

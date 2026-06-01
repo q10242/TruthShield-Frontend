@@ -35,6 +35,13 @@ const eventSearch = ref(pageTitle.value || '')
 const isLoggedIn = computed(() => Boolean(token.value && user.value))
 const eventOptions = computed(() => events.value || [])
 const selectedEvent = computed(() => eventOptions.value.find((event) => String(event.id) === String(selectedEventId.value)))
+const eventSystemMinTrustScore = computed(() => Number(user.value?.event_system_min_trust_score ?? 1.0))
+const canUseEventSystem = computed(() => {
+  if (!isLoggedIn.value) return true
+  if (typeof user.value?.can_use_event_system === 'boolean') return user.value.can_use_event_system
+
+  return Boolean(user.value?.is_admin) || Number(user.value?.trust_score ?? 1.0) >= eventSystemMinTrustScore.value
+})
 
 const eventName = ref('')
 const eventSummary = ref('')
@@ -56,6 +63,9 @@ const text = computed(() => ({
   timelineTitle: zh.value ? '加入事件時間線' : 'Add to Event Timeline',
   graphTitle: zh.value ? '加入人物/組織關係圖' : 'Add to People/Org Graph',
   login: zh.value ? '登入後才能提交事件編輯。' : 'Sign in to submit event edits.',
+  trustRequired: zh.value
+    ? `你的信用分數尚未達 ${eventSystemMinTrustScore.value.toFixed(2)}，暫時不能新增或編輯事件內容。`
+    : `Your trust score is below ${eventSystemMinTrustScore.value.toFixed(2)}, so event creation and edits are temporarily unavailable.`,
   selectEvent: zh.value ? '選擇既有事件' : 'Select existing event',
   searchEvent: zh.value ? '搜尋事件' : 'Search events',
   searchEventPlaceholder: zh.value ? '輸入事件、人物、組織或新聞關鍵字' : 'Search events, people, organizations, or articles',
@@ -182,6 +192,10 @@ async function submit() {
     error.value = text.value.login
     return
   }
+  if (!canUseEventSystem.value) {
+    error.value = text.value.trustRequired
+    return
+  }
 
   submitting.value = true
   error.value = ''
@@ -240,6 +254,7 @@ onMounted(() => {
     </div>
 
     <div v-if="!isLoggedIn" class="mt-4 rounded-md border border-amber-300/30 bg-amber-500/10 p-3 text-sm text-amber-100">{{ text.login }}</div>
+    <div v-else-if="!canUseEventSystem" class="mt-4 rounded-md border border-amber-300/30 bg-amber-500/10 p-3 text-sm text-amber-100">{{ text.trustRequired }}</div>
     <div v-if="error" class="mt-4 rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{{ error }}</div>
     <div v-if="message" class="mt-4 rounded-md border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm text-cyan-100">{{ message }}</div>
 
@@ -320,7 +335,7 @@ onMounted(() => {
         </label>
       </template>
 
-      <button class="w-full rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-60" :disabled="submitting || !isLoggedIn" type="submit">
+      <button class="w-full rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-60" :disabled="submitting || !isLoggedIn || !canUseEventSystem" type="submit">
         {{ submitting ? (zh ? '送出中...' : 'Submitting...') : text.submit }}
       </button>
     </form>

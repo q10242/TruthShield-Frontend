@@ -76,6 +76,9 @@ const sourceTypeLabels = {
       <p class="text-xs font-semibold text-cyan-100">{{ vp.t('votePanel.contextAddTitle') }}</p>
       <p class="text-[11px] leading-5 text-zinc-500">{{ vp.t('votePanel.contextAddDesc') }}</p>
       <div v-if="!vp.isLoggedIn.value" class="text-[11px] text-amber-200">{{ vp.t('votePanel.signInToAddEvents') }}</div>
+      <div v-else-if="!vp.canUseEventSystem.value" class="rounded border border-amber-300/30 bg-amber-300/10 px-2 py-1.5 text-[11px] leading-5 text-amber-100">
+        {{ vp.t('votePanel.eventSystemMinTrust', { score: vp.eventSystemMinTrustScore.value.toFixed(2) }) }}
+      </div>
 
       <div class="flex rounded border border-white/10 bg-zinc-900 p-0.5 text-xs font-semibold">
         <button class="flex-1 rounded py-1.5 transition-colors" :class="vp.pinMode.value === 'timeline' ? 'bg-cyan-300 text-zinc-950' : 'text-zinc-400 hover:text-zinc-200'" @click="vp.pinMode.value = 'timeline'">{{ vp.t('votePanel.timeline') }}</button>
@@ -152,7 +155,7 @@ const sourceTypeLabels = {
 
       <p v-if="vp.pinError.value" class="text-[11px] text-red-300">{{ vp.pinError.value }}</p>
       <p v-if="vp.pinMessage.value" class="text-[11px] text-emerald-300">{{ vp.pinMessage.value }}</p>
-      <button class="w-full rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950 disabled:opacity-50" :disabled="vp.pinSubmitting.value || !vp.isLoggedIn.value" @click="vp.submitPinEntry()">
+      <button class="w-full rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950 disabled:opacity-50" :disabled="vp.pinSubmitting.value || !vp.isLoggedIn.value || !vp.canUseEventSystem.value" @click="vp.submitPinEntry()">
         {{ vp.pinSubmitting.value ? vp.t('votePanel.submitting') : vp.t('votePanel.addToEvent') }}
       </button>
     </div>
