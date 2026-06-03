@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { fetchCommunityTaskStats } from '../lib/api'
+import { fetchCommunityTaskStats, fetchEvents } from '../lib/api'
 import { trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
 
@@ -10,7 +10,9 @@ const USER_KEY = 'truthshield_user'
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
 const communityStats = ref(null)
-const { t } = useI18n()
+const featuredEvents = ref([])
+const { t, locale } = useI18n()
+const zh = computed(() => locale.value !== 'en')
 
 const primaryLinks = computed(() => [
   { to: '/demo-news', label: t('common.demoNews'), description: t('home.demoNewsDesc'), mark: '00' },
@@ -72,6 +74,62 @@ const missionStats = computed(() => [
   { value: t('home.missionStatOpenValue'), label: t('home.missionStatOpen'), description: t('home.missionStatOpenDesc') },
 ])
 
+const eventShowcaseText = computed(() => ({
+  eyebrow: zh.value ? '正在整理的事件' : 'Live event context',
+  title: zh.value ? '先看事件脈絡，再看單篇新聞' : 'Start with the event, then inspect each article',
+  intro: zh.value
+    ? 'TruthShield 把新聞、證據、時間線、讀者心情與治理紀錄收斂到同一個事件頁，讓脈絡比標題更早出現。'
+    : 'TruthShield groups articles, evidence, timelines, reader reactions, and governance logs into event pages so context appears before a headline takes over.',
+  fallbackSummary: zh.value ? '整理公開新聞、證據與後續進展。' : 'Public articles, evidence, and follow-up status are being organized.',
+  openEvent: zh.value ? '查看事件' : 'Open event',
+  allEvents: zh.value ? '看全部事件' : 'View all events',
+  items: zh.value ? '資料' : 'Items',
+  timeline: zh.value ? '時間線' : 'Timeline',
+  views: zh.value ? '瀏覽' : 'Views',
+  latest: zh.value ? '最近更新' : 'Recently updated',
+}))
+
+const fallbackFeaturedEvents = computed(() => [
+  {
+    name: zh.value ? '愷愷案與兒少保護修法' : 'Kai-Kai case and child protection reform',
+    summary: zh.value
+      ? '整理案件前因、司法程序、社福制度漏洞與後續修法結果。'
+      : 'A timeline of the case, court process, child welfare gaps, and legislative follow-up.',
+    primary_category_label: zh.value ? '社會案件' : 'Social case',
+    progress_status_label: zh.value ? '已定案' : 'Resolved',
+    tag_labels: zh.value ? ['兒少', '修法', '司法案件'] : ['Children', 'Law reform', 'Legal case'],
+    counts: { items: 0, timeline: 0 },
+    view_count: 0,
+  },
+  {
+    name: zh.value ? '依托咪酯電子煙與毒駕管制爭議' : 'Etomidate vape and impaired-driving regulation',
+    summary: zh.value
+      ? '追蹤管制、執法、交通安全與社會風險的公開資料。'
+      : 'Tracking public sources on regulation, enforcement, traffic safety, and social risk.',
+    primary_category_label: zh.value ? '公共政策' : 'Public policy',
+    progress_status_label: zh.value ? '持續追蹤' : 'Tracking',
+    tag_labels: zh.value ? ['交通', '修法', '公衛醫療'] : ['Traffic', 'Law reform', 'Public health'],
+    counts: { items: 0, timeline: 0 },
+    view_count: 0,
+  },
+  {
+    name: zh.value ? '能源政策與核電再運轉審查' : 'Energy policy and nuclear restart review',
+    summary: zh.value
+      ? '彙整審查程序、核安、供電、核廢與地方回應。'
+      : 'Collecting review process, nuclear safety, power supply, waste, and local responses.',
+    primary_category_label: zh.value ? '公共政策' : 'Public policy',
+    progress_status_label: zh.value ? '持續追蹤' : 'Tracking',
+    tag_labels: zh.value ? ['能源', '環境', '平台治理'] : ['Energy', 'Environment', 'Governance'],
+    counts: { items: 0, timeline: 0 },
+    view_count: 0,
+  },
+])
+
+const visibleFeaturedEvents = computed(() => {
+  const events = featuredEvents.value.length ? featuredEvents.value : fallbackFeaturedEvents.value
+  return events.slice(0, 3)
+})
+
 const whyCards = computed(() => [
   { title: t('home.whyHeadlineTitle'), description: t('home.whyHeadlineDesc') },
   { title: t('home.whyEvidenceTitle'), description: t('home.whyEvidenceDesc') },
@@ -122,9 +180,27 @@ const presenterLinks = computed(() => [
   { to: '/transparency', label: t('common.transparency'), description: t('home.presenterTransparencyDesc') },
 ])
 
+function eventSummary(event) {
+  const summary = String(event.summary || '').split('\n').find((line) => line.trim())
+  return summary || eventShowcaseText.value.fallbackSummary
+}
+
+function eventLink(event) {
+  return event.id ? `/events/${event.id}` : '/events'
+}
+
+function eventMetric(event, key) {
+  return Number(event.counts?.[key] ?? 0).toLocaleString()
+}
+
 onMounted(async () => {
   trackPageView('home')
-  communityStats.value = await fetchCommunityTaskStats().catch(() => null)
+  const [statsPayload, eventsPayload] = await Promise.all([
+    fetchCommunityTaskStats().catch(() => null),
+    fetchEvents({ per_page: 3, sort: 'updated' }).catch(() => null),
+  ])
+  communityStats.value = statsPayload
+  featuredEvents.value = eventsPayload?.data || []
 })
 </script>
 
@@ -236,34 +312,46 @@ onMounted(async () => {
           </div>
         </section>
 
-        <aside class="overflow-hidden rounded-lg border border-cyan-300/20 bg-zinc-900 shadow-2xl shadow-cyan-950/40">
-          <img class="w-full border-b border-white/10 bg-zinc-950" src="/brand/mission-network.svg" :alt="t('home.heroVisualAlt')" />
-          <div class="flex items-center justify-between border-b border-white/10 p-5 pb-4">
-            <span class="text-sm font-semibold text-white">{{ t('home.articleStatus') }}</span>
-            <span class="rounded bg-red-500/20 px-2 py-1 text-xs font-semibold text-red-100">{{ t('home.tagExample') }}</span>
+        <aside class="rounded-lg border border-cyan-300/20 bg-zinc-900 shadow-2xl shadow-cyan-950/40">
+          <div class="border-b border-white/10 p-5">
+            <p class="text-sm font-semibold text-cyan-300">{{ eventShowcaseText.eyebrow }}</p>
+            <h2 class="mt-2 text-2xl font-semibold leading-tight text-white">{{ eventShowcaseText.title }}</h2>
+            <p class="mt-3 text-sm leading-6 text-zinc-400">{{ eventShowcaseText.intro }}</p>
           </div>
-          <div class="space-y-4 p-5 pt-5">
-            <div class="rounded-md border border-red-300/30 bg-red-500/10 p-4">
-              <p class="text-sm font-semibold text-red-100">{{ t('home.warningExample') }}</p>
-              <p class="mt-2 text-xs text-red-100/75">{{ t('home.evidenceHint') }}</p>
-            </div>
-            <RouterLink class="block w-full rounded-md bg-cyan-300 px-4 py-2 text-center text-sm font-semibold text-zinc-950" to="/news-search">
-              {{ t('home.openVotePanel') }}
+          <div class="divide-y divide-white/10">
+            <article v-for="event in visibleFeaturedEvents" :key="event.id || event.name" class="p-5">
+              <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span v-if="event.primary_category_label" class="rounded-full bg-cyan-300/10 px-2.5 py-1 font-semibold text-cyan-100">{{ event.primary_category_label }}</span>
+                <span class="rounded-full bg-emerald-300/10 px-2.5 py-1 font-semibold text-emerald-100">{{ event.progress_status_label || event.progress_status || eventShowcaseText.latest }}</span>
+              </div>
+              <h3 class="mt-3 text-base font-semibold leading-6 text-white">{{ event.name }}</h3>
+              <p class="mt-2 line-clamp-2 text-sm leading-6 text-zinc-400">{{ eventSummary(event) }}</p>
+              <div v-if="event.tag_labels?.length" class="mt-3 flex flex-wrap gap-2 text-xs">
+                <span v-for="label in event.tag_labels.slice(0, 3)" :key="label" class="rounded-full border border-white/10 px-2.5 py-1 text-zinc-300">{{ label }}</span>
+              </div>
+              <div class="mt-4 grid grid-cols-3 gap-2 text-xs">
+                <div class="rounded-md bg-white/[0.04] p-3">
+                  <div class="font-semibold text-white">{{ eventMetric(event, 'items') }}</div>
+                  <div class="mt-1 text-zinc-500">{{ eventShowcaseText.items }}</div>
+                </div>
+                <div class="rounded-md bg-white/[0.04] p-3">
+                  <div class="font-semibold text-white">{{ eventMetric(event, 'timeline') }}</div>
+                  <div class="mt-1 text-zinc-500">{{ eventShowcaseText.timeline }}</div>
+                </div>
+                <div class="rounded-md bg-white/[0.04] p-3">
+                  <div class="font-semibold text-white">{{ Number(event.view_count ?? 0).toLocaleString() }}</div>
+                  <div class="mt-1 text-zinc-500">{{ eventShowcaseText.views }}</div>
+                </div>
+              </div>
+              <RouterLink class="mt-4 inline-flex rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100 hover:border-cyan-200" :to="eventLink(event)">
+                {{ eventShowcaseText.openEvent }}
+              </RouterLink>
+            </article>
+          </div>
+          <div class="border-t border-white/10 p-5">
+            <RouterLink class="block rounded-md bg-cyan-300 px-4 py-3 text-center text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/events">
+              {{ eventShowcaseText.allEvents }}
             </RouterLink>
-            <div class="grid grid-cols-3 gap-2 text-center text-xs">
-              <div class="rounded-md bg-white/[0.04] p-3">
-                <div class="font-semibold text-white">72h</div>
-                <div class="mt-1 text-zinc-500">{{ t('home.closeIn') }}</div>
-              </div>
-              <div class="rounded-md bg-white/[0.04] p-3">
-                <div class="font-semibold text-white">{{ t('home.onePerson') }}</div>
-                <div class="mt-1 text-zinc-500">{{ t('home.oneVote') }}</div>
-              </div>
-              <div class="rounded-md bg-white/[0.04] p-3">
-                <div class="font-semibold text-white">{{ t('home.weighted') }}</div>
-                <div class="mt-1 text-zinc-500">{{ t('home.trust') }}</div>
-              </div>
-            </div>
           </div>
         </aside>
       </div>
