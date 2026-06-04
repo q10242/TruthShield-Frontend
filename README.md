@@ -105,8 +105,13 @@ docker run --rm -p 8080:8080 truthshield-web
 Health check:
 
 ```bash
-curl http://127.0.0.1:8080/healthz
+curl http://127.0.0.1:8080/ready
 ```
+
+Cloud Run can reserve or intercept the bare `/healthz` path before the
+request reaches the container. Use `/ready` for public smoke checks and
+Cloud Run-facing health checks; `/healthz` remains available for local
+container compatibility where the request reaches nginx.
 
 ## Chrome Extension
 
