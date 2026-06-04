@@ -1820,6 +1820,9 @@ async function refreshArticleBannerStatus(url = window.location.href, knownStatu
   const cacheKey = canonicalStatusUrl(url)
 
   if (knownStatus) {
+    tooltipStatusRequests.delete(cacheKey)
+    articleBannerStatusRequests.delete(cacheKey)
+    setTooltipStatusCache(cacheKey, { state: 'success', payload: knownStatus })
     articleBannerStatusCache.set(cacheKey, { state: 'success', payload: knownStatus })
     if (articleBannerUrl === url || canonicalStatusUrl(articleBannerUrl || '') === cacheKey) {
       renderArticleBannerFromCache(url)

@@ -55,8 +55,11 @@ export async function fetchBotProtectionConfig() {
   })
 }
 
-export async function fetchNewsStatus(url) {
-  return request(`/api/news/status?url=${encodeURIComponent(url)}&locale=${encodeURIComponent(currentLocale())}`, {
+export async function fetchNewsStatus(url, options = {}) {
+  const fresh = options.fresh ? `&fresh=${Date.now()}` : ''
+
+  return request(`/api/news/status?url=${encodeURIComponent(url)}&locale=${encodeURIComponent(currentLocale())}${fresh}`, {
+    cache: options.fresh ? 'no-store' : undefined,
     headers: { 'Content-Type': undefined },
   })
 }

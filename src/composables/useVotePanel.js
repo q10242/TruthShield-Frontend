@@ -617,7 +617,7 @@ export function useVotePanel(route) {
     }, 1000)
   }
 
-  async function loadData() {
+  async function loadData(options = {}) {
     error.value = ''
     evidenceError.value = ''
     statusLoading.value = !hasLoadedStatus.value
@@ -626,7 +626,7 @@ export function useVotePanel(route) {
       if (!newsUrl.value) throw new Error('Missing news_url')
 
       const requests = [
-        fetchNewsStatus(newsUrl.value),
+        fetchNewsStatus(newsUrl.value, { fresh: Boolean(options.freshStatus) }),
         fetchTags(),
         fetchNewsEvidence(newsUrl.value),
         fetchEvidenceReportReasons(),
@@ -931,7 +931,7 @@ export function useVotePanel(route) {
       activeTab.value = 'results'
       evidenceUrl.value = ''
       evidenceNote.value = ''
-      await loadData()
+      await loadData({ freshStatus: true })
       if (achievementCount.value > previousAchievementCount) {
         achievementToastMessage.value = t('votePanel.achievementUnlocked')
       } else if (nextAchievement.value) {
