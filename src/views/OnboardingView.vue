@@ -4,6 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import AppNav from '../components/AppNav.vue'
 import { currentLocale } from '../i18n'
 import {
+  dismissOnboardingSurface,
   loadOnboarding,
   markOnboardingStep,
   onboardingCopy,
@@ -105,6 +106,7 @@ function stepMeta(step) {
 
 onMounted(async () => {
   trackPageView('onboarding')
+  await dismissOnboardingSurface('site_modal', token.value).catch(() => null)
   if (route.query.source === 'extension') {
     await markOnboardingStep('install_extension', token.value).catch(() => null)
   }

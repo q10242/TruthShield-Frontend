@@ -49,7 +49,7 @@ watch(() => route.fullPath, refresh)
         {{ zh ? '導覽會直接告訴你下一步要做什麼：確認插件、同步登入、打開真實新聞、看到上方 bar、開面板，最後看事件脈絡。' : 'The guide gives the next concrete action: confirm the extension, sync sign-in, open a real article, see the top bar, open the panel, then view event context.' }}
       </p>
       <div class="mt-5 grid gap-2 sm:grid-cols-2">
-        <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-center text-sm font-semibold text-zinc-950" to="/onboarding" @click="visible = false">
+        <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-center text-sm font-semibold text-zinc-950" to="/onboarding" @click="dismiss">
           {{ zh ? '開始新手任務' : 'Start onboarding' }}
         </RouterLink>
         <button class="rounded-md border border-white/10 px-4 py-3 text-sm font-semibold text-zinc-300 hover:border-cyan-300/60" @click="dismiss">
