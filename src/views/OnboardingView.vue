@@ -16,17 +16,19 @@ const route = useRoute()
 const summary = ref(null)
 const loading = ref(true)
 const message = ref('')
+const sampleArticleUrl = 'https://www.cna.com.tw/news/aipl/202605160202.aspx'
 const token = computed(() => localStorage.getItem(TOKEN_KEY) || '')
 const zh = computed(() => currentLocale() === 'zh-TW')
 const copy = computed(() => onboardingCopy[zh.value ? 'zh-TW' : 'en'])
 const completedCount = computed(() => summary.value?.completed_steps?.length || 0)
 const progressPercent = computed(() => Math.round((completedCount.value / ONBOARDING_REQUIRED_STEPS.length) * 100))
 const nextStep = computed(() => summary.value?.remaining_steps?.[0] || '')
+const nextStepCard = computed(() => steps.value.find((step) => step.key === nextStep.value))
 const steps = computed(() => ONBOARDING_REQUIRED_STEPS.map((key) => ({
   key,
   ...copy.value[key],
   done: Boolean(summary.value?.completed_steps?.includes(key)),
-  to: stepTarget(key),
+  ...stepMeta(key),
 })))
 
 async function refresh() {
@@ -43,15 +45,62 @@ async function completeStep(step) {
   message.value = zh.value ? '進度已更新。' : 'Progress updated.'
 }
 
-function stepTarget(step) {
-  if (step === 'open_demo') return '/demo-news?onboard=1'
-  if (step === 'install_extension') return '/extension-install'
-  if (step === 'sync_auth') return token.value ? '/profile' : '/login?redirect=/onboarding'
-  if (step === 'see_article_banner') return '/demo-news?onboard=1#truthshield-demo-banner'
-  if (step === 'open_vote_panel') return '/demo-news?onboard=1#truthshield-demo-panel'
-  if (step === 'open_event_context') return '/events/40?onboard=1'
+function stepMeta(step) {
+  const locale = zh.value ? 'zh-TW' : 'en'
+  const votePanelTo = `/iframe-vote-panel?news_url=${encodeURIComponent(sampleArticleUrl)}&expanded=1&locale=${locale}`
+  const map = {
+    open_demo: {
+      action: 'mark',
+      actionLabel: zh.value ? '我知道接下來要做什麼' : 'I know what to do next',
+      instruction: zh.value
+        ? '先不要急著投票。你要做的是：在新聞頁看提示，打開面板，看共識與證據，讀完再決定要不要留下心情、投票或補證據。'
+        : 'Do not start by voting. First see the banner on an article, open the panel, review consensus and evidence, then decide whether to react, vote, or add evidence.',
+      fallbackTo: '/user-guide#extension',
+      fallbackLabel: zh.value ? '看完整說明' : 'Read full guide',
+    },
+    install_extension: {
+      to: '/extension-install',
+      actionLabel: zh.value ? '確認安裝方式' : 'Check install steps',
+      instruction: zh.value
+        ? '如果已經安裝，請確認它有釘選在 Chrome 工具列，並且 popup 可以打開。'
+        : 'If installed, confirm it is pinned in Chrome and the popup opens.',
+      doneLabel: zh.value ? '我已裝好並能打開 popup' : 'Installed and popup works',
+    },
+    sync_auth: {
+      to: token.value ? '/profile' : '/login?redirect=/onboarding',
+      actionLabel: token.value ? (zh.value ? '查看個人頁' : 'Open profile') : (zh.value ? '登入 / 同步身份' : 'Sign in / sync identity'),
+      instruction: zh.value
+        ? '這一步是讓套件和官網使用同一個身份。之後投票、證據、徽章才會算在你的帳號。'
+        : 'This lets the extension and website use the same identity so votes, evidence, and badges belong to your account.',
+      doneLabel: zh.value ? '我已同步登入' : 'Sign-in synced',
+    },
+    see_article_banner: {
+      href: sampleArticleUrl,
+      actionLabel: zh.value ? '打開真實新聞範例' : 'Open a real article',
+      instruction: zh.value
+        ? '打開新聞後看頁面最上方是否出現 TruthShield bar。看到 bar，就代表插件已經進入實際閱讀流程。'
+        : 'Open the article and look for the TruthShield top bar. Seeing it means the extension is active in the real reading flow.',
+      doneLabel: zh.value ? '我已看到上方 bar' : 'I saw the top bar',
+    },
+    open_vote_panel: {
+      to: votePanelTo,
+      actionLabel: zh.value ? '先看面板長什麼樣' : 'Preview the panel',
+      instruction: zh.value
+        ? '正式使用時，請在新聞頁點上方 bar，或打開 extension popup 按「開啟投票與證據面板」。'
+        : 'In normal use, click the top bar on a news article or open the extension popup and choose the voting and evidence panel.',
+      doneLabel: zh.value ? '我已從 bar 或 popup 開過面板' : 'I opened it from the bar or popup',
+    },
+    open_event_context: {
+      to: '/events/40?onboard=1',
+      actionLabel: zh.value ? '看事件頁範例' : 'Open event example',
+      instruction: zh.value
+        ? '事件頁不是叫你看單篇新聞，而是把多篇報導整理成同一個事件的時間線、進度狀態與分類。'
+        : 'Event pages are not single-article pages. They organize multiple reports into one timeline, status, and category context.',
+      doneLabel: zh.value ? '我理解事件頁用途' : 'I understand event context',
+    },
+  }
 
-  return '/'
+  return map[step] || { to: '/', actionLabel: zh.value ? '前往' : 'Go', instruction: '' }
 }
 
 onMounted(async () => {
@@ -77,12 +126,12 @@ onMounted(async () => {
 
       <section class="mt-8 overflow-hidden rounded-lg border border-cyan-300/20 bg-white/[0.03]">
         <div class="border-b border-white/10 bg-cyan-300/[0.04] p-6">
-          <p class="text-sm font-semibold text-cyan-300">{{ zh ? '新手任務' : 'Onboarding missions' }}</p>
+          <p class="text-sm font-semibold text-cyan-300">{{ zh ? '新手導覽' : 'Onboarding' }}</p>
           <div class="mt-3 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 class="text-3xl font-semibold text-white">{{ zh ? '第一次使用 TruthShield，照這條路走' : 'Start using TruthShield with a guided path' }}</h1>
+              <h1 class="text-3xl font-semibold text-white">{{ zh ? '第一次進來，先完成一個真實閱讀流程' : 'Start with one real reading flow' }}</h1>
               <p class="mt-3 max-w-2xl text-sm leading-7 text-zinc-400">
-                {{ zh ? '完成這六步後，你會理解插件、投票、證據與事件脈絡如何串在一起。完成後會得到新手完成徽章，但不會增加信任分。' : 'Complete these six steps to understand the extension, voting, evidence, and event context. Completion grants a starter badge but does not change trust score.' }}
+                {{ zh ? '目標很簡單：安裝插件，打開一篇真實新聞，看到上方 bar，打開面板，再理解事件頁。完成後給新手徽章，不增加信任分。' : 'The goal is simple: install the extension, open a real article, see the top bar, open the panel, then understand event context. Completion grants a starter badge, not trust score.' }}
               </p>
             </div>
             <div class="min-w-40 rounded-md border border-white/10 bg-zinc-950/80 p-4">
@@ -96,11 +145,46 @@ onMounted(async () => {
         </div>
 
         <div v-if="loading" class="p-6 text-sm text-zinc-400">{{ zh ? '讀取中...' : 'Loading...' }}</div>
-        <div v-else class="grid gap-3 p-6">
+        <div v-else class="grid gap-5 p-6">
+          <section v-if="nextStepCard" class="rounded-lg border border-cyan-300/25 bg-cyan-300/[0.07] p-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">{{ zh ? '現在要做什麼' : 'What to do now' }}</p>
+            <h2 class="mt-2 text-xl font-semibold text-white">{{ nextStepCard.title }}</h2>
+            <p class="mt-2 text-sm leading-7 text-zinc-300">{{ nextStepCard.instruction }}</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <button v-if="nextStepCard.action === 'mark'" class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" type="button" @click="completeStep(nextStepCard.key)">
+                {{ nextStepCard.actionLabel }}
+              </button>
+              <RouterLink v-else-if="nextStepCard.to" class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" :to="nextStepCard.to">
+                {{ nextStepCard.actionLabel }}
+              </RouterLink>
+              <a v-else-if="nextStepCard.href" class="rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" :href="nextStepCard.href" target="_blank" rel="noopener noreferrer">
+                {{ nextStepCard.actionLabel }}
+              </a>
+              <RouterLink v-if="nextStepCard.fallbackTo" class="rounded-md border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100" :to="nextStepCard.fallbackTo">
+                {{ nextStepCard.fallbackLabel }}
+              </RouterLink>
+            </div>
+          </section>
+
+          <section class="grid gap-3 rounded-lg border border-white/10 bg-zinc-950/60 p-4 md:grid-cols-3">
+            <div>
+              <p class="text-sm font-semibold text-white">{{ zh ? '1. 在新聞頁看提示' : '1. See context on an article' }}</p>
+              <p class="mt-1 text-xs leading-5 text-zinc-500">{{ zh ? '上方 bar 是主要入口，不是官網 demo。' : 'The top bar is the main entry, not a website demo.' }}</p>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-white">{{ zh ? '2. 打開面板後再判斷' : '2. Open the panel before judging' }}</p>
+              <p class="mt-1 text-xs leading-5 text-zinc-500">{{ zh ? '先看共識、心情與證據，再決定要不要投票。' : 'Review consensus, reactions, and evidence before voting.' }}</p>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-white">{{ zh ? '3. 事件頁看長期脈絡' : '3. Use events for long context' }}</p>
+              <p class="mt-1 text-xs leading-5 text-zinc-500">{{ zh ? '單篇新聞不夠時，用事件整理前因後果。' : 'When one article is not enough, use events for the full timeline.' }}</p>
+            </div>
+          </section>
+
           <article
             v-for="(step, index) in steps"
             :key="step.key"
-            class="flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4"
+            class="grid gap-4 rounded-lg border p-4 md:grid-cols-[minmax(0,1fr)_auto]"
             :class="step.done ? 'border-emerald-300/30 bg-emerald-300/10' : 'border-white/10 bg-zinc-950/70'"
           >
             <div class="flex min-w-0 gap-3">
@@ -110,15 +194,22 @@ onMounted(async () => {
               <div class="min-w-0">
                 <h2 class="text-sm font-semibold text-white">{{ step.title }}</h2>
                 <p class="mt-1 text-sm leading-6 text-zinc-400">{{ step.description }}</p>
+                <p class="mt-2 text-xs leading-5 text-zinc-500">{{ step.instruction }}</p>
               </div>
             </div>
-            <div class="flex gap-2">
-              <button v-if="!step.done" class="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:border-cyan-300/60" @click="completeStep(step.key)">
-                {{ zh ? '手動標記' : 'Mark done' }}
+            <div class="flex flex-wrap items-center gap-2 md:justify-end">
+              <button v-if="step.action === 'mark' && !step.done" class="rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950" type="button" @click="completeStep(step.key)">
+                {{ step.actionLabel }}
               </button>
-              <RouterLink class="rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950" :to="step.to">
-                {{ step.done ? (zh ? '再看一次' : 'Review') : (zh ? '前往' : 'Go') }}
+              <RouterLink v-if="step.to" class="rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950" :to="step.to">
+                {{ step.done ? (zh ? '再看一次' : 'Review') : step.actionLabel }}
               </RouterLink>
+              <a v-if="step.href" class="rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950" :href="step.href" target="_blank" rel="noopener noreferrer">
+                {{ step.done ? (zh ? '再打開' : 'Open again') : step.actionLabel }}
+              </a>
+              <button v-if="!step.done && step.action !== 'mark'" class="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:border-cyan-300/60" type="button" @click="completeStep(step.key)">
+                {{ step.doneLabel || (zh ? '我已完成' : 'Done') }}
+              </button>
             </div>
           </article>
         </div>
@@ -137,13 +228,6 @@ onMounted(async () => {
         </div>
       </section>
 
-      <section v-else-if="nextStep" class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
-        <p class="text-sm font-semibold text-cyan-100">{{ zh ? '下一步' : 'Next step' }}</p>
-        <p class="mt-2 text-sm text-zinc-400">{{ copy[nextStep]?.title }}</p>
-        <RouterLink class="mt-4 inline-flex rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" :to="stepTarget(nextStep)">
-          {{ zh ? '繼續導覽' : 'Continue' }}
-        </RouterLink>
-      </section>
     </section>
   </main>
 </template>

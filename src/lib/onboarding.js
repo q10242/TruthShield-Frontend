@@ -24,20 +24,20 @@ const surfaceSet = new Set(ONBOARDING_SURFACES)
 
 export const onboardingCopy = {
   'zh-TW': {
-    open_demo: { title: '看過互動示範', description: '先知道上方 bar、hover、右鍵與面板怎麼運作。' },
-    install_extension: { title: '安裝 Chrome 套件', description: '讓 TruthShield 進入日常新聞閱讀流程。' },
-    sync_auth: { title: '同步登入狀態', description: '登入後才能投票、補證據與累積徽章。' },
-    see_article_banner: { title: '在新聞頁看到上方 bar', description: '確認插件能辨識支援的新聞頁。' },
-    open_vote_panel: { title: '打開投票與證據面板', description: '看結果、投心情、投票、補證據都在這裡。' },
-    open_event_context: { title: '看過事件脈絡', description: '理解新聞可以被整理成時間線與人物/組織關係。' },
+    open_demo: { title: '先搞懂你要做什麼', description: 'TruthShield 不是叫你相信平台，而是讓你在新聞旁邊多看一層脈絡。' },
+    install_extension: { title: '確認 Chrome 套件可用', description: '真正的使用場景在新聞網站，不是在官網假頁面。' },
+    sync_auth: { title: '同步登入狀態', description: '登入後才能投票、補證據、留下心情與累積徽章。' },
+    see_article_banner: { title: '在真實新聞頁看到上方 bar', description: '打開支援的新聞頁，確認 TruthShield 會在頁面頂端出現。' },
+    open_vote_panel: { title: '從 bar 或 popup 打開面板', description: '面板裡看結果、投心情、投標籤、補證據，也能連到事件。' },
+    open_event_context: { title: '看一次事件脈絡', description: '事件頁整理多篇新聞背後的時間線、狀態、分類與關係圖。' },
   },
   en: {
-    open_demo: { title: 'Open the interactive demo', description: 'See the banner, hover tooltip, context menu, and panel flow.' },
-    install_extension: { title: 'Install the Chrome extension', description: 'Bring TruthShield into everyday news reading.' },
-    sync_auth: { title: 'Sync sign-in', description: 'Sign in to vote, add evidence, and build badges.' },
-    see_article_banner: { title: 'See the article banner', description: 'Confirm the extension recognizes a supported news page.' },
-    open_vote_panel: { title: 'Open voting and evidence', description: 'Results, reactions, votes, evidence, and events live here.' },
-    open_event_context: { title: 'Explore event context', description: 'News can be organized into timelines and people/org graphs.' },
+    open_demo: { title: 'Understand what to do first', description: 'TruthShield does not ask you to trust the platform. It adds context beside the news.' },
+    install_extension: { title: 'Confirm the Chrome extension works', description: 'The real workflow happens on news sites, not on a fake website demo.' },
+    sync_auth: { title: 'Sync sign-in', description: 'Sign in to vote, add evidence, leave reactions, and build badges.' },
+    see_article_banner: { title: 'See the top bar on a real article', description: 'Open a supported news article and confirm TruthShield appears at the top.' },
+    open_vote_panel: { title: 'Open the panel from the bar or popup', description: 'The panel contains results, reactions, votes, evidence, and event links.' },
+    open_event_context: { title: 'View event context once', description: 'Event pages organize timelines, status, categories, and relationship graphs.' },
   },
 }
 

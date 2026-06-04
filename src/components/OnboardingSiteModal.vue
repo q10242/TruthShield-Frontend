@@ -39,14 +39,14 @@ watch(() => route.fullPath, refresh)
       <div class="flex items-start justify-between gap-4">
         <div>
           <p class="text-sm font-semibold text-cyan-300">{{ zh ? '第一次來 TruthShield？' : 'First time using TruthShield?' }}</p>
-          <h2 class="mt-2 text-2xl font-semibold text-white">{{ zh ? '用六個任務快速看懂整套流程' : 'Learn the full workflow in six missions' }}</h2>
+          <h2 class="mt-2 text-2xl font-semibold text-white">{{ zh ? '先跑一次真實新聞閱讀流程' : 'Run one real article workflow first' }}</h2>
         </div>
         <button class="rounded-md border border-white/10 px-2 py-1 text-xs text-zinc-400 hover:border-cyan-300/60 hover:text-cyan-100" @click="dismiss">
           {{ zh ? '關閉' : 'Close' }}
         </button>
       </div>
       <p class="mt-3 text-sm leading-7 text-zinc-400">
-        {{ zh ? '導覽會帶你看互動示範、安裝插件、同步登入、看到新聞 bar、打開投票面板，最後理解事件時間線與關係圖。' : 'The guide walks through the demo, extension install, sign-in sync, article banner, voting panel, and event context.' }}
+        {{ zh ? '導覽會直接告訴你下一步要做什麼：確認插件、同步登入、打開真實新聞、看到上方 bar、開面板，最後看事件脈絡。' : 'The guide gives the next concrete action: confirm the extension, sync sign-in, open a real article, see the top bar, open the panel, then view event context.' }}
       </p>
       <div class="mt-5 grid gap-2 sm:grid-cols-2">
         <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-center text-sm font-semibold text-zinc-950" to="/onboarding" @click="visible = false">
