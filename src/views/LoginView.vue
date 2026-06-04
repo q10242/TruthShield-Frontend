@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { beginOauth, devLogin, oauthCallback } from '../lib/api'
+import { markOnboardingStep } from '../lib/onboarding'
 import { trackEvent, trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
@@ -54,6 +55,7 @@ function oauthReturnUrl() {
 async function persistLogin(payload) {
   localStorage.setItem(TOKEN_KEY, payload.token)
   localStorage.setItem(USER_KEY, JSON.stringify(payload.user))
+  await markOnboardingStep('sync_auth', payload.token).catch(() => null)
   sessionStorage.removeItem(LOGIN_REDIRECT_KEY)
   publishAuth(payload.token, payload.user)
   done.value = true
@@ -93,6 +95,7 @@ function publishExistingLoginIfAvailable() {
   }
 
   publishAuth(token, user)
+  markOnboardingStep('sync_auth', token).catch(() => null)
   done.value = true
 
   window.setTimeout(() => {

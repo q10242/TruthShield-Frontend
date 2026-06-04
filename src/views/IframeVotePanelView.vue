@@ -1,7 +1,8 @@
 <script setup>
-import { provide } from 'vue'
+import { computed, onMounted, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useVotePanel } from '../composables/useVotePanel'
+import { dismissOnboardingSurface, loadOnboarding, markOnboardingStep } from '../lib/onboarding'
 import VotePanelResultsTab from '../components/votePanel/VotePanelResultsTab.vue'
 import VotePanelReactionsTab from '../components/votePanel/VotePanelReactionsTab.vue'
 import VotePanelVoteTab from '../components/votePanel/VotePanelVoteTab.vue'
@@ -11,6 +12,8 @@ import VotePanelEventsTab from '../components/votePanel/VotePanelEventsTab.vue'
 const route = useRoute()
 const vp = useVotePanel(route)
 provide('votePanel', vp)
+const votePanelCoachDismissed = ref(false)
+const panelZh = computed(() => route.query.locale !== 'en')
 
 const {
   t,
@@ -51,6 +54,17 @@ const {
 function toggleAdvancedMode() {
   advancedMode.value = !advancedMode.value
 }
+
+async function dismissVotePanelCoach() {
+  votePanelCoachDismissed.value = true
+  await dismissOnboardingSurface('vote_panel_coach').catch(() => null)
+}
+
+onMounted(async () => {
+  await markOnboardingStep('open_vote_panel').catch(() => null)
+  const summary = await loadOnboarding().catch(() => null)
+  votePanelCoachDismissed.value = Boolean(summary?.dismissed_surfaces?.includes('vote_panel_coach'))
+})
 </script>
 
 <template>
@@ -90,6 +104,18 @@ function toggleAdvancedMode() {
         >
           {{ advancedMode ? t('votePanel.simpleMode') : t('votePanel.advancedMode') }}
         </button>
+      </div>
+
+      <div v-if="!votePanelCoachDismissed" class="mb-3 rounded-md border border-cyan-300/25 bg-cyan-300/[0.06] p-3 text-xs leading-5 text-zinc-300">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="font-semibold text-cyan-100">{{ panelZh ? '這裡是投票與證據面板' : 'This is the voting and evidence panel' }}</p>
+            <p class="mt-1">{{ panelZh ? '先看結果與讀者心情；讀完文章後，可以投標籤、留下證據，也可以把文章加入事件脈絡。' : 'Check the result and reader reactions first. After reading, you can vote, add evidence, or attach the article to an event.' }}</p>
+          </div>
+          <button class="shrink-0 rounded-md border border-white/10 px-2 py-1 font-semibold text-zinc-400 hover:border-cyan-300/60 hover:text-cyan-100" type="button" @click="dismissVotePanelCoach">
+            {{ panelZh ? '知道了' : 'Got it' }}
+          </button>
+        </div>
       </div>
 
       <div

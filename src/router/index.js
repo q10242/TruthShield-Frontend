@@ -43,6 +43,7 @@ import EventsView from '../views/EventsView.vue'
 import EventDetailView from '../views/EventDetailView.vue'
 import GlobalEntitiesView from '../views/GlobalEntitiesView.vue'
 import IframeEventPinView from '../views/IframeEventPinView.vue'
+import OnboardingView from '../views/OnboardingView.vue'
 
 const SITE_ORIGIN = 'https://truth-shield.otus.tw'
 const SITE_NAME = 'TruthShield 真相護盾'
@@ -90,6 +91,10 @@ const routeMeta = {
   'extension-coverage': {
     title: `插件覆蓋 - ${SITE_NAME}`,
     description: '檢查 TruthShield 已支援的新聞網域、YouTube 頻道與插件相容性狀態。',
+  },
+  onboarding: {
+    title: `新手導覽 - ${SITE_NAME}`,
+    description: '用新手任務快速了解 TruthShield 插件、投票、證據、心情與事件脈絡。',
   },
 }
 
@@ -155,6 +160,7 @@ const router = createRouter({
     { path: '/evidence-library', name: 'evidence-library', component: EvidenceLibraryView },
     { path: '/transparency', name: 'transparency', component: TransparencyView },
     { path: '/profile', name: 'profile', component: ProfileView },
+    { path: '/onboarding', name: 'onboarding', component: OnboardingView },
     { path: '/news-search', name: 'news-search', component: NewsSearchView },
     { path: '/events', name: 'events', component: EventsView },
     { path: '/events/:id', name: 'event-detail', component: EventDetailView },

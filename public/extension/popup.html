@@ -172,7 +172,13 @@
         background: rgba(8, 145, 178, 0.08);
       }
       .onboarding-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #cffafe; font-weight: 700; font-size: 12px; }
-      .onboarding ol { margin: 8px 0 0; padding-left: 18px; color: #d4d4d8; font-size: 12px; line-height: 1.55; }
+      .onboarding-progress { margin-top: 8px; color: #a5f3fc; font-size: 11px; font-weight: 700; }
+      .onboarding-checklist { display: grid; gap: 6px; margin-top: 9px; }
+      .onboarding-step { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 7px; align-items: start; color: #d4d4d8; font-size: 12px; line-height: 1.4; }
+      .onboarding-step span:first-child { display: inline-flex; width: 18px; height: 18px; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; color: #71717a; font-size: 10px; font-weight: 800; }
+      .onboarding-step.done span:first-child { border-color: rgba(110,231,183,.65); background: rgba(16,185,129,.18); color: #a7f3d0; }
+      .onboarding-step strong { display: block; color: #f4f4f5; font-size: 12px; }
+      .onboarding-step small { display: block; margin-top: 2px; color: #a1a1aa; font-size: 11px; }
       .onboarding-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
       .onboarding-actions button { margin-top: 0; padding: 8px; font-size: 12px; text-align: center; }
       .dismiss { width: auto; margin: 0; border: 0; background: transparent; color: var(--accent); padding: 0; font-size: 11px; }
@@ -408,13 +414,10 @@
             <span data-i18n="onboardingTitle">第一次使用 TruthShield</span>
             <button id="dismissOnboarding" class="dismiss" type="button" data-i18n="dismissOnboarding">知道了</button>
           </div>
-          <ol>
-            <li data-i18n="onboardingStep1">先同步官網登入狀態。</li>
-            <li data-i18n="onboardingStep2">打開互動示範確認橫幅、右鍵與投票面板。</li>
-            <li data-i18n="onboardingStep3">到新聞頁閱讀後再投票或補證據。</li>
-          </ol>
+          <div id="onboardingProgress" class="onboarding-progress"></div>
+          <div id="onboardingChecklist" class="onboarding-checklist"></div>
           <div class="onboarding-actions">
-            <button id="openDemo" type="button" data-i18n="openDemo">開啟 Demo</button>
+            <button id="openDemo" type="button" data-i18n="openOnboarding">開啟新手任務</button>
             <button id="openGuide" type="button" data-i18n="openGuide">閱讀手冊</button>
           </div>
         </div>

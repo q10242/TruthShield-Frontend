@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
+import { markOnboardingStep } from '../lib/onboarding'
 
 const { t } = useI18n()
 
@@ -18,7 +19,10 @@ const demoLinks = {
 const demoFeedback = ref('')
 let feedbackTimer = null
 
-onMounted(() => trackPageView('demo_news'))
+onMounted(() => {
+  trackPageView('demo_news')
+  markOnboardingStep('open_demo').catch(() => null)
+})
 
 function showDemoFeedback(key) {
   demoFeedback.value = t(`demoNews.${key}`)
@@ -75,7 +79,7 @@ async function copyDemoLink() {
           </nav>
         </header>
 
-        <div class="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-cyan-300/25 bg-zinc-950 px-4 py-3 text-zinc-100 shadow-lg">
+        <div id="truthshield-demo-banner" class="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-cyan-300/25 bg-zinc-950 px-4 py-3 text-zinc-100 shadow-lg">
           <button class="flex min-w-0 items-center gap-3 text-left" type="button" @click="showDemoFeedback('panelFeedback')">
             <img class="h-8 w-8 shrink-0" src="/brand/truthshield-mark.svg" alt="" />
             <span class="min-w-0">
@@ -214,7 +218,7 @@ async function copyDemoLink() {
           <h2 class="mt-2 text-2xl font-black text-zinc-950">{{ t('demoNews.sideTitle') }}</h2>
           <p class="mt-3 text-sm leading-7 text-zinc-600">{{ t('demoNews.sideDesc') }}</p>
         </div>
-        <aside class="rounded-lg border border-zinc-800 bg-zinc-950 p-5 text-zinc-100 shadow-xl">
+        <aside id="truthshield-demo-panel" class="rounded-lg border border-zinc-800 bg-zinc-950 p-5 text-zinc-100 shadow-xl">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
               <img class="h-8 w-8" src="/brand/truthshield-mark.svg" alt="" />

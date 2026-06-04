@@ -10,8 +10,30 @@ const state = {
   auth: null,
   pageContext: null,
   onboardingDismissed: false,
+  onboarding: {
+    completed_steps: [],
+    dismissed_surfaces: [],
+    completed: false,
+  },
 }
 const t = window.truthShieldT || ((key) => key)
+const ONBOARDING_STORAGE_KEY = 'truthshield_onboarding_state_v1'
+const ONBOARDING_REQUIRED_STEPS = [
+  'open_demo',
+  'install_extension',
+  'sync_auth',
+  'see_article_banner',
+  'open_vote_panel',
+  'open_event_context',
+]
+const ONBOARDING_STEP_COPY = {
+  open_demo: ['onboardingStepOpenDemo', 'onboardingStepOpenDemoDesc'],
+  install_extension: ['onboardingStepInstallExtension', 'onboardingStepInstallExtensionDesc'],
+  sync_auth: ['onboardingStepSyncAuth', 'onboardingStepSyncAuthDesc'],
+  see_article_banner: ['onboardingStepSeeBanner', 'onboardingStepSeeBannerDesc'],
+  open_vote_panel: ['onboardingStepOpenVotePanel', 'onboardingStepOpenVotePanelDesc'],
+  open_event_context: ['onboardingStepOpenEventContext', 'onboardingStepOpenEventContextDesc'],
+}
 
 function hasExtensionContext() {
   return typeof chrome !== 'undefined'
@@ -69,7 +91,11 @@ function updateOnboardingVisibility() {
   const onboarding = byId('onboarding')
   if (!onboarding) return
 
-  onboarding.hidden = Boolean(state.auth?.token) || state.onboardingDismissed
+  const completed = Boolean(state.onboarding?.completed)
+  const surfaceDismissed = Array.isArray(state.onboarding?.dismissed_surfaces)
+    && state.onboarding.dismissed_surfaces.includes('popup_onboarding')
+  onboarding.hidden = completed || state.onboardingDismissed || surfaceDismissed
+  renderOnboardingChecklist()
 }
 
 function setPageContextSummary(textKey, badgeKey, tone = 'ok') {
@@ -181,6 +207,138 @@ function writeSyncSettings(values) {
   })
 }
 
+function readLocalStorage(keys) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(keys, (payload) => resolve(payload || {}))
+  })
+}
+
+function writeLocalStorage(values) {
+  return new Promise((resolve) => chrome.storage.local.set(values, resolve))
+}
+
+function normalizeOnboardingState(value = {}) {
+  const completedSteps = Array.isArray(value.completed_steps)
+    ? value.completed_steps.filter((step) => ONBOARDING_REQUIRED_STEPS.includes(step))
+    : []
+  const dismissedSurfaces = Array.isArray(value.dismissed_surfaces) ? value.dismissed_surfaces : []
+
+  return {
+    version: 1,
+    completed_steps: Array.from(new Set(completedSteps)),
+    dismissed_surfaces: Array.from(new Set(dismissedSurfaces)),
+    completed_at: value.completed_at || null,
+    reward_claimed_at: value.reward_claimed_at || null,
+    updated_at: value.updated_at || null,
+  }
+}
+
+function summarizeOnboarding(value = {}) {
+  const normalized = normalizeOnboardingState(value)
+  const done = normalized.completed_steps.length
+  const total = ONBOARDING_REQUIRED_STEPS.length
+
+  return {
+    ...normalized,
+    completed_count: done,
+    required_count: total,
+    completed: done >= total,
+  }
+}
+
+async function saveLocalOnboarding(value) {
+  const normalized = normalizeOnboardingState(value)
+  await writeLocalStorage({ [ONBOARDING_STORAGE_KEY]: normalized })
+  state.onboarding = summarizeOnboarding(normalized)
+  updateOnboardingVisibility()
+  return state.onboarding
+}
+
+async function mergeRemoteOnboarding(localState) {
+  if (!state.auth?.token) return summarizeOnboarding(localState)
+
+  const remoteRes = await fetch(`${state.settings.apiOrigin}/api/me/onboarding`, {
+    headers: { Accept: 'application/json', Authorization: `Bearer ${state.auth.token}` },
+  })
+  const remotePayload = remoteRes.ok ? await remoteRes.json().catch(() => null) : null
+  const remoteState = normalizeOnboardingState(remotePayload?.summary || {})
+  const merged = normalizeOnboardingState({
+    completed_steps: [...localState.completed_steps, ...remoteState.completed_steps],
+    dismissed_surfaces: [...localState.dismissed_surfaces, ...remoteState.dismissed_surfaces],
+    completed_at: remoteState.completed_at || localState.completed_at,
+    reward_claimed_at: remoteState.reward_claimed_at || localState.reward_claimed_at,
+  })
+
+  const patchRes = await fetch(`${state.settings.apiOrigin}/api/me/onboarding`, {
+    method: 'PATCH',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${state.auth.token}`,
+    },
+    body: JSON.stringify({
+      completed_steps: merged.completed_steps,
+      dismissed_surfaces: merged.dismissed_surfaces,
+    }),
+  })
+  const patchPayload = patchRes.ok ? await patchRes.json().catch(() => null) : null
+
+  return summarizeOnboarding(patchPayload?.summary || merged)
+}
+
+async function loadOnboardingSummary() {
+  const payload = await readLocalStorage({ [ONBOARDING_STORAGE_KEY]: null, truthshield_onboarding_dismissed: false })
+  state.onboardingDismissed = Boolean(payload.truthshield_onboarding_dismissed)
+  const localState = normalizeOnboardingState(payload[ONBOARDING_STORAGE_KEY] || {})
+  const summary = await mergeRemoteOnboarding(localState).catch(() => summarizeOnboarding(localState))
+  await saveLocalOnboarding(summary)
+}
+
+async function markOnboardingStep(step) {
+  if (!ONBOARDING_REQUIRED_STEPS.includes(step)) return state.onboarding
+  const current = normalizeOnboardingState(state.onboarding)
+  await saveLocalOnboarding({
+    ...current,
+    completed_steps: [...current.completed_steps, step],
+  })
+  await loadOnboardingSummary().catch(() => null)
+  return state.onboarding
+}
+
+async function dismissOnboardingSurface(surface) {
+  const current = normalizeOnboardingState(state.onboarding)
+  await saveLocalOnboarding({
+    ...current,
+    dismissed_surfaces: [...current.dismissed_surfaces, surface],
+  })
+  await loadOnboardingSummary().catch(() => null)
+}
+
+function renderOnboardingChecklist() {
+  const progress = byId('onboardingProgress')
+  const checklist = byId('onboardingChecklist')
+  if (!progress || !checklist) return
+
+  const completed = new Set(state.onboarding?.completed_steps || [])
+  progress.textContent = t('onboardingProgress', {
+    done: completed.size,
+    total: ONBOARDING_REQUIRED_STEPS.length,
+  })
+  checklist.innerHTML = ONBOARDING_REQUIRED_STEPS.map((step) => {
+    const [titleKey, descKey] = ONBOARDING_STEP_COPY[step]
+    const done = completed.has(step)
+    return `
+      <div class="onboarding-step ${done ? 'done' : ''}">
+        <span>${done ? '✓' : ''}</span>
+        <div>
+          <strong>${escapeHtml(t(titleKey))}</strong>
+          <small>${escapeHtml(t(descKey))}</small>
+        </div>
+      </div>
+    `
+  }).join('')
+}
+
 function sendRuntimeMessage(message) {
   return new Promise((resolve) => {
     try {
@@ -267,7 +425,7 @@ async function loadAuthSummary() {
     openLogin.hidden = true
     signOut.hidden = false
     await loadAchievementSummary(auth)
-    updateOnboardingVisibility()
+    await markOnboardingStep('sync_auth').catch(() => null)
     return
   }
 
@@ -426,6 +584,9 @@ async function loadPageDebug() {
     const isArticle = Boolean(context?.isLikelyArticle)
     const bannerVisible = Boolean(context?.hasArticleBanner)
     const bannerDismissed = Boolean(context?.articleBannerDismissed)
+    if (bannerVisible) {
+      markOnboardingStep('see_article_banner').catch(() => null)
+    }
 
     if (!isSupported) setPageContextSummary('popupSummaryUnsupported', 'popupBadgeUnsupported', 'bad')
     else if (isTracked && isArticle) setPageContextSummary('popupSummaryTrackedArticle', 'popupBadgeReady', 'ok')
@@ -454,6 +615,7 @@ async function loadPageDebug() {
 }
 
 async function openVotePanel() {
+  await markOnboardingStep('open_vote_panel').catch(() => null)
   if (state.tab?.id) {
     try {
       const response = await chrome.tabs.sendMessage(state.tab.id, { type: 'TRUTH_SHIELD_SHOW_VOTE_PANEL', url: currentUrl() })
@@ -932,8 +1094,9 @@ function bindActions() {
     openTab(truthUrl('/user-guide', { section: 'extension-settings' }) + '#extension-settings')
   })
   byId('openDemo').addEventListener('click', () => {
-    trackPopupEvent('popup_action', 'open_demo')
-    openTab(truthUrl('/demo-news'))
+    trackPopupEvent('popup_action', 'open_onboarding')
+    markOnboardingStep('install_extension').catch(() => null)
+    openTab(truthUrl('/onboarding', { source: 'extension' }))
   })
   byId('openGuide').addEventListener('click', () => {
     trackPopupEvent('popup_action', 'open_guide')
@@ -942,6 +1105,7 @@ function bindActions() {
   byId('dismissOnboarding').addEventListener('click', () => {
     state.onboardingDismissed = true
     chrome.storage.local.set({ truthshield_onboarding_dismissed: true })
+    dismissOnboardingSurface('popup_onboarding').catch(() => null)
     updateOnboardingVisibility()
   })
 
@@ -1030,14 +1194,12 @@ async function initPopup() {
     renderOriginWarning()
 
     bindActions()
-    chrome.storage.local.get({ truthshield_onboarding_dismissed: false }, (local) => {
-      state.onboardingDismissed = Boolean(local.truthshield_onboarding_dismissed)
-      updateOnboardingVisibility()
-    })
     trackPopupEvent('popup_opened', 'popup')
-    await loadPageDebug()
     await loadAuthSummary()
+    await markOnboardingStep('install_extension').catch(() => null)
+    await loadPageDebug()
     await loadSummary()
+    await loadOnboardingSummary()
   })
 }
 

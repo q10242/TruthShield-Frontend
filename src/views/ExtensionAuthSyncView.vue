@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from '../i18n'
+import { markOnboardingStep } from '../lib/onboarding'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
@@ -32,6 +33,7 @@ onMounted(() => {
   } else {
     const token = localStorage.getItem(TOKEN_KEY) || ''
     if (token) {
+      markOnboardingStep('sync_auth', token).catch(() => null)
       window.postMessage({
         type: 'TRUTH_SHIELD_AUTH_UPDATED',
         token,

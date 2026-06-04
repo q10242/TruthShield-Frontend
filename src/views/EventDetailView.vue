@@ -26,6 +26,7 @@ import {
 } from '../lib/api'
 import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
+import { dismissOnboardingSurface, loadOnboarding, markOnboardingStep } from '../lib/onboarding'
 
 const route = useRoute()
 const { locale } = useI18n()
@@ -59,6 +60,7 @@ const panAnchor = ref(null)
 const submitting = ref(false)
 const formMessage = ref('')
 const formError = ref('')
+const eventGraphCoachDismissed = ref(false)
 const metadataEditOpen = ref(false)
 const metadataForm = ref({
   primary_category: '',
@@ -275,11 +277,20 @@ async function load() {
     reactionSummary.value = reactionPayload
     eventOptions.value = optionsPayload
     currentUser.value = userPayload
+    markOnboardingStep('open_event_context', token.value).catch(() => null)
+    loadOnboarding(token.value).then((summary) => {
+      eventGraphCoachDismissed.value = Boolean(summary.dismissed_surfaces?.includes('event_graph_coach'))
+    }).catch(() => null)
   } catch (err) {
     error.value = err.message || 'Failed to load event'
   } finally {
     loading.value = false
   }
+}
+
+async function dismissEventGraphCoach() {
+  eventGraphCoachDismissed.value = true
+  await dismissOnboardingSurface('event_graph_coach', token.value).catch(() => null)
 }
 
 async function saveEventMetadata() {
@@ -1410,11 +1421,14 @@ onUnmounted(() => { document.title = 'TruthShield' })
                 </g>
               </svg>
               <div
-                v-if="(graph.entities || []).length === 0"
+                v-if="(graph.entities || []).length === 0 && !eventGraphCoachDismissed"
                 class="pointer-events-none absolute inset-0 grid place-items-center px-6 text-center"
               >
-                <div class="max-w-sm rounded-lg border border-cyan-300/20 bg-zinc-950/80 p-4 shadow-2xl shadow-black/30">
-                  <p class="text-sm font-semibold text-cyan-100">{{ zh ? '這張關係圖還是空的' : 'This graph is empty' }}</p>
+                <div class="pointer-events-auto max-w-sm rounded-lg border border-cyan-300/20 bg-zinc-950/80 p-4 shadow-2xl shadow-black/30">
+                  <div class="flex items-start justify-between gap-3">
+                    <p class="text-sm font-semibold text-cyan-100">{{ zh ? '這張關係圖還是空的' : 'This graph is empty' }}</p>
+                    <button class="rounded border border-white/10 px-1.5 py-0.5 text-xs text-zinc-500 hover:border-cyan-300/60 hover:text-cyan-100" type="button" @click="dismissEventGraphCoach">×</button>
+                  </div>
                   <p class="mt-2 text-xs leading-5 text-zinc-400">
                     {{ token ? (zh ? '在空白圖紙上按右鍵，可以直接新增第一個人物或組織節點。' : 'Right-click the blank canvas to add the first person or organization node.') : (zh ? '登入後可在空白圖紙上右鍵新增第一個人物或組織節點。' : 'Sign in, then right-click the blank canvas to add the first person or organization node.') }}
                   </p>

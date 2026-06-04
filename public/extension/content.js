@@ -11,6 +11,7 @@ const TELEMETRY_FLUSH_DELAY_MS = 5000
 const VOTE_PANEL_POSITION_KEY = 'truthShieldVotePanelPosition'
 const AUTH_TOKEN_KEY = 'truthshield_api_token'
 const AUTH_USER_KEY = 'truthshield_user'
+const ONBOARDING_STORAGE_KEY = 'truthshield_onboarding_state_v1'
 const BANNER_REACTION_KEYS = ['confused', 'worried', 'angry', 'sad', 'happy', 'indifferent', 'clear', 'credible']
 const FALLBACK_REACTION_FEELINGS = [
   { key: 'confused', emoji: '😕', label: '資訊混亂' },
@@ -148,6 +149,7 @@ const telemetryCache = new Map()
 const telemetryQueue = []
 let telemetryFlushTimer = null
 let articleBanner = null
+let articleBannerCoach = null
 let articleBannerUrl = ''
 let articleBannerDismissed = false
 const articleBannerStatusCache = new Map()
@@ -221,6 +223,10 @@ const contentMessages = {
     closeBanner: '關閉 TruthShield 橫幅',
     closePanel: '關閉 TruthShield 投票面板',
     votePanelTitle: 'TruthShield 新聞投票面板',
+    bannerCoachTitle: '這是 TruthShield 新聞提示',
+    bannerCoachDesc: '點擊橫幅可開啟投票與證據面板；emoji 可以留下讀者心情。',
+    bannerCoachOpen: '開面板',
+    bannerCoachDismiss: '知道了',
   },
   en: {
     checkingLink: 'Checking this link...',
@@ -249,6 +255,10 @@ const contentMessages = {
     closeBanner: 'Close TruthShield banner',
     closePanel: 'Close TruthShield vote panel',
     votePanelTitle: 'TruthShield news vote panel',
+    bannerCoachTitle: 'This is the TruthShield article banner',
+    bannerCoachDesc: 'Click the banner to open voting and evidence. Emoji buttons let you leave a reader mood.',
+    bannerCoachOpen: 'Open panel',
+    bannerCoachDismiss: 'Got it',
   },
 }
 
@@ -334,6 +344,60 @@ function sendRuntimeMessage(message) {
     } catch {
       resolve(null)
     }
+  })
+}
+
+function readExtensionLocal(keys) {
+  return new Promise((resolve) => {
+    try {
+      chrome.storage?.local?.get?.(keys, (payload) => resolve(payload || {}))
+    } catch {
+      resolve({})
+    }
+  })
+}
+
+function writeExtensionLocal(values) {
+  return new Promise((resolve) => {
+    try {
+      chrome.storage?.local?.set?.(values, () => resolve())
+    } catch {
+      resolve()
+    }
+  })
+}
+
+async function recordOnboardingStep(step) {
+  const payload = await readExtensionLocal(ONBOARDING_STORAGE_KEY)
+  const current = payload?.[ONBOARDING_STORAGE_KEY] || {}
+  const completed = new Set(Array.isArray(current.completed_steps) ? current.completed_steps : [])
+  completed.add(step)
+  await writeExtensionLocal({
+    [ONBOARDING_STORAGE_KEY]: {
+      version: 1,
+      completed_steps: Array.from(completed),
+      dismissed_surfaces: Array.isArray(current.dismissed_surfaces) ? current.dismissed_surfaces : [],
+      completed_at: current.completed_at || null,
+      reward_claimed_at: current.reward_claimed_at || null,
+      updated_at: new Date().toISOString(),
+    },
+  })
+}
+
+async function dismissOnboardingSurface(surface) {
+  const payload = await readExtensionLocal(ONBOARDING_STORAGE_KEY)
+  const current = payload?.[ONBOARDING_STORAGE_KEY] || {}
+  const dismissed = new Set(Array.isArray(current.dismissed_surfaces) ? current.dismissed_surfaces : [])
+  dismissed.add(surface)
+  await writeExtensionLocal({
+    [ONBOARDING_STORAGE_KEY]: {
+      version: 1,
+      completed_steps: Array.isArray(current.completed_steps) ? current.completed_steps : [],
+      dismissed_surfaces: Array.from(dismissed),
+      completed_at: current.completed_at || null,
+      reward_claimed_at: current.reward_claimed_at || null,
+      updated_at: new Date().toISOString(),
+    },
   })
 }
 
@@ -1486,6 +1550,8 @@ function ensureArticleBanner() {
   if (articleBanner && document.documentElement.contains(articleBanner) && articleBannerUrl === window.location.href) {
     const container = youtubeActionContainer()
     if (!isYouTubeVideoPage() || !container || container.contains(articleBanner)) {
+      recordOnboardingStep('see_article_banner').catch(() => null)
+      maybeShowArticleBannerCoach().catch(() => null)
       return articleBanner
     }
 
@@ -1543,6 +1609,7 @@ function ensureArticleBanner() {
       return
     }
 
+    recordOnboardingStep('open_vote_panel').catch(() => null)
     ensureVotePanelFrame()
   })
 
@@ -1553,6 +1620,8 @@ function ensureArticleBanner() {
   }
   debugLog('ensureArticleBanner:inserted', { mode: articleBanner.dataset.truthshieldMode, inDom: document.documentElement.contains(articleBanner) })
   renderArticleBannerFromCache(window.location.href)
+  recordOnboardingStep('see_article_banner').catch(() => null)
+  maybeShowArticleBannerCoach().catch(() => null)
 
   if (!articleBannerReportedUrls.has(window.location.href)) {
     articleBannerReportedUrls.add(window.location.href)
@@ -1565,10 +1634,15 @@ function ensureArticleBanner() {
 }
 
 function removeArticleBanner() {
+  if (articleBannerCoach?.parentNode) {
+    articleBannerCoach.remove()
+  }
+
   if (articleBanner?.parentNode) {
     articleBanner.remove()
   }
 
+  articleBannerCoach = null
   articleBanner = null
   articleBannerUrl = ''
 }
@@ -1576,6 +1650,46 @@ function removeArticleBanner() {
 function dismissArticleBanner() {
   articleBannerDismissed = true
   removeArticleBanner()
+}
+
+async function maybeShowArticleBannerCoach() {
+  if (!articleBanner || articleBanner.dataset.truthshieldMode !== 'article_bar') return
+  const payload = await readExtensionLocal(ONBOARDING_STORAGE_KEY)
+  const current = payload?.[ONBOARDING_STORAGE_KEY] || {}
+  if (Array.isArray(current.dismissed_surfaces) && current.dismissed_surfaces.includes('banner_coach')) return
+  if (articleBannerCoach && document.documentElement.contains(articleBannerCoach)) return
+
+  articleBannerCoach = document.createElement('div')
+  articleBannerCoach.setAttribute('role', 'note')
+  articleBannerCoach.style.position = 'sticky'
+  articleBannerCoach.style.top = '43px'
+  articleBannerCoach.style.zIndex = '2147483645'
+  articleBannerCoach.style.boxSizing = 'border-box'
+  articleBannerCoach.style.padding = '0 14px 8px'
+  articleBannerCoach.style.font = '12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+  articleBannerCoach.style.colorScheme = 'normal'
+  articleBannerCoach.innerHTML = `
+    <div style="max-width:1180px;margin:0 auto;border:1px solid rgba(103,232,249,.28);border-radius:8px;background:rgba(9,9,11,.96);box-shadow:0 14px 30px rgba(0,0,0,.26);padding:10px 12px;color:#e4e4e7;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <div style="min-width:0;">
+        <div style="color:#cffafe;font-weight:800;font-size:12px;line-height:1.35;">${escapeHtml(t('bannerCoachTitle'))}</div>
+        <div style="margin-top:3px;color:#a1a1aa;line-height:1.45;">${escapeHtml(t('bannerCoachDesc'))}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <button data-truthshield-onboarding-open type="button" style="border:1px solid rgba(103,232,249,.5);border-radius:6px;background:rgba(103,232,249,.9);color:#09090b;padding:6px 8px;font:800 11px system-ui;cursor:pointer;white-space:nowrap;">${escapeHtml(t('bannerCoachOpen'))}</button>
+        <button data-truthshield-onboarding-dismiss type="button" style="border:1px solid rgba(255,255,255,.14);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 8px;font:700 11px system-ui;cursor:pointer;white-space:nowrap;">${escapeHtml(t('bannerCoachDismiss'))}</button>
+      </div>
+    </div>
+  `
+  articleBannerCoach.querySelector('[data-truthshield-onboarding-open]')?.addEventListener('click', () => {
+    recordOnboardingStep('open_vote_panel').catch(() => null)
+    ensureVotePanelFrame()
+  })
+  articleBannerCoach.querySelector('[data-truthshield-onboarding-dismiss]')?.addEventListener('click', () => {
+    dismissOnboardingSurface('banner_coach').catch(() => null)
+    articleBannerCoach?.remove()
+    articleBannerCoach = null
+  })
+  articleBanner.insertAdjacentElement('afterend', articleBannerCoach)
 }
 
 function articleBannerReactionPayload(url = articleBannerUrl || window.location.href) {
@@ -2375,6 +2489,7 @@ window.addEventListener('resize', () => {
 
 chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'TRUTH_SHIELD_SHOW_VOTE_PANEL') {
+    recordOnboardingStep('open_vote_panel').catch(() => null)
     ensureVotePanelFrame(message.url || window.location.href)
     startArticleReadTimer()
     sendResponse({ ok: true })

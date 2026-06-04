@@ -119,6 +119,25 @@ export async function fetchProfile(token) {
   })
 }
 
+export async function fetchOnboarding(token) {
+  return request('/api/me/onboarding', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': undefined,
+    },
+  })
+}
+
+export async function updateOnboarding(token, payload) {
+  return request('/api/me/onboarding', {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function updateProfile(token, payload) {
   return request('/api/me/profile', {
     method: 'PUT',

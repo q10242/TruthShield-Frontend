@@ -39,6 +39,7 @@ function resolveLocale(setting = 'auto') {
 
 const nonceCache = new Map()
 const AUTH_STORAGE_KEY = 'truthshieldAuth'
+const ONBOARDING_STORAGE_KEY = 'truthshield_onboarding_state_v1'
 let menuCreationPromise = null
 
 function debugLog(message, payload = null) {
@@ -107,6 +108,31 @@ async function createMenusNow() {
 
 function getSettings() {
   return chrome.storage.sync.get(defaults)
+}
+
+function localGet(keys) {
+  return new Promise((resolve) => chrome.storage.local.get(keys, resolve))
+}
+
+function localSet(values) {
+  return new Promise((resolve) => chrome.storage.local.set(values, resolve))
+}
+
+async function recordOnboardingStep(step) {
+  const payload = await localGet(ONBOARDING_STORAGE_KEY)
+  const current = payload?.[ONBOARDING_STORAGE_KEY] || {}
+  const completed = new Set(Array.isArray(current.completed_steps) ? current.completed_steps : [])
+  completed.add(step)
+  await localSet({
+    [ONBOARDING_STORAGE_KEY]: {
+      version: 1,
+      completed_steps: Array.from(completed),
+      dismissed_surfaces: Array.isArray(current.dismissed_surfaces) ? current.dismissed_surfaces : [],
+      completed_at: current.completed_at || null,
+      reward_claimed_at: current.reward_claimed_at || null,
+      updated_at: new Date().toISOString(),
+    },
+  })
 }
 
 function sanitizeStoredAuth(auth = {}) {
@@ -269,7 +295,15 @@ async function openEventPin(url, mode, tab = null) {
   openTruthShieldWindow(target.toString(), 460, 720)
 }
 
-chrome.runtime.onInstalled.addListener(createMenus)
+chrome.runtime.onInstalled.addListener((details) => {
+  createMenus()
+  recordOnboardingStep('install_extension').catch(() => null)
+  if (details?.reason === 'install') {
+    getSettings()
+      .then((settings) => chrome.tabs.create({ url: `${settings.tooltipOrigin}/onboarding?source=extension` }))
+      .catch(() => null)
+  }
+})
 chrome.runtime.onStartup.addListener(createMenus)
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'sync' && changes.locale) {
