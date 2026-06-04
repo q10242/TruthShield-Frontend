@@ -12,7 +12,10 @@ const token = computed(() => localStorage.getItem(TOKEN_KEY) || '')
 const zh = computed(() => currentLocale() === 'zh-TW')
 const excluded = computed(() => {
   const name = String(route.name || '')
-  return name.startsWith('iframe-') || ['onboarding', 'login', 'extension-auth-sync'].includes(name)
+  const path = String(route.path || '')
+  return path === '/onboarding'
+    || name.startsWith('iframe-')
+    || ['onboarding', 'login', 'extension-auth-sync'].includes(name)
 })
 
 async function refresh() {
