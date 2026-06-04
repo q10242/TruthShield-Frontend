@@ -68,8 +68,9 @@ function stepMeta(step) {
       doneLabel: zh.value ? '我已裝好並能打開 popup' : 'Installed and popup works',
     },
     sync_auth: {
-      to: token.value ? '/profile' : '/login?redirect=/onboarding',
-      actionLabel: token.value ? (zh.value ? '查看個人頁' : 'Open profile') : (zh.value ? '登入 / 同步身份' : 'Sign in / sync identity'),
+      action: token.value ? 'mark' : undefined,
+      to: token.value ? undefined : '/login?redirect=/onboarding',
+      actionLabel: token.value ? (zh.value ? '我已登入，完成這一步' : 'Signed in, complete this step') : (zh.value ? '登入 / 同步身份' : 'Sign in / sync identity'),
       instruction: zh.value
         ? '這一步是讓套件和官網使用同一個身份。之後投票、證據、徽章才會算在你的帳號。'
         : 'This lets the extension and website use the same identity so votes, evidence, and badges belong to your account.',
