@@ -15,6 +15,29 @@ This repository contains the Vue frontend, public Truth Hub pages, iframe vote/s
 - A profile page with trust score, badges, achievements, identity display, and contribution history.
 - Public evidence library, transparency dashboard, media ranking, community tasks, donation page, and installation guide.
 
+## Open Source Impact
+
+TruthShield is built as public-interest infrastructure for news credibility and civic context. The project is not a content blocker and does not remove or censor external articles. Instead, it adds an auditable layer beside news content: weighted community labels, public evidence, reader reactions, event timelines, transparent moderation records, and governance logs.
+
+The frontend is already used in production at:
+
+- Web app: <https://truth-shield.otus.tw>
+- API: <https://truth-shield-api.otus.tw>
+
+This repository is the user-facing half of the system. It makes the open API visible through the public Truth Hub, embeddable iframe panels, Chrome extension UI, event pages, community tasks, evidence library, and transparency pages. The companion backend repository contains the trust-weighting engine, moderation records, event taxonomy, anti-abuse logic, and API implementation.
+
+## Maintenance and Codex Use
+
+TruthShield is actively maintained as a small open-source project. Recent work includes extension packaging, reader-reaction UX, event timelines, event categorization and progress status, achievement tiers, donation prompts, share previews, public documentation, and production deployment fixes.
+
+Codex and API credits would be used for core open-source maintenance work:
+
+- Review frontend and extension changes before release.
+- Triage UI regressions from production feedback and browser-extension QA.
+- Generate release checklists and changelogs for website and extension updates.
+- Inspect accessibility, security, and privacy-sensitive frontend flows.
+- Assist with issue triage, documentation updates, and public transparency copy.
+
 ## Product Flow
 
 ```mermaid
@@ -178,6 +201,10 @@ Language preference can be selected in the web UI and extension options. The ext
 - Closing the banner keeps it closed until refresh.
 - The popup avoids blocking article reading and uses side/bottom placement where possible.
 - Tooltip hover does not become a voting entry point; voting is done in the article context.
+
+## License
+
+TruthShield Web is open source under the [MIT License](./LICENSE).
 - YouTube uses a small marker rather than a full top banner.
 
 ## Production Dependencies

@@ -1,7 +1,9 @@
 {
   "name": "truth-shield-web",
   "private": true,
+  "description": "Open-source news credibility frontend, public Truth Hub, iframe panels, and Chrome extension for TruthShield.",
   "version": "0.0.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
