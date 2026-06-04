@@ -1319,8 +1319,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
             </div>
           </div>
 
-          <div v-if="(graph.entities || []).length === 0" class="text-sm text-zinc-400">{{ zh ? '尚無人物/組織節點。可從新聞右鍵 Pin 進來。' : 'No people or organization nodes yet. Pin one from a news page.' }}</div>
-          <div v-else class="grid gap-5" :class="nodeManagementOpen ? 'lg:grid-cols-[minmax(0,1fr)_360px]' : 'lg:grid-cols-1'">
+          <div class="grid gap-5" :class="nodeManagementOpen ? 'lg:grid-cols-[minmax(0,1fr)_360px]' : 'lg:grid-cols-1'">
             <div class="space-y-3">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-sm font-semibold text-zinc-200">{{ zh ? '關係圖' : 'Relationship Graph' }}</p>
@@ -1411,6 +1410,17 @@ onUnmounted(() => { document.title = 'TruthShield' })
                 </g>
               </svg>
               <div
+                v-if="(graph.entities || []).length === 0"
+                class="pointer-events-none absolute inset-0 grid place-items-center px-6 text-center"
+              >
+                <div class="max-w-sm rounded-lg border border-cyan-300/20 bg-zinc-950/80 p-4 shadow-2xl shadow-black/30">
+                  <p class="text-sm font-semibold text-cyan-100">{{ zh ? '這張關係圖還是空的' : 'This graph is empty' }}</p>
+                  <p class="mt-2 text-xs leading-5 text-zinc-400">
+                    {{ token ? (zh ? '在空白圖紙上按右鍵，可以直接新增第一個人物或組織節點。' : 'Right-click the blank canvas to add the first person or organization node.') : (zh ? '登入後可在空白圖紙上右鍵新增第一個人物或組織節點。' : 'Sign in, then right-click the blank canvas to add the first person or organization node.') }}
+                  </p>
+                </div>
+              </div>
+              <div
                 v-if="graphContextMenu.open"
                 class="absolute z-20 w-64 rounded-lg border border-cyan-300/20 bg-zinc-950/95 p-2 text-sm shadow-2xl shadow-black/50 backdrop-blur"
                 :style="{ left: `${graphContextMenu.x}px`, top: `${graphContextMenu.y}px` }"
@@ -1422,8 +1432,8 @@ onUnmounted(() => { document.title = 'TruthShield' })
                   </p>
                   <button type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickEntityPanel('person')">{{ zh ? '在這裡新增人物' : 'Add person here' }}</button>
                   <button type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickEntityPanel('organization')">{{ zh ? '在這裡新增組織' : 'Add organization here' }}</button>
-                  <button type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickRelationshipPanel('from')">{{ graphContextMenu.entity ? (zh ? '從此節點新增關係線' : 'Add edge from this node') : (zh ? '新增既有節點關係線' : 'Add edge between existing nodes') }}</button>
-                  <button v-if="graphContextMenu.entity" type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickRelationshipPanel('to')">{{ zh ? '新增指向此節點的關係線' : 'Add edge to this node' }}</button>
+                  <button v-if="(graph.entities || []).length >= 2" type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickRelationshipPanel('from')">{{ graphContextMenu.entity ? (zh ? '從此節點新增關係線' : 'Add edge from this node') : (zh ? '新增既有節點關係線' : 'Add edge between existing nodes') }}</button>
+                  <button v-if="graphContextMenu.entity && (graph.entities || []).length >= 2" type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="openQuickRelationshipPanel('to')">{{ zh ? '新增指向此節點的關係線' : 'Add edge to this node' }}</button>
                   <div v-if="graphContextMenu.entity" class="my-1 border-t border-white/10"></div>
                   <button v-if="graphContextMenu.entity" type="button" class="block w-full rounded-md px-2 py-2 text-left text-zinc-200 hover:bg-white/10" @click="startEditEntity(graphContextMenu.entity); closeGraphContextMenu()">{{ zh ? '編輯節點資料' : 'Edit node details' }}</button>
                   <button v-if="graphContextMenu.entity" type="button" class="block w-full rounded-md px-2 py-2 text-left text-red-200 hover:bg-red-500/10" @click="removeEntity(graphContextMenu.entity); closeGraphContextMenu()">{{ zh ? '刪除節點' : 'Delete node' }}</button>
