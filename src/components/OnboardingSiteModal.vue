@@ -11,11 +11,8 @@ const summary = ref(null)
 const token = computed(() => localStorage.getItem(TOKEN_KEY) || '')
 const zh = computed(() => currentLocale() === 'zh-TW')
 const excluded = computed(() => {
-  const name = String(route.name || '')
   const path = String(route.path || '')
-  return path === '/onboarding'
-    || name.startsWith('iframe-')
-    || ['onboarding', 'login', 'extension-auth-sync'].includes(name)
+  return path !== '/' || Boolean(route.query && Object.keys(route.query).length) || Boolean(route.hash)
 })
 
 async function refresh() {
