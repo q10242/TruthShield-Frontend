@@ -16,6 +16,7 @@ const q = ref('')
 const sort = ref('updated')
 const categoryFilter = ref('')
 const progressFilter = ref('')
+const tagFilter = ref('')
 const page = ref(1)
 const perPage = 20
 const loading = ref(false)
@@ -82,8 +83,10 @@ const text = computed(() => ({
   progressStatus: zh.value ? '進度狀態' : 'Progress status',
   categoryFilter: zh.value ? '分類' : 'Category',
   progressFilter: zh.value ? '進度' : 'Progress',
+  tagFilter: zh.value ? '標籤' : 'Tag',
   allCategories: zh.value ? '全部分類' : 'All categories',
   allProgress: zh.value ? '全部進度' : 'All progress',
+  allTags: zh.value ? '全部標籤' : 'All tags',
   creating: zh.value ? '建立中...' : 'Creating...',
   createSuccess: zh.value ? '事件已建立，正在開啟事件頁。' : 'Event created. Opening the event page.',
   createFailed: zh.value ? '建立事件失敗。' : 'Failed to create event.',
@@ -142,6 +145,11 @@ function statusLabel(status) {
   return map[normalized] || normalized.replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+function eventTabLink(event, tab = '') {
+  if (!event.id) return '/events'
+  return tab ? { path: `/events/${event.id}`, query: { tab } } : `/events/${event.id}`
+}
+
 function eventStateTone(event) {
   if (event.is_disputed) return text.value.disputed
   if ((event.view_count ?? 0) >= 100) return text.value.highTraffic
@@ -156,6 +164,7 @@ async function load() {
       q: q.value,
       sort: sort.value,
       primary_category: categoryFilter.value || undefined,
+      tag: tagFilter.value || undefined,
       progress_status: progressFilter.value || undefined,
       per_page: perPage,
       page: page.value,
@@ -184,6 +193,7 @@ function syncStateFromRoute() {
   const routeSort = firstQueryValue(route.query.sort)
   sort.value = sortValues.value.includes(routeSort) ? routeSort : 'updated'
   categoryFilter.value = firstQueryValue(route.query.primary_category)
+  tagFilter.value = firstQueryValue(route.query.tag)
   progressFilter.value = firstQueryValue(route.query.progress_status)
   page.value = readRoutePage(route.query.page)
 }
@@ -193,13 +203,14 @@ function queryForRoute() {
     q: q.value.trim() || undefined,
     sort: sort.value !== 'updated' ? sort.value : undefined,
     primary_category: categoryFilter.value || undefined,
+    tag: tagFilter.value || undefined,
     progress_status: progressFilter.value || undefined,
     page: page.value > 1 ? String(page.value) : undefined,
   }
 }
 
 function routeQueryMatches(query) {
-  return ['q', 'sort', 'primary_category', 'progress_status', 'page'].every((key) => {
+  return ['q', 'sort', 'primary_category', 'tag', 'progress_status', 'page'].every((key) => {
     const current = firstQueryValue(route.query[key])
     return current === (query[key] || '')
   })
@@ -297,6 +308,7 @@ function goPage(p) {
 function resetSearch() {
   q.value = ''
   categoryFilter.value = ''
+  tagFilter.value = ''
   progressFilter.value = ''
   page.value = 1
   pushRouteQuery()
@@ -453,6 +465,10 @@ watch(
               <option value="">{{ text.allCategories }}</option>
               <option v-for="option in eventOptions.primary_categories" :key="option.value" :value="option.value">{{ option.label }}</option>
             </select>
+            <select v-model="tagFilter" class="rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-300 outline-none focus:border-cyan-300" @change="page = 1; pushRouteQuery()">
+              <option value="">{{ text.allTags }}</option>
+              <option v-for="option in eventOptions.tags" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
             <select v-model="progressFilter" class="rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-300 outline-none focus:border-cyan-300" @change="page = 1; pushRouteQuery()">
               <option value="">{{ text.allProgress }}</option>
               <option v-for="option in eventOptions.progress_statuses" :key="option.value" :value="option.value">{{ option.label }}</option>
@@ -482,30 +498,31 @@ watch(
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2 text-xs">
-                <span v-if="event.primary_category_label" class="rounded-full bg-cyan-300/10 px-3 py-1 font-semibold text-cyan-100">{{ event.primary_category_label }}</span>
-                <span class="rounded-full bg-emerald-300/10 px-3 py-1 font-semibold text-emerald-100">{{ event.progress_status_label || statusLabel(event.progress_status) }}</span>
+                <RouterLink v-if="event.primary_category_label" class="rounded-full bg-cyan-300/10 px-3 py-1 font-semibold text-cyan-100 hover:bg-cyan-300/20" :to="{ path: '/events', query: { primary_category: event.primary_category } }">{{ event.primary_category_label }}</RouterLink>
+                <RouterLink class="rounded-full bg-emerald-300/10 px-3 py-1 font-semibold text-emerald-100 hover:bg-emerald-300/20" :to="{ path: '/events', query: { progress_status: event.progress_status || 'collecting' } }">{{ event.progress_status_label || statusLabel(event.progress_status) }}</RouterLink>
                 <span v-if="event.is_disputed" class="rounded-full bg-amber-500/10 px-3 py-1 font-semibold text-amber-100">{{ text.disputed }}</span>
                 <span class="rounded-full border border-white/10 px-3 py-1 text-zinc-400">{{ eventStateTone(event) }}</span>
               </div>
-              <h2 class="mt-3 text-xl font-semibold text-white md:text-2xl">{{ event.name }}</h2>
+              <RouterLink class="mt-3 block text-xl font-semibold text-white transition hover:text-cyan-100 md:text-2xl" :to="`/events/${event.id}`">{{ event.name }}</RouterLink>
               <p class="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">{{ event.summary || text.summaryFallback }}</p>
               <div v-if="event.tag_labels?.length" class="mt-3 flex flex-wrap gap-2 text-xs">
-                <span v-for="label in event.tag_labels.slice(0, 3)" :key="label" class="rounded-full border border-white/10 px-2.5 py-1 text-zinc-300">{{ label }}</span>
+                <RouterLink v-for="(label, index) in event.tag_labels.slice(0, 3)" :key="label" class="rounded-full border border-white/10 px-2.5 py-1 text-zinc-300 hover:border-cyan-300/40 hover:text-cyan-100" :to="{ path: '/events', query: { tag: event.tags?.[index] || label } }">{{ label }}</RouterLink>
               </div>
             </div>
             <RouterLink class="rounded-xl border border-cyan-300/40 px-4 py-2.5 text-sm font-semibold text-cyan-100 transition hover:border-cyan-300/80 hover:bg-cyan-300/8" :to="`/events/${event.id}`">{{ text.open }}</RouterLink>
           </div>
           <div class="mt-5 grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-5">
-            <div class="rounded-2xl border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.items }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.items ?? 0 }}</p></div>
-            <div class="rounded-2xl border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.timeline }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.timeline ?? 0 }}</p></div>
-            <div class="rounded-2xl border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.graph }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.relationships ?? 0 }}</p></div>
-            <div
-              class="rounded-2xl border p-3 transition-colors"
+            <RouterLink class="rounded-2xl border border-white/10 bg-zinc-950/70 p-3 transition hover:border-cyan-300/40 hover:bg-cyan-300/10" :to="eventTabLink(event, 'news')"><p class="text-zinc-500">{{ text.items }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.items ?? 0 }}</p></RouterLink>
+            <RouterLink class="rounded-2xl border border-white/10 bg-zinc-950/70 p-3 transition hover:border-cyan-300/40 hover:bg-cyan-300/10" :to="eventTabLink(event, 'timeline')"><p class="text-zinc-500">{{ text.timeline }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.timeline ?? 0 }}</p></RouterLink>
+            <RouterLink class="rounded-2xl border border-white/10 bg-zinc-950/70 p-3 transition hover:border-cyan-300/40 hover:bg-cyan-300/10" :to="eventTabLink(event, 'graph')"><p class="text-zinc-500">{{ text.graph }}</p><p class="mt-1 text-lg font-semibold">{{ event.counts.relationships ?? 0 }}</p></RouterLink>
+            <RouterLink
+              class="rounded-2xl border p-3 transition hover:border-cyan-300/40 hover:bg-cyan-300/10"
               :class="sort === 'views' || sort === 'recent' ? 'border-cyan-300/30 bg-cyan-300/5' : 'border-white/10 bg-zinc-950/70'"
+              :to="eventTabLink(event)"
             >
               <p class="text-zinc-500">{{ text.views }}</p>
               <p class="mt-1 text-lg font-semibold">{{ (event.view_count ?? 0).toLocaleString() }}</p>
-            </div>
+            </RouterLink>
             <div class="rounded-2xl border border-white/10 bg-zinc-950/70 p-3"><p class="text-zinc-500">{{ text.updated }}</p><p class="mt-1 text-xs font-semibold">{{ formatDate(event.last_activity_at || event.created_at) }}</p></div>
           </div>
         </article>

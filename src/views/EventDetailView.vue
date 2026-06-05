@@ -228,10 +228,10 @@ const tabs = computed(() => [
 const overviewStats = computed(() => {
   const counts = event.value?.counts || {}
   return [
-    { key: 'items', label: zh.value ? '事件資料' : 'Items', value: counts.items ?? 0, tone: 'border-cyan-300/20 bg-cyan-300/5 text-cyan-100' },
-    { key: 'timeline', label: zh.value ? '時間線節點' : 'Timeline entries', value: counts.timeline ?? 0, tone: 'border-white/10 bg-white/[0.03] text-white' },
-    { key: 'relationships', label: zh.value ? '關係連線' : 'Relationships', value: counts.relationships ?? 0, tone: 'border-white/10 bg-white/[0.03] text-white' },
-    { key: 'entities', label: zh.value ? '人物與組織' : 'People and orgs', value: counts.entities ?? 0, tone: 'border-white/10 bg-white/[0.03] text-white' },
+    { key: 'items', label: zh.value ? '事件資料' : 'Items', value: counts.items ?? 0, tab: 'news', tone: 'border-cyan-300/20 bg-cyan-300/5 text-cyan-100' },
+    { key: 'timeline', label: zh.value ? '時間線節點' : 'Timeline entries', value: counts.timeline ?? 0, tab: 'timeline', tone: 'border-white/10 bg-white/[0.03] text-white' },
+    { key: 'relationships', label: zh.value ? '關係連線' : 'Relationships', value: counts.relationships ?? 0, tab: 'graph', tone: 'border-white/10 bg-white/[0.03] text-white' },
+    { key: 'entities', label: zh.value ? '人物與組織' : 'People and orgs', value: counts.entities ?? 0, tab: 'graph', tone: 'border-white/10 bg-white/[0.03] text-white' },
   ]
 })
 const eventReactionRows = computed(() => [
@@ -1235,9 +1235,9 @@ onUnmounted(() => { document.title = 'TruthShield' })
           <h1 class="mt-2 text-3xl font-semibold text-white md:text-4xl">{{ event.name }}</h1>
           <p class="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">{{ event.summary || (zh ? '這個事件還需要社群補充摘要。' : 'This event still needs a community summary.') }}</p>
           <div class="mt-4 flex flex-wrap gap-2 text-xs">
-            <span v-if="event.primary_category_label" class="rounded-full bg-cyan-300/10 px-3 py-1 font-semibold text-cyan-100">{{ event.primary_category_label }}</span>
-            <span class="rounded-full bg-emerald-300/10 px-3 py-1 font-semibold text-emerald-100">{{ event.progress_status_label || event.progress_status }}</span>
-            <span v-for="label in event.tag_labels || []" :key="label" class="rounded-full border border-white/10 px-3 py-1 text-zinc-300">{{ label }}</span>
+            <RouterLink v-if="event.primary_category_label" class="rounded-full bg-cyan-300/10 px-3 py-1 font-semibold text-cyan-100 hover:bg-cyan-300/20" :to="{ path: '/events', query: { primary_category: event.primary_category } }">{{ event.primary_category_label }}</RouterLink>
+            <RouterLink class="rounded-full bg-emerald-300/10 px-3 py-1 font-semibold text-emerald-100 hover:bg-emerald-300/20" :to="{ path: '/events', query: { progress_status: event.progress_status || 'collecting' } }">{{ event.progress_status_label || event.progress_status }}</RouterLink>
+            <RouterLink v-for="(label, index) in event.tag_labels || []" :key="label" class="rounded-full border border-white/10 px-3 py-1 text-zinc-300 hover:border-cyan-300/40 hover:text-cyan-100" :to="{ path: '/events', query: { tag: event.tags?.[index] || label } }">{{ label }}</RouterLink>
             <span v-if="event.is_disputed" class="rounded-full bg-amber-500/10 px-3 py-1 font-semibold text-amber-100">{{ zh ? '爭議中' : 'Disputed' }}</span>
             <span class="rounded-full bg-white/10 px-3 py-1 text-zinc-300">{{ zh ? '觀看' : 'Views' }} {{ (event.view_count ?? 0).toLocaleString() }}</span>
             <span class="rounded-full bg-white/10 px-3 py-1 text-zinc-300">{{ zh ? '最後活動' : 'Last activity' }} {{ fmtDate(event.last_activity_at || event.created_at) }}</span>
@@ -1275,12 +1275,6 @@ onUnmounted(() => { document.title = 'TruthShield' })
               <button class="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-zinc-300" type="button" @click="metadataEditOpen = false">{{ zh ? '取消' : 'Cancel' }}</button>
             </div>
           </form>
-          <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div v-for="stat in overviewStats" :key="stat.key" class="rounded-2xl border p-4" :class="stat.tone">
-              <p class="text-xs uppercase tracking-[0.18em] text-zinc-500">{{ stat.label }}</p>
-              <p class="mt-2 text-2xl font-semibold">{{ stat.value }}</p>
-            </div>
-          </div>
         </div>
 
         <div class="mt-6 overflow-x-auto pb-1">
@@ -1296,10 +1290,17 @@ onUnmounted(() => { document.title = 'TruthShield' })
         <section v-if="activeTab === 'overview'" class="mt-6 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
           <div class="space-y-4">
             <div class="grid gap-4 sm:grid-cols-2">
-              <div v-for="stat in overviewStats" :key="stat.key" class="rounded-2xl border p-5" :class="stat.tone">
+              <button
+                v-for="stat in overviewStats"
+                :key="stat.key"
+                type="button"
+                class="rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/60 hover:bg-cyan-300/10 focus:outline-none focus:ring-2 focus:ring-cyan-300/50"
+                :class="stat.tone"
+                @click="activeTab = stat.tab"
+              >
                 <p class="text-xs uppercase tracking-[0.18em] text-zinc-500">{{ stat.label }}</p>
                 <p class="mt-3 text-3xl font-semibold">{{ stat.value }}</p>
-              </div>
+              </button>
             </div>
             <div class="rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.04] p-5">
               <div class="flex items-start justify-between gap-3">

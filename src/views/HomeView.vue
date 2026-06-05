@@ -189,6 +189,11 @@ function eventLink(event) {
   return event.id ? `/events/${event.id}` : '/events'
 }
 
+function eventTabLink(event, tab = '') {
+  if (!event.id) return '/events'
+  return tab ? { path: `/events/${event.id}`, query: { tab } } : `/events/${event.id}`
+}
+
 function eventMetric(event, key) {
   return Number(event.counts?.[key] ?? 0).toLocaleString()
 }
@@ -321,27 +326,27 @@ onMounted(async () => {
           <div class="divide-y divide-white/10">
             <article v-for="event in visibleFeaturedEvents" :key="event.id || event.name" class="p-5">
               <div class="flex flex-wrap items-center gap-2 text-xs">
-                <span v-if="event.primary_category_label" class="rounded-full bg-cyan-300/10 px-2.5 py-1 font-semibold text-cyan-100">{{ event.primary_category_label }}</span>
-                <span class="rounded-full bg-emerald-300/10 px-2.5 py-1 font-semibold text-emerald-100">{{ event.progress_status_label || event.progress_status || eventShowcaseText.latest }}</span>
+                <RouterLink v-if="event.primary_category_label" class="rounded-full bg-cyan-300/10 px-2.5 py-1 font-semibold text-cyan-100 hover:bg-cyan-300/20" :to="{ path: '/events', query: { primary_category: event.primary_category } }">{{ event.primary_category_label }}</RouterLink>
+                <RouterLink class="rounded-full bg-emerald-300/10 px-2.5 py-1 font-semibold text-emerald-100 hover:bg-emerald-300/20" :to="{ path: '/events', query: { progress_status: event.progress_status || 'collecting' } }">{{ event.progress_status_label || event.progress_status || eventShowcaseText.latest }}</RouterLink>
               </div>
-              <h3 class="mt-3 text-base font-semibold leading-6 text-white">{{ event.name }}</h3>
+              <RouterLink class="mt-3 block text-base font-semibold leading-6 text-white transition hover:text-cyan-100" :to="eventLink(event)">{{ event.name }}</RouterLink>
               <p class="mt-2 line-clamp-2 text-sm leading-6 text-zinc-400">{{ eventSummary(event) }}</p>
               <div v-if="event.tag_labels?.length" class="mt-3 flex flex-wrap gap-2 text-xs">
-                <span v-for="label in event.tag_labels.slice(0, 3)" :key="label" class="rounded-full border border-white/10 px-2.5 py-1 text-zinc-300">{{ label }}</span>
+                <RouterLink v-for="(label, index) in event.tag_labels.slice(0, 3)" :key="label" class="rounded-full border border-white/10 px-2.5 py-1 text-zinc-300 hover:border-cyan-300/40 hover:text-cyan-100" :to="{ path: '/events', query: { tag: event.tags?.[index] || label } }">{{ label }}</RouterLink>
               </div>
               <div class="mt-4 grid grid-cols-3 gap-2 text-xs">
-                <div class="rounded-md bg-white/[0.04] p-3">
+                <RouterLink class="rounded-md bg-white/[0.04] p-3 transition hover:bg-cyan-300/10 hover:text-cyan-100" :to="eventTabLink(event, 'news')">
                   <div class="font-semibold text-white">{{ eventMetric(event, 'items') }}</div>
                   <div class="mt-1 text-zinc-500">{{ eventShowcaseText.items }}</div>
-                </div>
-                <div class="rounded-md bg-white/[0.04] p-3">
+                </RouterLink>
+                <RouterLink class="rounded-md bg-white/[0.04] p-3 transition hover:bg-cyan-300/10 hover:text-cyan-100" :to="eventTabLink(event, 'timeline')">
                   <div class="font-semibold text-white">{{ eventMetric(event, 'timeline') }}</div>
                   <div class="mt-1 text-zinc-500">{{ eventShowcaseText.timeline }}</div>
-                </div>
-                <div class="rounded-md bg-white/[0.04] p-3">
+                </RouterLink>
+                <RouterLink class="rounded-md bg-white/[0.04] p-3 transition hover:bg-cyan-300/10 hover:text-cyan-100" :to="eventTabLink(event)">
                   <div class="font-semibold text-white">{{ Number(event.view_count ?? 0).toLocaleString() }}</div>
                   <div class="mt-1 text-zinc-500">{{ eventShowcaseText.views }}</div>
-                </div>
+                </RouterLink>
               </div>
               <RouterLink class="mt-4 inline-flex rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100 hover:border-cyan-200" :to="eventLink(event)">
                 {{ eventShowcaseText.openEvent }}
