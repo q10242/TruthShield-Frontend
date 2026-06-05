@@ -18,6 +18,7 @@ import {
   fetchEventTimeline,
   mergeEventEntity,
   searchGlobalEntities,
+  submitReaderReaction,
   updateEventEntity,
   updateEventEntityPosition,
   updateEvent,
@@ -47,6 +48,11 @@ const timeline = ref([])
 const graph = ref({ entities: [], relationships: [] })
 const logs = ref([])
 const reactionSummary = ref(null)
+const reactionSubmitting = ref(false)
+const reactionMessage = ref('')
+const reactionError = ref('')
+const selectedFeelings = ref([])
+const selectedNeeds = ref([])
 const loading = ref(true)
 const error = ref('')
 const graphSvg = ref(null)
@@ -233,6 +239,14 @@ const eventReactionRows = computed(() => [
   ...(reactionSummary.value?.summary?.needs || []),
 ].slice(0, 8))
 const eventReactionTop = computed(() => reactionSummary.value?.hover_reactions || [])
+const reactionOptions = computed(() => reactionSummary.value?.options || { feelings: [], needs: [] })
+const eventReactionSourceUrl = computed(() => {
+  const primaryUrl = event.value?.primary_news?.normalized_url
+  if (primaryUrl) return primaryUrl
+
+  const item = (event.value?.items || []).find((row) => row.news_url?.normalized_url || row.source_url)
+  return item?.news_url?.normalized_url || item?.source_url || ''
+})
 
 function setMeta(title, description) {
   document.title = title
@@ -275,6 +289,8 @@ async function load() {
     graph.value = graphPayload
     logs.value = logPayload
     reactionSummary.value = reactionPayload
+    selectedFeelings.value = Array.isArray(reactionPayload?.my_reaction?.feelings) ? [...reactionPayload.my_reaction.feelings] : []
+    selectedNeeds.value = Array.isArray(reactionPayload?.my_reaction?.needs) ? [...reactionPayload.my_reaction.needs] : []
     eventOptions.value = optionsPayload
     currentUser.value = userPayload
     markOnboardingStep('open_event_context', token.value).catch(() => null)
@@ -808,6 +824,65 @@ function resetMessages() {
   formError.value = ''
 }
 
+function toggleEventReaction(kind, key) {
+  const target = kind === 'need' ? selectedNeeds : selectedFeelings
+  const current = target.value
+  reactionError.value = ''
+
+  if (current.includes(key)) {
+    target.value = current.filter((item) => item !== key)
+    return
+  }
+
+  if (current.length >= 3) {
+    reactionError.value = zh.value ? '同一類最多選 3 個。' : 'Choose up to 3 in each group.'
+    return
+  }
+
+  target.value = [...current, key]
+}
+
+async function submitEventReaction() {
+  token.value = localStorage.getItem('truthshield_api_token') || ''
+  reactionMessage.value = ''
+  reactionError.value = ''
+
+  if (!token.value) {
+    reactionError.value = zh.value ? '登入後才能留下事件心情。' : 'Sign in to leave an event mood.'
+    return
+  }
+
+  if (!selectedFeelings.value.length && !selectedNeeds.value.length) {
+    reactionError.value = zh.value ? '請至少選一個心情或需求。' : 'Choose at least one feeling or need.'
+    return
+  }
+
+  if (!eventReactionSourceUrl.value) {
+    reactionError.value = zh.value ? '這個事件還沒有可作為來源的新聞網址，暫時無法送出心情。' : 'This event has no source article URL yet, so mood cannot be submitted.'
+    return
+  }
+
+  reactionSubmitting.value = true
+  try {
+    const payload = await submitReaderReaction(token.value, {
+      news_url: eventReactionSourceUrl.value,
+      event_id: event.value.id,
+      feelings: selectedFeelings.value,
+      needs: selectedNeeds.value,
+    })
+    reactionSummary.value = {
+      ...(reactionSummary.value || {}),
+      ...payload,
+      my_reaction: payload.reaction || reactionSummary.value?.my_reaction || null,
+    }
+    reactionMessage.value = zh.value ? '已更新你的事件心情。' : 'Your event mood was updated.'
+  } catch (err) {
+    reactionError.value = err.message || (zh.value ? '事件心情送出失敗。' : 'Failed to submit event mood.')
+  } finally {
+    reactionSubmitting.value = false
+  }
+}
+
 function toDatetimeLocal(value) {
   if (!value) return ''
   const date = new Date(value)
@@ -1245,7 +1320,60 @@ onUnmounted(() => { document.title = 'TruthShield' })
                   <span class="shrink-0 text-xs font-semibold text-emerald-200">{{ row.count }}</span>
                 </div>
               </div>
-              <p v-else class="mt-4 text-sm text-zinc-500">{{ zh ? '尚無事件反應。使用插件 pop-out 可以留下心情或想看的補充。' : 'No event reactions yet. Use the extension pop-out to leave a feeling or request.' }}</p>
+              <p v-else class="mt-4 text-sm text-zinc-500">{{ zh ? '尚無事件反應。你可以直接在這裡留下心情或想看的補充。' : 'No event reactions yet. You can leave a feeling or request here.' }}</p>
+
+              <div class="mt-5 space-y-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-sm font-semibold text-emerald-100">{{ zh ? '留下你的事件心情' : 'Leave your event mood' }}</p>
+                    <p class="mt-1 text-xs leading-5 text-zinc-500">{{ zh ? '這不會取代可信度投票，只用來聚合社群對整起事件的感受。' : 'This does not replace credibility voting; it aggregates how readers feel about the event.' }}</p>
+                  </div>
+                  <RouterLink v-if="!token" class="shrink-0 rounded-md border border-emerald-300/40 px-3 py-2 text-xs font-semibold text-emerald-100" :to="{ path: '/login', query: { redirect: route.fullPath } }">{{ zh ? '登入' : 'Sign in' }}</RouterLink>
+                </div>
+
+                <div class="space-y-2">
+                  <p class="text-xs font-semibold text-zinc-300">{{ zh ? '你的心情' : 'Your feelings' }}</p>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="option in reactionOptions.feelings"
+                      :key="option.key"
+                      type="button"
+                      class="rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors"
+                      :class="selectedFeelings.includes(option.key) ? 'border-emerald-200 bg-emerald-300 text-zinc-950' : 'border-white/10 bg-zinc-950 text-zinc-300 hover:border-emerald-300/50 hover:text-emerald-100'"
+                      @click="toggleEventReaction('feeling', option.key)"
+                    >
+                      <span class="mr-1 text-sm">{{ option.emoji }}</span>{{ option.label }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="space-y-2">
+                  <p class="text-xs font-semibold text-zinc-300">{{ zh ? '想看的補充' : 'Context requests' }}</p>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="option in reactionOptions.needs"
+                      :key="option.key"
+                      type="button"
+                      class="rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors"
+                      :class="selectedNeeds.includes(option.key) ? 'border-cyan-200 bg-cyan-300 text-zinc-950' : 'border-white/10 bg-zinc-950 text-zinc-300 hover:border-cyan-300/50 hover:text-cyan-100'"
+                      @click="toggleEventReaction('need', option.key)"
+                    >
+                      <span class="mr-1 text-sm">{{ option.emoji }}</span>{{ option.label }}
+                    </button>
+                  </div>
+                </div>
+
+                <p v-if="reactionError" class="text-xs text-red-300">{{ reactionError }}</p>
+                <p v-if="reactionMessage" class="text-xs text-emerald-300">{{ reactionMessage }}</p>
+                <button
+                  type="button"
+                  class="w-full rounded-md bg-emerald-300 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-50"
+                  :disabled="reactionSubmitting || !token || !eventReactionSourceUrl"
+                  @click="submitEventReaction"
+                >
+                  {{ reactionSubmitting ? (zh ? '送出中...' : 'Submitting...') : (zh ? '送出事件心情' : 'Submit event mood') }}
+                </button>
+              </div>
             </div>
           </div>
           <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
