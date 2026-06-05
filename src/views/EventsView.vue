@@ -1,6 +1,6 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { createEvent, fetchEventOptions, fetchEvents } from '../lib/api'
 import { useI18n } from '../i18n'
 import AppNav from '../components/AppNav.vue'
@@ -8,6 +8,7 @@ import AppNav from '../components/AppNav.vue'
 const TOKEN_KEY = 'truthshield_api_token'
 
 const { locale } = useI18n()
+const route = useRoute()
 const router = useRouter()
 const zh = computed(() => locale.value !== 'en')
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
@@ -42,8 +43,8 @@ const text = computed(() => ({
   intro: zh.value
     ? '把多篇新聞、證據、官方澄清與人物/組織關係收斂到同一個事件，讓社群一起維護脈絡。'
     : 'Group related articles, evidence, responses, and people/organization relationships into shared community-maintained events.',
-  search: zh.value ? '搜尋事件、新聞、人物或組織' : 'Search events, articles, people, or organizations',
-  searchHint: zh.value ? '可直接搜尋事件名稱、人物、組織，或近期爭議主題。' : 'Search by event name, public figure, organization, or an emerging controversy.',
+  search: zh.value ? '搜尋事件標題或敘述' : 'Search event title or description',
+  searchHint: zh.value ? '可直接搜尋事件標題、敘述，也可搜尋人物、組織或相關新聞標題。' : 'Search by event title, description, public figure, organization, or related article title.',
   empty: zh.value ? '目前沒有符合條件的事件。' : 'No matching events yet.',
   open: zh.value ? '查看事件' : 'Open event',
   timeline: zh.value ? '時間線' : 'Timeline',
@@ -94,6 +95,7 @@ const sortOptions = computed(() => [
   { value: 'views', label: zh.value ? '瀏覽次數' : 'Most viewed' },
   { value: 'recent', label: zh.value ? '近期瀏覽' : 'Recently viewed' },
 ])
+const sortValues = computed(() => sortOptions.value.map((option) => option.value))
 
 const hasQuery = computed(() => q.value.trim().length > 0)
 const canSubmitCreate = computed(() => Boolean(
@@ -167,6 +169,57 @@ async function load() {
   }
 }
 
+function firstQueryValue(value) {
+  if (Array.isArray(value)) return value[0] || ''
+  return value || ''
+}
+
+function readRoutePage(value) {
+  const parsed = Number.parseInt(firstQueryValue(value), 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
+}
+
+function syncStateFromRoute() {
+  q.value = firstQueryValue(route.query.q).slice(0, 120)
+  const routeSort = firstQueryValue(route.query.sort)
+  sort.value = sortValues.value.includes(routeSort) ? routeSort : 'updated'
+  categoryFilter.value = firstQueryValue(route.query.primary_category)
+  progressFilter.value = firstQueryValue(route.query.progress_status)
+  page.value = readRoutePage(route.query.page)
+}
+
+function queryForRoute() {
+  return {
+    q: q.value.trim() || undefined,
+    sort: sort.value !== 'updated' ? sort.value : undefined,
+    primary_category: categoryFilter.value || undefined,
+    progress_status: progressFilter.value || undefined,
+    page: page.value > 1 ? String(page.value) : undefined,
+  }
+}
+
+function routeQueryMatches(query) {
+  return ['q', 'sort', 'primary_category', 'progress_status', 'page'].every((key) => {
+    const current = firstQueryValue(route.query[key])
+    return current === (query[key] || '')
+  })
+}
+
+async function pushRouteQuery() {
+  const query = queryForRoute()
+  if (routeQueryMatches(query)) {
+    await load()
+    return
+  }
+
+  await router.push({ path: '/events', query })
+}
+
+function submitSearch() {
+  page.value = 1
+  pushRouteQuery()
+}
+
 async function loadOptions() {
   try {
     eventOptions.value = await fetchEventOptions()
@@ -232,12 +285,12 @@ async function submitCreate() {
 function setSort(value) {
   sort.value = value
   page.value = 1
-  load()
+  pushRouteQuery()
 }
 
 function goPage(p) {
   page.value = p
-  load()
+  pushRouteQuery()
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -246,7 +299,7 @@ function resetSearch() {
   categoryFilter.value = ''
   progressFilter.value = ''
   page.value = 1
-  load()
+  pushRouteQuery()
 }
 
 function formatDate(iso) {
@@ -256,9 +309,18 @@ function formatDate(iso) {
 
 onMounted(() => {
   token.value = localStorage.getItem(TOKEN_KEY) || ''
+  syncStateFromRoute()
   loadOptions()
   load()
 })
+
+watch(
+  () => route.query,
+  () => {
+    syncStateFromRoute()
+    load()
+  },
+)
 </script>
 
 <template>
@@ -288,7 +350,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="space-y-4">
-          <form class="rounded-3xl border border-white/10 bg-white/[0.03] p-5" @submit.prevent="page = 1; load()">
+          <form class="rounded-3xl border border-white/10 bg-white/[0.03] p-5" @submit.prevent="submitSearch">
             <label class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">{{ text.search }}</label>
             <p class="mt-3 text-sm leading-6 text-zinc-400">{{ text.searchHint }}</p>
             <div class="mt-4 flex flex-col gap-2 sm:flex-row">
@@ -387,11 +449,11 @@ onMounted(() => {
             <p class="mt-2 text-sm text-zinc-300">{{ resultSummary }}</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <select v-model="categoryFilter" class="rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-300 outline-none focus:border-cyan-300" @change="page = 1; load()">
+            <select v-model="categoryFilter" class="rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-300 outline-none focus:border-cyan-300" @change="page = 1; pushRouteQuery()">
               <option value="">{{ text.allCategories }}</option>
               <option v-for="option in eventOptions.primary_categories" :key="option.value" :value="option.value">{{ option.label }}</option>
             </select>
-            <select v-model="progressFilter" class="rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-300 outline-none focus:border-cyan-300" @change="page = 1; load()">
+            <select v-model="progressFilter" class="rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-300 outline-none focus:border-cyan-300" @change="page = 1; pushRouteQuery()">
               <option value="">{{ text.allProgress }}</option>
               <option v-for="option in eventOptions.progress_statuses" :key="option.value" :value="option.value">{{ option.label }}</option>
             </select>
