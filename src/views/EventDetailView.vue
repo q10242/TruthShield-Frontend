@@ -216,6 +216,7 @@ const canUseEventSystem = computed(() => {
 
   return Boolean(currentUser.value?.is_admin) || Number(currentUser.value?.trust_score ?? 1.0) >= Number(currentUser.value?.event_system_min_trust_score ?? 1.0)
 })
+const currentUserName = computed(() => currentUser.value?.display_name || currentUser.value?.name || currentUser.value?.email || '')
 
 const tabs = computed(() => [
   { key: 'overview', label: zh.value ? '總覽' : 'Overview' },
@@ -1231,8 +1232,31 @@ onUnmounted(() => { document.title = 'TruthShield' })
       <div v-else-if="loading" class="rounded-lg border border-white/10 p-4 text-sm text-zinc-400">{{ zh ? '載入中...' : 'Loading...' }}</div>
       <template v-else-if="event">
         <div class="rounded-3xl border border-cyan-300/15 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_38%),linear-gradient(150deg,rgba(8,145,178,0.1),rgba(24,24,27,0.92)_44%,rgba(9,9,11,0.98))] p-6 shadow-2xl shadow-cyan-950/20">
-          <p class="text-sm font-semibold text-cyan-300">TruthShield Event</p>
-          <h1 class="mt-2 text-3xl font-semibold text-white md:text-4xl">{{ event.name }}</h1>
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p class="text-sm font-semibold text-cyan-300">TruthShield Event</p>
+              <h1 class="mt-2 text-3xl font-semibold text-white md:text-4xl">{{ event.name }}</h1>
+            </div>
+            <div class="shrink-0 rounded-2xl border border-white/10 bg-zinc-950/70 p-4 text-sm shadow-lg shadow-black/20 lg:min-w-64">
+              <template v-if="currentUser">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">{{ zh ? '目前身份' : 'Current identity' }}</p>
+                <RouterLink class="mt-2 block truncate font-semibold text-cyan-100 hover:text-cyan-50" to="/profile">{{ currentUserName }}</RouterLink>
+                <p class="mt-1 text-xs text-zinc-500">{{ currentUser.email }}</p>
+                <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                  <span class="rounded-full border border-white/10 px-2.5 py-1 text-zinc-300">{{ zh ? '信用' : 'Trust' }} {{ Number(currentUser.trust_score ?? 0).toFixed(2) }}</span>
+                  <span class="rounded-full px-2.5 py-1 font-semibold" :class="canUseEventSystem ? 'bg-emerald-300/10 text-emerald-100' : 'bg-zinc-800 text-zinc-300'">
+                    {{ canUseEventSystem ? (zh ? '可編輯事件' : 'Can edit events') : (zh ? '可閱讀/投心情' : 'Read/react') }}
+                  </span>
+                </div>
+              </template>
+              <template v-else>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">{{ zh ? '目前身份' : 'Current identity' }}</p>
+                <p class="mt-2 text-sm font-semibold text-white">{{ zh ? '尚未登入' : 'Not signed in' }}</p>
+                <p class="mt-1 text-xs leading-5 text-zinc-500">{{ zh ? '登入後可以留下事件心情、補時間線與編輯關係圖。' : 'Sign in to react, add timeline entries, and edit the graph.' }}</p>
+                <RouterLink class="mt-3 inline-flex rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950" :to="{ path: '/login', query: { redirect: route.fullPath } }">{{ zh ? '登入' : 'Sign in' }}</RouterLink>
+              </template>
+            </div>
+          </div>
           <p class="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">{{ event.summary || (zh ? '這個事件還需要社群補充摘要。' : 'This event still needs a community summary.') }}</p>
           <div class="mt-4 flex flex-wrap gap-2 text-xs">
             <RouterLink v-if="event.primary_category_label" class="rounded-full bg-cyan-300/10 px-3 py-1 font-semibold text-cyan-100 hover:bg-cyan-300/20" :to="{ path: '/events', query: { primary_category: event.primary_category } }">{{ event.primary_category_label }}</RouterLink>
