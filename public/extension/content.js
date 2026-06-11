@@ -1147,6 +1147,25 @@ function tooltipToneStyle(tone) {
   return { border: 'rgba(103, 232, 249, 0.45)', background: '#09090b', accent: '#67e8f9' }
 }
 
+function styledElement(tag, style, text = null) {
+  const node = document.createElement(tag)
+  if (style) node.setAttribute('style', style)
+  if (text !== null) node.textContent = text
+  return node
+}
+
+function replaceChildren(node, children = []) {
+  node.replaceChildren(...children.filter(Boolean))
+}
+
+function reactionIcon(row, style) {
+  const text = reactionTooltipText(row.label || row.key, row.count || 0)
+  const icon = styledElement('span', style, row.emoji || '')
+  icon.dataset.truthshieldReactionTooltip = text
+  icon.title = text
+  return icon
+}
+
 function renderTooltip(payload, loading = false, failed = false, reactionPayload = null) {
   const box = ensureTooltipBox()
   const tone = tooltipToneStyle(payload?.tone)
@@ -1156,19 +1175,6 @@ function renderTooltip(payload, loading = false, failed = false, reactionPayload
   const eventContext = relatedEventContextText(reactionPayload)
   const reactionTitle = t('readerReactionTitle')
   const reactionHint = reactions.length ? t('readerReactionHoverHint') : t('readerReactionEmpty')
-  const reactionHtml = reactions.length
-    ? reactions.map((row) => {
-      const text = reactionTooltipText(row.label || row.key, row.count || 0)
-
-      return `
-        <span
-          data-truthshield-reaction-tooltip="${escapeHtml(text)}"
-          title="${escapeHtml(text)}"
-          style="display:inline-flex;height:28px;width:28px;align-items:center;justify-content:center;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(9,9,11,0.78);font-size:17px;cursor:help;"
-        >${escapeHtml(row.emoji || '')}</span>
-      `
-    }).join('')
-    : ''
 
   const displayText = loading
     ? t('checkingLink')
@@ -1182,24 +1188,31 @@ function renderTooltip(payload, loading = false, failed = false, reactionPayload
       ? t('voteClosed')
       : t('tooltipHint')
 
-  box.innerHTML = `
-    <div style="padding: 12px 14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
-        <strong style="color:${tone.accent};font-size:12px;">TruthShield</strong>
-        <span style="color:#a1a1aa;font-size:11px;">${loading ? t('checking') : t('live')}</span>
-      </div>
-      <div style="font-weight:700;line-height:1.45;">${escapeHtml(displayText)}</div>
-      <div style="margin-top:6px;color:#d4d4d8;font-size:12px;line-height:1.45;">${escapeHtml(meta)}</div>
-      ${eventContext ? `<div style="margin-top:6px;color:#a7f3d0;font-size:12px;line-height:1.45;">${escapeHtml(t('eventContext'))}: ${escapeHtml(eventContext)}</div>` : ''}
-      <div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,0.1);">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-          <span style="color:#d4d4d8;font-size:11px;font-weight:700;">${escapeHtml(reactionTitle)}</span>
-          <span style="color:#71717a;font-size:11px;">${escapeHtml(reactionHint)}</span>
-        </div>
-        ${reactionHtml ? `<div style="display:flex;gap:7px;margin-top:7px;">${reactionHtml}</div>` : ''}
-      </div>
-    </div>
-  `
+  const wrapper = styledElement('div', 'padding: 12px 14px;')
+  const header = styledElement('div', 'display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;')
+  header.appendChild(styledElement('strong', `color:${tone.accent};font-size:12px;`, 'TruthShield'))
+  header.appendChild(styledElement('span', 'color:#a1a1aa;font-size:11px;', loading ? t('checking') : t('live')))
+  wrapper.appendChild(header)
+  wrapper.appendChild(styledElement('div', 'font-weight:700;line-height:1.45;', displayText))
+  wrapper.appendChild(styledElement('div', 'margin-top:6px;color:#d4d4d8;font-size:12px;line-height:1.45;', meta))
+  if (eventContext) {
+    wrapper.appendChild(styledElement('div', 'margin-top:6px;color:#a7f3d0;font-size:12px;line-height:1.45;', `${t('eventContext')}: ${eventContext}`))
+  }
+
+  const reactionSection = styledElement('div', 'margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,0.1);')
+  const reactionHeader = styledElement('div', 'display:flex;align-items:center;justify-content:space-between;gap:8px;')
+  reactionHeader.appendChild(styledElement('span', 'color:#d4d4d8;font-size:11px;font-weight:700;', reactionTitle))
+  reactionHeader.appendChild(styledElement('span', 'color:#71717a;font-size:11px;', reactionHint))
+  reactionSection.appendChild(reactionHeader)
+  if (reactions.length) {
+    const reactionRow = styledElement('div', 'display:flex;gap:7px;margin-top:7px;')
+    for (const row of reactions) {
+      reactionRow.appendChild(reactionIcon(row, 'display:inline-flex;height:28px;width:28px;align-items:center;justify-content:center;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(9,9,11,0.78);font-size:17px;cursor:help;'))
+    }
+    reactionSection.appendChild(reactionRow)
+  }
+  wrapper.appendChild(reactionSection)
+  replaceChildren(box, [wrapper])
 }
 
 function isPayloadVotingClosed(payload) {
@@ -1669,18 +1682,20 @@ async function maybeShowArticleBannerCoach() {
   articleBannerCoach.style.padding = '0 14px 8px'
   articleBannerCoach.style.font = '12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   articleBannerCoach.style.colorScheme = 'normal'
-  articleBannerCoach.innerHTML = `
-    <div style="max-width:1180px;margin:0 auto;border:1px solid rgba(103,232,249,.28);border-radius:8px;background:rgba(9,9,11,.96);box-shadow:0 14px 30px rgba(0,0,0,.26);padding:10px 12px;color:#e4e4e7;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
-      <div style="min-width:0;">
-        <div style="color:#cffafe;font-weight:800;font-size:12px;line-height:1.35;">${escapeHtml(t('bannerCoachTitle'))}</div>
-        <div style="margin-top:3px;color:#a1a1aa;line-height:1.45;">${escapeHtml(t('bannerCoachDesc'))}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-        <button data-truthshield-onboarding-open type="button" style="border:1px solid rgba(103,232,249,.5);border-radius:6px;background:rgba(103,232,249,.9);color:#09090b;padding:6px 8px;font:800 11px system-ui;cursor:pointer;white-space:nowrap;">${escapeHtml(t('bannerCoachOpen'))}</button>
-        <button data-truthshield-onboarding-dismiss type="button" style="border:1px solid rgba(255,255,255,.14);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 8px;font:700 11px system-ui;cursor:pointer;white-space:nowrap;">${escapeHtml(t('bannerCoachDismiss'))}</button>
-      </div>
-    </div>
-  `
+  const coachInner = styledElement('div', 'max-width:1180px;margin:0 auto;border:1px solid rgba(103,232,249,.28);border-radius:8px;background:rgba(9,9,11,.96);box-shadow:0 14px 30px rgba(0,0,0,.26);padding:10px 12px;color:#e4e4e7;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;')
+  const coachCopy = styledElement('div', 'min-width:0;')
+  coachCopy.appendChild(styledElement('div', 'color:#cffafe;font-weight:800;font-size:12px;line-height:1.35;', t('bannerCoachTitle')))
+  coachCopy.appendChild(styledElement('div', 'margin-top:3px;color:#a1a1aa;line-height:1.45;', t('bannerCoachDesc')))
+  const coachActions = styledElement('div', 'display:flex;align-items:center;gap:6px;flex-shrink:0;')
+  const openButton = styledElement('button', 'border:1px solid rgba(103,232,249,.5);border-radius:6px;background:rgba(103,232,249,.9);color:#09090b;padding:6px 8px;font:800 11px system-ui;cursor:pointer;white-space:nowrap;', t('bannerCoachOpen'))
+  openButton.type = 'button'
+  openButton.dataset.truthshieldOnboardingOpen = ''
+  const dismissButton = styledElement('button', 'border:1px solid rgba(255,255,255,.14);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 8px;font:700 11px system-ui;cursor:pointer;white-space:nowrap;', t('bannerCoachDismiss'))
+  dismissButton.type = 'button'
+  dismissButton.dataset.truthshieldOnboardingDismiss = ''
+  coachActions.append(openButton, dismissButton)
+  coachInner.append(coachCopy, coachActions)
+  replaceChildren(articleBannerCoach, [coachInner])
   articleBannerCoach.querySelector('[data-truthshield-onboarding-open]')?.addEventListener('click', () => {
     recordOnboardingStep('open_vote_panel').catch(() => null)
     ensureVotePanelFrame()
@@ -1710,25 +1725,19 @@ function renderArticleBannerReactionControls(payload, compact = false) {
   const topRow = (payload?.hover_reactions || [])[0]
 
   if (compact) {
-    if (!topRow) return ''
-    const text = reactionTooltipText(topRow.label || topRow.key, topRow.count || 0)
-
-    return `
-      <div data-truthshield-reaction-zone style="display:inline-flex;align-items:center;gap:4px;min-width:0;">
-        <span data-truthshield-reaction-tooltip="${escapeHtml(text)}" title="${escapeHtml(text)}" style="font-size:14px;line-height:1;cursor:help;">${escapeHtml(topRow.emoji || '')}</span>
-      </div>
-    `
+    if (!topRow) return null
+    const zone = styledElement('div', 'display:inline-flex;align-items:center;gap:4px;min-width:0;')
+    zone.dataset.truthshieldReactionZone = ''
+    zone.appendChild(reactionIcon(topRow, 'font-size:14px;line-height:1;cursor:help;'))
+    return zone
   }
 
-  if (!topRow) return ''
-  const text = reactionTooltipText(topRow.label || topRow.key, topRow.count || 0)
-
-  return `
-    <div data-truthshield-reaction-zone style="display:inline-flex;align-items:center;gap:5px;min-width:0;flex:0 1 auto;max-width:180px;color:#d4d4d8;font:700 11px system-ui;">
-      <span data-truthshield-reaction-tooltip="${escapeHtml(text)}" title="${escapeHtml(text)}" style="font-size:15px;line-height:1;cursor:help;">${escapeHtml(topRow.emoji || '')}</span>
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(topRow.label || t('readerReactionTitle'))}</span>
-    </div>
-  `
+  if (!topRow) return null
+  const zone = styledElement('div', 'display:inline-flex;align-items:center;gap:5px;min-width:0;flex:0 1 auto;max-width:180px;color:#d4d4d8;font:700 11px system-ui;')
+  zone.dataset.truthshieldReactionZone = ''
+  zone.appendChild(reactionIcon(topRow, 'font-size:15px;line-height:1;cursor:help;'))
+  zone.appendChild(styledElement('span', 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', topRow.label || t('readerReactionTitle')))
+  return zone
 }
 
 function scheduleArticleBannerReactionMessageClear() {
@@ -1738,6 +1747,44 @@ function scheduleArticleBannerReactionMessageClear() {
     articleBannerReactionFailed = false
     renderArticleBannerFromCache(articleBannerUrl || window.location.href)
   }, 2200)
+}
+
+function buildArticleBannerBrandLink(tone, iconSize = 22, gap = 7) {
+  const link = styledElement('a', `display:inline-flex;align-items:center;gap:${gap}px;color:${tone.accent};text-decoration:none;white-space:nowrap;`)
+  link.dataset.truthshieldBrandLink = ''
+  link.href = `${TOOLTIP_ORIGIN}/`
+  link.target = '_blank'
+  link.rel = 'noopener noreferrer'
+  const icon = styledElement('img', `width:${iconSize}px;height:${iconSize}px;display:block;`)
+  icon.src = `${TOOLTIP_ORIGIN}/brand/truthshield-mark.svg`
+  icon.alt = ''
+  link.appendChild(icon)
+  link.appendChild(styledElement('strong', 'font-size:12px;letter-spacing:0;', 'TruthShield'))
+  return link
+}
+
+function buildArticleBannerOpenChip(tone, compact = false) {
+  return styledElement(
+    'span',
+    compact
+      ? `border:1px solid ${tone.border};border-radius:999px;color:${tone.accent};background:rgba(255,255,255,.04);padding:3px 7px;font:700 11px system-ui;white-space:nowrap;`
+      : `border:1px solid ${tone.border};border-radius:6px;color:${tone.accent};background:rgba(255,255,255,.04);padding:5px 8px;font:700 12px system-ui;white-space:nowrap;`,
+    t('open'),
+  )
+}
+
+function buildArticleBannerCloseButton(compact = false) {
+  const button = styledElement(
+    'button',
+    compact
+      ? 'border:0;background:transparent;color:#a1a1aa;padding:2px 3px;font:800 13px system-ui;cursor:pointer;'
+      : 'border:1px solid rgba(255,255,255,.16);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 9px;font:700 12px system-ui;cursor:pointer;',
+    '×',
+  )
+  button.type = 'button'
+  button.dataset.truthshieldCloseBanner = ''
+  button.setAttribute('aria-label', t('closeBanner'))
+  return button
 }
 
 function renderArticleBanner(payload, loading = false, failed = false, reactionPayload = null) {
@@ -1765,37 +1812,27 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
   const reactionControls = renderArticleBannerReactionControls(reactionPayload, articleBanner.dataset.truthshieldMode === 'youtube_chip')
 
   if (articleBanner.dataset.truthshieldMode === 'youtube_chip') {
-    articleBanner.innerHTML = `
-      <div style="display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap;">
-        <a data-truthshield-brand-link href="${escapeHtml(TOOLTIP_ORIGIN)}/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;color:${tone.accent};text-decoration:none;white-space:nowrap;">
-          <img src="${escapeHtml(TOOLTIP_ORIGIN)}/brand/truthshield-mark.svg" alt="" style="width:18px;height:18px;display:block;" />
-          <strong style="font-size:12px;letter-spacing:0;">TruthShield</strong>
-        </a>
-        <span style="max-width:128px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.2;">${escapeHtml(displayText)}</span>
-        ${reactionControls}
-        <span style="border:1px solid ${tone.border};border-radius:999px;color:${tone.accent};background:rgba(255,255,255,.04);padding:3px 7px;font:700 11px system-ui;white-space:nowrap;">${t('open')}</span>
-        <button data-truthshield-close-banner type="button" aria-label="${t('closeBanner')}" style="border:0;background:transparent;color:#a1a1aa;padding:2px 3px;font:800 13px system-ui;cursor:pointer;">×</button>
-      </div>
-    `
+    const row = styledElement('div', 'display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap;')
+    row.appendChild(buildArticleBannerBrandLink(tone, 18, 5))
+    row.appendChild(styledElement('span', 'max-width:128px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.2;', displayText))
+    if (reactionControls) row.appendChild(reactionControls)
+    row.appendChild(buildArticleBannerOpenChip(tone, true))
+    row.appendChild(buildArticleBannerCloseButton(true))
+    replaceChildren(articleBanner, [row])
     articleBanner.title = `${displayText} · ${secondaryText}`
     return
   }
 
-  articleBanner.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;max-width:1180px;margin:0 auto;flex-wrap:wrap;">
-      <a data-truthshield-brand-link href="${escapeHtml(TOOLTIP_ORIGIN)}/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:7px;color:${tone.accent};text-decoration:none;white-space:nowrap;">
-        <img src="${escapeHtml(TOOLTIP_ORIGIN)}/brand/truthshield-mark.svg" alt="" style="width:22px;height:22px;display:block;" />
-        <strong style="font-size:12px;letter-spacing:0;">TruthShield</strong>
-      </a>
-      <div style="min-width:140px;flex:1 1 220px;">
-        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.35;">${escapeHtml(displayText)}</div>
-        <div style="margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;">${escapeHtml(secondaryText)}</div>
-      </div>
-      ${reactionControls}
-      <span style="border:1px solid ${tone.border};border-radius:6px;color:${tone.accent};background:rgba(255,255,255,.04);padding:5px 8px;font:700 12px system-ui;white-space:nowrap;">${t('open')}</span>
-      <button data-truthshield-close-banner type="button" aria-label="${t('closeBanner')}" style="border:1px solid rgba(255,255,255,.16);border-radius:6px;background:rgba(255,255,255,.04);color:#d4d4d8;padding:6px 9px;font:700 12px system-ui;cursor:pointer;">×</button>
-    </div>
-  `
+  const row = styledElement('div', 'display:flex;align-items:center;gap:10px;max-width:1180px;margin:0 auto;flex-wrap:wrap;')
+  row.appendChild(buildArticleBannerBrandLink(tone))
+  const copy = styledElement('div', 'min-width:140px;flex:1 1 220px;')
+  copy.appendChild(styledElement('div', 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.35;', displayText))
+  copy.appendChild(styledElement('div', 'margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;', secondaryText))
+  row.appendChild(copy)
+  if (reactionControls) row.appendChild(reactionControls)
+  row.appendChild(buildArticleBannerOpenChip(tone))
+  row.appendChild(buildArticleBannerCloseButton())
+  replaceChildren(articleBanner, [row])
 }
 
 function renderArticleBannerFromCache(url) {
@@ -2119,7 +2156,7 @@ function openVotePanelModal(targetUrl = window.location.href, panelPath = '/ifra
   dragHandle.style.boxShadow = 'inset 0 0 0 1px rgba(255, 255, 255, 0.08)'
   dragHandle.style.cursor = 'grab'
   dragHandle.style.pointerEvents = 'auto'
-  dragHandle.innerHTML = '<span style="display:block;width:18px;height:3px;margin:6px auto 0;border-radius:999px;background:rgba(103,232,249,.72);"></span>'
+  dragHandle.appendChild(styledElement('span', 'display:block;width:18px;height:3px;margin:6px auto 0;border-radius:999px;background:rgba(103,232,249,.72);'))
 
   const closeButton = document.createElement('button')
   closeButton.type = 'button'

@@ -47,6 +47,27 @@ function byId(id) {
   return document.getElementById(id)
 }
 
+function replaceChildren(node, children = []) {
+  node.replaceChildren(...children.filter(Boolean))
+}
+
+function textElement(tag, className, text) {
+  const node = document.createElement(tag)
+  if (className) node.className = className
+  node.textContent = text
+  return node
+}
+
+function panelMessage(className, text) {
+  return textElement('p', className, text)
+}
+
+function appendTextElement(parent, tag, className, text) {
+  const node = textElement(tag, className, text)
+  parent.appendChild(node)
+  return node
+}
+
 function setStatus(message, danger = false) {
   byId('status').textContent = message
   byId('status').style.color = danger ? '#fca5a5' : '#86efac'
@@ -324,19 +345,18 @@ function renderOnboardingChecklist() {
     done: completed.size,
     total: ONBOARDING_REQUIRED_STEPS.length,
   })
-  checklist.innerHTML = ONBOARDING_REQUIRED_STEPS.map((step) => {
+  replaceChildren(checklist, ONBOARDING_REQUIRED_STEPS.map((step) => {
     const [titleKey, descKey] = ONBOARDING_STEP_COPY[step]
     const done = completed.has(step)
-    return `
-      <div class="onboarding-step ${done ? 'done' : ''}">
-        <span>${done ? '✓' : ''}</span>
-        <div>
-          <strong>${escapeHtml(t(titleKey))}</strong>
-          <small>${escapeHtml(t(descKey))}</small>
-        </div>
-      </div>
-    `
-  }).join('')
+    const item = document.createElement('div')
+    item.className = `onboarding-step ${done ? 'done' : ''}`.trim()
+    item.appendChild(textElement('span', '', done ? '✓' : ''))
+    const copy = document.createElement('div')
+    copy.appendChild(textElement('strong', '', t(titleKey)))
+    copy.appendChild(textElement('small', '', t(descKey)))
+    item.appendChild(copy)
+    return item
+  }))
 }
 
 function sendRuntimeMessage(message) {
@@ -572,9 +592,15 @@ async function loadPageDebug() {
 
   const pill = (ok, labelOk, labelBad, warn = false) => {
     const cls = ok ? 'ok' : warn ? 'warn' : 'bad'
-    return `<span class="debug-pill ${cls}">${escapeHtml(ok ? labelOk : labelBad)}</span>`
+    return textElement('span', `debug-pill ${cls}`, ok ? labelOk : labelBad)
   }
-  const row = (label, valueHtml) => `<div class="debug-row"><span>${escapeHtml(label)}</span>${valueHtml}</div>`
+  const row = (label, valueNode) => {
+    const item = document.createElement('div')
+    item.className = 'debug-row'
+    item.appendChild(textElement('span', '', label))
+    item.appendChild(valueNode)
+    return item
+  }
 
   try {
     const context = await currentPageContext()
@@ -593,12 +619,12 @@ async function loadPageDebug() {
     else if (isTracked) setPageContextSummary('popupSummaryTrackedNonArticle', 'popupBadgeMonitorOnly', 'warn')
     else setPageContextSummary('popupSummaryUntracked', 'popupBadgeUntracked', 'warn')
 
-    debug.innerHTML = [
+    replaceChildren(debug, [
       row(t('diagContentScript'), pill(isSupported, t('diagOk'), t('diagNotRunning'))),
       row(t('diagTrackedDomain'), pill(isTracked, t('diagTracked'), t('diagNotTracked'), isSupported && !isTracked)),
       row(t('diagArticlePage'), pill(isArticle, t('diagArticle'), t('diagNotArticle'), isSupported && isTracked && !isArticle)),
       row(t('diagBanner'), pill(bannerVisible, t('diagShown'), bannerDismissed ? t('diagDismissed') : t('diagNotShown'), isSupported && isTracked && isArticle && !bannerVisible)),
-    ].join('')
+    ])
 
     byId('pageDebugHint').textContent = isSupported
       ? [
@@ -609,7 +635,7 @@ async function loadPageDebug() {
       : t('diagNoContentHint')
   } catch (error) {
     setPageContextSummary('popupSummaryUnsupported', 'popupBadgeUnsupported', 'bad')
-    debug.innerHTML = row(t('diagContentScript'), pill(false, t('diagOk'), t('diagNotRunning')))
+    replaceChildren(debug, [row(t('diagContentScript'), pill(false, t('diagOk'), t('diagNotRunning')))])
     byId('pageDebugHint').textContent = error.message || t('diagNoContentHint')
   }
 }
@@ -716,44 +742,62 @@ function showDetailTab(name) {
 
 async function loadEvents() {
   const container = byId('events-list-content')
-  container.innerHTML = `<p class="panel-msg">${t('eventsLoading')}</p>`
+  replaceChildren(container, [panelMessage('panel-msg', t('eventsLoading'))])
   try {
     const q = encodeURIComponent(eventsState.query)
     const payload = await apiGet(`/api/events?q=${q}&limit=8`)
     renderEventsList(payload.data || [])
   } catch (err) {
-    container.innerHTML = `<p class="panel-err">${t('eventsError')}：${escapeHtml(err.message)}</p>`
+    replaceChildren(container, [panelMessage('panel-err', `${t('eventsError')}：${err.message}`)])
   }
 }
 
 function renderEventsList(events) {
   const container = byId('events-list-content')
   if (!events.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <p>${escapeHtml(t('eventsEmptyTitle'))}</p>
-        <p>${escapeHtml(t('eventsEmptyHint'))}</p>
-      </div>`
+    const empty = document.createElement('div')
+    empty.className = 'empty-state'
+    empty.appendChild(textElement('p', '', t('eventsEmptyTitle')))
+    empty.appendChild(textElement('p', '', t('eventsEmptyHint')))
+    replaceChildren(container, [empty])
     return
   }
-  container.innerHTML = events.map((ev) => {
+  replaceChildren(container, events.map((ev) => {
     const c = ev.counts || {}
-    return `
-      <div class="event-item">
-        <div class="event-name">${escapeHtml(ev.name)}</div>
-        <div class="event-meta">${escapeHtml(t('eventsCounts', {
-          timeline: c.timeline ?? 0,
-          relationships: c.relationships ?? 0,
-          items: c.items ?? 0,
-        }))}</div>
-        <div class="event-actions">
-          <button class="btn-sm cyan" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="pin">${escapeHtml(t('eventsPin'))}</button>
-          <button class="btn-sm" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="timeline">${t('eventsTimeline')}</button>
-          <button class="btn-sm" data-eid="${ev.id}" data-ename="${escapeHtml(ev.name)}" data-act="graph">${t('eventsGraph')}</button>
-          <a class="btn-sm" href="${escapeHtml(state.settings.tooltipOrigin)}/events/${ev.id}" target="_blank" rel="noopener noreferrer">${t('eventsOpenPage')}</a>
-        </div>
-      </div>`
-  }).join('')
+    const item = document.createElement('div')
+    item.className = 'event-item'
+    item.appendChild(textElement('div', 'event-name', ev.name))
+    item.appendChild(textElement('div', 'event-meta', t('eventsCounts', {
+      timeline: c.timeline ?? 0,
+      relationships: c.relationships ?? 0,
+      items: c.items ?? 0,
+    })))
+    const actions = document.createElement('div')
+    actions.className = 'event-actions'
+    for (const action of [
+      ['pin', t('eventsPin'), 'btn-sm cyan'],
+      ['timeline', t('eventsTimeline'), 'btn-sm'],
+      ['graph', t('eventsGraph'), 'btn-sm'],
+    ]) {
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = action[2]
+      btn.dataset.eid = ev.id
+      btn.dataset.ename = ev.name
+      btn.dataset.act = action[0]
+      btn.textContent = action[1]
+      actions.appendChild(btn)
+    }
+    const link = document.createElement('a')
+    link.className = 'btn-sm'
+    link.href = `${state.settings.tooltipOrigin}/events/${encodeURIComponent(ev.id)}`
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+    link.textContent = t('eventsOpenPage')
+    actions.appendChild(link)
+    item.appendChild(actions)
+    return item
+  }))
 
   container.querySelectorAll('[data-act]').forEach((btn) => {
     const { eid, ename, act } = btn.dataset
@@ -825,32 +869,58 @@ function formatEntryDate(value) {
   } catch { return String(value).slice(0, 16) }
 }
 
+function buildTimelineNodes(entries) {
+  const addButton = document.createElement('button')
+  addButton.type = 'button'
+  addButton.className = 'btn-sm cyan add-btn'
+  addButton.id = 'add-timeline-btn'
+  addButton.textContent = t('detailAddTimeline')
+
+  if (!entries.length) {
+    return [addButton, panelMessage('panel-msg', t('detailTimelineEmpty'))]
+  }
+
+  const list = document.createElement('div')
+  list.className = 'tl-list'
+  for (const entry of entries) {
+    const item = document.createElement('div')
+    item.className = 'tl-entry'
+    item.appendChild(textElement('div', 'tl-time', `${formatEntryDate(entry.occurred_at)} · ${sourceTypeLabel(entry.source_type)}`))
+    item.appendChild(textElement('div', 'tl-title', entry.title || ''))
+    if (entry.summary) {
+      item.appendChild(textElement('div', 'tl-summary', entry.summary))
+    }
+    if (entry.source_url) {
+      const link = document.createElement('a')
+      link.className = 'tl-link'
+      link.href = entry.source_url
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      link.textContent = entry.source_url.length > 60 ? `${entry.source_url.slice(0, 60)}…` : entry.source_url
+      item.appendChild(link)
+    }
+    list.appendChild(item)
+  }
+
+  return [addButton, list]
+}
+
 async function renderTimeline(eventId) {
   const container = byId('detail-timeline-content')
   if (eventsState.cache.timeline[eventId]) {
-    container.innerHTML = eventsState.cache.timeline[eventId]
+    replaceChildren(container, buildTimelineNodes(eventsState.cache.timeline[eventId]))
     bindTimelineAddBtn(eventId)
     return
   }
-  container.innerHTML = `<p class="panel-msg">${t('eventsLoading')}</p>`
+  replaceChildren(container, [panelMessage('panel-msg', t('eventsLoading'))])
   try {
     const payload = await apiGet(`/api/events/${encodeURIComponent(eventId)}/timeline`)
     const entries = payload.data || []
-    const listHtml = entries.length
-      ? `<div class="tl-list">${entries.map((entry) => `
-          <div class="tl-entry">
-            <div class="tl-time">${escapeHtml(formatEntryDate(entry.occurred_at))} · ${escapeHtml(sourceTypeLabel(entry.source_type))}</div>
-            <div class="tl-title">${escapeHtml(entry.title || '')}</div>
-            ${entry.summary ? `<div class="tl-summary">${escapeHtml(entry.summary)}</div>` : ''}
-            ${entry.source_url ? `<a class="tl-link" href="${escapeHtml(entry.source_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(entry.source_url.length > 60 ? entry.source_url.slice(0, 60) + '…' : entry.source_url)}</a>` : ''}
-          </div>`).join('')}</div>`
-      : `<p class="panel-msg">${t('detailTimelineEmpty')}</p>`
-    const html = `<button class="btn-sm cyan add-btn" id="add-timeline-btn">${escapeHtml(t('detailAddTimeline'))}</button>${listHtml}`
-    eventsState.cache.timeline[eventId] = html
-    container.innerHTML = html
+    eventsState.cache.timeline[eventId] = entries
+    replaceChildren(container, buildTimelineNodes(entries))
     bindTimelineAddBtn(eventId)
   } catch (err) {
-    container.innerHTML = `<p class="panel-err">${t('eventsError')}：${escapeHtml(err.message)}</p>`
+    replaceChildren(container, [panelMessage('panel-err', `${t('eventsError')}：${err.message}`)])
   }
 }
 
@@ -862,18 +932,15 @@ function bindTimelineAddBtn(eventId) {
 async function renderGraph(eventId) {
   const container = byId('detail-graph-content')
   if (eventsState.cache.graph[eventId]) {
-    container.innerHTML = ''
-    container.appendChild(buildAddGraphBtn(eventId))
-    container.appendChild(eventsState.cache.graph[eventId].cloneNode(true))
+    replaceChildren(container, [buildAddGraphBtn(eventId), eventsState.cache.graph[eventId].cloneNode(true)])
     return
   }
-  container.innerHTML = `<p class="panel-msg">${t('eventsLoading')}</p>`
+  replaceChildren(container, [panelMessage('panel-msg', t('eventsLoading'))])
   try {
     const payload = await apiGet(`/api/events/${encodeURIComponent(eventId)}/graph`)
     const entities = payload.entities || []
     const relationships = payload.relationships || []
-    container.innerHTML = ''
-    container.appendChild(buildAddGraphBtn(eventId))
+    replaceChildren(container, [buildAddGraphBtn(eventId)])
     if (!entities.length) {
       const msg = document.createElement('p')
       msg.className = 'panel-msg'
@@ -885,7 +952,7 @@ async function renderGraph(eventId) {
     eventsState.cache.graph[eventId] = svg
     container.appendChild(svg)
   } catch (err) {
-    container.innerHTML = `<p class="panel-err">${t('eventsError')}：${escapeHtml(err.message)}</p>`
+    replaceChildren(container, [panelMessage('panel-err', `${t('eventsError')}：${err.message}`)])
   }
 }
 
