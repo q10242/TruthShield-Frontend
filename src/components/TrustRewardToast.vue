@@ -4,9 +4,13 @@ import { fetchNotifications, markNotificationRead } from '../lib/api'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const SEEN_KEY = 'truthshield_seen_reward_notifications'
+const LAST_POLL_KEY = 'truthshield_last_reward_notification_poll_at'
+const POLL_INTERVAL_MS = 5 * 60 * 1000
+const FOCUS_POLL_MIN_INTERVAL_MS = 2 * 60 * 1000
 const toast = ref(null)
 const busy = ref(false)
 let timer = null
+let focusHandler = null
 
 const rewardDelta = computed(() => Number(toast.value?.metadata?.delta || 0))
 const rewardScore = computed(() => Number(toast.value?.metadata?.new_score || 0))
@@ -54,6 +58,21 @@ async function poll() {
   }
 }
 
+function lastPollAt() {
+  return Number(sessionStorage.getItem(LAST_POLL_KEY) || 0)
+}
+
+function rememberPoll() {
+  sessionStorage.setItem(LAST_POLL_KEY, String(Date.now()))
+}
+
+function pollIfStale(minInterval = POLL_INTERVAL_MS) {
+  if (Date.now() - lastPollAt() < minInterval) return
+  if (!localStorage.getItem(TOKEN_KEY)) return
+  rememberPoll()
+  poll()
+}
+
 async function dismiss() {
   const current = toast.value
   toast.value = null
@@ -64,14 +83,15 @@ async function dismiss() {
 }
 
 onMounted(() => {
-  poll()
-  timer = window.setInterval(poll, 30000)
-  window.addEventListener('focus', poll)
+  pollIfStale(0)
+  timer = window.setInterval(() => pollIfStale(POLL_INTERVAL_MS), POLL_INTERVAL_MS)
+  focusHandler = () => pollIfStale(FOCUS_POLL_MIN_INTERVAL_MS)
+  window.addEventListener('focus', focusHandler)
 })
 
 onBeforeUnmount(() => {
   if (timer) window.clearInterval(timer)
-  window.removeEventListener('focus', poll)
+  if (focusHandler) window.removeEventListener('focus', focusHandler)
 })
 </script>
 

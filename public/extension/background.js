@@ -38,6 +38,8 @@ function resolveLocale(setting = 'auto') {
 }
 
 const nonceCache = new Map()
+const apiResponseCache = new Map()
+const API_RESPONSE_CACHE_TTL_MS = 10 * 60 * 1000
 const AUTH_STORAGE_KEY = 'truthshieldAuth'
 const ONBOARDING_STORAGE_KEY = 'truthshield_onboarding_state_v1'
 let menuCreationPromise = null
@@ -181,6 +183,39 @@ async function extensionNonce(apiOrigin) {
   } catch {
     return null
   }
+}
+
+function cacheableApiResponseKey(target, method, headers = {}) {
+  const normalizedMethod = String(method || 'GET').toUpperCase()
+  if (normalizedMethod !== 'GET') return null
+  if (target.search) return null
+
+  if (!['/api/news-domains', '/api/youtube-channels'].includes(target.pathname)) {
+    return null
+  }
+
+  return [
+    target.origin,
+    target.pathname,
+    headers['Accept-Language'] || headers['accept-language'] || '',
+  ].join('|')
+}
+
+function cachedApiResponse(cacheKey) {
+  const cached = apiResponseCache.get(cacheKey)
+  if (!cached || cached.expiresAt <= Date.now()) {
+    apiResponseCache.delete(cacheKey)
+    return null
+  }
+
+  return cached.response
+}
+
+function rememberApiResponse(cacheKey, response) {
+  apiResponseCache.set(cacheKey, {
+    response,
+    expiresAt: Date.now() + API_RESPONSE_CACHE_TTL_MS,
+  })
 }
 
 function targetUrl(info, tab) {
@@ -369,12 +404,31 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     getSettings()
       .then(async (settings) => {
         const target = new URL(String(message.path), settings.apiOrigin)
+        const method = message.method || 'GET'
+
+        if (String(method).toUpperCase() === 'GET' && target.pathname === '/api/extension/nonce' && !target.search) {
+          const payload = await extensionNonce(settings.apiOrigin)
+          return {
+            ok: Boolean(payload),
+            status: payload ? 200 : 0,
+            payload,
+            fromInternalCache: true,
+          }
+        }
+
+        const baseHeaders = {
+          Accept: 'application/json',
+          ...(message.headers || {}),
+        }
+        const cacheKey = cacheableApiResponseKey(target, method, baseHeaders)
+        const cached = cacheKey ? cachedApiResponse(cacheKey) : null
+        if (cached) {
+          return { ...cached, fromInternalCache: true }
+        }
+
         const init = {
-          method: message.method || 'GET',
-          headers: await extensionRequestHeaders(settings, {
-            Accept: 'application/json',
-            ...(message.headers || {}),
-          }),
+          method,
+          headers: await extensionRequestHeaders(settings, baseHeaders),
         }
 
         if (message.body !== undefined && message.body !== null) {
@@ -382,11 +436,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           init.headers['Content-Type'] = init.headers['Content-Type'] || 'application/json'
         }
 
-        return fetch(target.toString(), init)
-      })
-      .then(async (response) => {
+        const response = await fetch(target.toString(), init)
         const payload = await response.json().catch(() => null)
-        sendResponse({ ok: response.ok, status: response.status, payload })
+        const result = { ok: response.ok, status: response.status, payload }
+        if (cacheKey && response.ok) {
+          rememberApiResponse(cacheKey, result)
+        }
+
+        return result
+      })
+      .then((response) => {
+        sendResponse(response)
       })
       .catch((error) => {
         sendResponse({ ok: false, status: 0, message: error?.message || 'fetch failed' })
