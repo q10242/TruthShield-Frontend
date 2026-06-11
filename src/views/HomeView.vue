@@ -15,6 +15,7 @@ const communityStats = ref(null)
 const communityMetrics = ref(null)
 const communityMetricsLoaded = ref(false)
 const featuredEvents = ref([])
+const homeNavOpen = ref(false)
 const { t, locale } = useI18n()
 const zh = computed(() => locale.value !== 'en')
 
@@ -41,18 +42,23 @@ function signOut() {
 }
 
 const secondaryLinks = computed(() => [
-  { to: '/demo-news', label: t('common.demoNews') },
-  { to: '/user-guide', label: t('common.userGuide') },
   { to: '/extension-install', label: t('common.extensionInstall') },
-  { to: '/mobile', label: t('common.mobile') },
-  { to: '/events', label: t('common.events') },
+  { to: '/demo-news', label: t('common.demoNews') },
   { to: '/news-search', label: t('common.newsSearch') },
+  { to: '/events', label: t('common.events') },
+  { to: '/stats/media', label: zh.value ? '媒體統計' : 'Media stats' },
+  { to: '/stats/journalists', label: zh.value ? '記者統計' : 'Journalist stats' },
+  { to: '/community-tasks', label: t('common.communityTasks') },
+  { to: '/evidence-library', label: t('common.evidenceLibrary') },
+  { to: '/user-guide', label: t('common.userGuide') },
+  { to: '/mobile', label: t('common.mobile') },
   { to: '/profile', label: t('common.profile') },
+  { to: '/global-entities', label: zh.value ? '人物/組織' : 'Entities' },
   { to: '/trust-leaderboard', label: t('common.trustLeaderboard') },
   { to: '/moderation-events', label: t('common.moderationEvents') },
   { to: '/extension-coverage', label: t('common.extensionCoverage') },
-  { to: '/community-tasks', label: t('common.communityTasks') },
   { to: '/account-graph', label: t('common.accountGraph') },
+  { to: '/transparency', label: t('common.transparency') },
   { to: '/vision-readiness', label: t('common.visionReadiness') },
   { to: '/platform-rules', label: t('common.platformRules') },
   { to: '/label-guide', label: t('common.labelGuide') },
@@ -60,6 +66,9 @@ const secondaryLinks = computed(() => [
   { to: '/algorithm', label: t('common.algorithm') },
   { to: '/api-docs', label: t('common.apiDocs') },
 ])
+
+const topNavLinks = computed(() => secondaryLinks.value.slice(0, 6))
+const moreNavLinks = computed(() => secondaryLinks.value.slice(6))
 
 const githubLinks = computed(() => [
   { href: 'https://github.com/q10242/TruthShield-Frontend', label: t('common.githubFrontend') },
@@ -218,6 +227,10 @@ function eventMetric(event, key) {
   return Number(event.counts?.[key] ?? 0).toLocaleString()
 }
 
+function closeHomeNav() {
+  homeNavOpen.value = false
+}
+
 onMounted(async () => {
   trackPageView('home')
   const [statsPayload, metricsPayload, eventsPayload] = await Promise.all([
@@ -245,13 +258,38 @@ onMounted(async () => {
         </RouterLink>
         <div class="flex flex-wrap items-center gap-2">
           <RouterLink
-            v-for="link in secondaryLinks.slice(0, 5)"
+            v-for="link in topNavLinks"
             :key="link.to"
             class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100"
             :to="link.to"
           >
             {{ link.label }}
           </RouterLink>
+          <div class="relative">
+            <button
+              class="flex items-center gap-1 rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100"
+              :class="homeNavOpen ? 'border-cyan-300/60 text-cyan-100' : ''"
+              type="button"
+              @click="homeNavOpen = !homeNavOpen"
+            >
+              {{ zh ? '更多' : 'More' }}
+              <svg class="h-3 w-3 transition-transform" :class="homeNavOpen ? 'rotate-180' : ''" viewBox="0 0 12 12" fill="currentColor">
+                <path d="M6 8L1 3h10L6 8z" />
+              </svg>
+            </button>
+            <div v-if="homeNavOpen" class="absolute right-0 top-full z-50 mt-2 grid w-64 gap-1 rounded-lg border border-white/10 bg-zinc-900 p-1 shadow-2xl">
+              <div class="fixed inset-0 -z-10" @click="closeHomeNav" />
+              <RouterLink
+                v-for="link in moreNavLinks"
+                :key="link.to"
+                class="rounded-md px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-cyan-100"
+                :to="link.to"
+                @click="closeHomeNav"
+              >
+                {{ link.label }}
+              </RouterLink>
+            </div>
+          </div>
           <a
             class="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100"
             href="https://www.otus.tw/"
