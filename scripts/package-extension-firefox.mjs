@@ -12,6 +12,8 @@ const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
 const version = manifest.version
 const outputFile = resolve(outputDir, `truthshield-firefox-extension-v${version}.zip`)
 const outputLatestFile = resolve(outputDir, 'truthshield-firefox-extension.zip')
+const publicOutputFile = resolve(root, 'public', 'truthshield-firefox-extension.zip')
+const publicVersionedOutputFile = resolve(root, 'public', `truthshield-firefox-extension-v${version}.zip`)
 const webOrigin = process.env.TRUTHSHIELD_EXTENSION_WEB_ORIGIN || process.env.VITE_WEB_ORIGIN || ''
 const apiOrigin = process.env.TRUTHSHIELD_EXTENSION_API_ORIGIN || process.env.VITE_API_BASE_URL || ''
 
@@ -19,6 +21,16 @@ mkdirSync(outputDir, { recursive: true })
 rmSync(packageDir, { recursive: true, force: true })
 rmSync(outputFile, { force: true })
 rmSync(outputLatestFile, { force: true })
+rmSync(publicOutputFile, { force: true })
+rmSync(publicVersionedOutputFile, { force: true })
+
+for (const dir of [outputDir, resolve(root, 'public')]) {
+  for (const entry of readdirSync(dir)) {
+    if (/^truthshield-firefox-extension-v.+\.zip$/.test(entry)) {
+      rmSync(resolve(dir, entry), { force: true })
+    }
+  }
+}
 
 cpSync(extensionDir, packageDir, { recursive: true })
 
@@ -96,6 +108,10 @@ if (result.status !== 0) {
 }
 
 cpSync(outputFile, outputLatestFile)
+cpSync(outputFile, publicOutputFile)
+cpSync(outputFile, publicVersionedOutputFile)
 console.log(packageDir)
 console.log(outputFile)
 console.log(outputLatestFile)
+console.log(publicOutputFile)
+console.log(publicVersionedOutputFile)

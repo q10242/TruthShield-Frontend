@@ -1,7 +1,7 @@
 {
   "name": "truth-shield-web",
   "private": true,
-  "description": "Open-source news credibility frontend, public Truth Hub, iframe panels, and Chrome extension for TruthShield.",
+  "description": "Open-source news credibility frontend, public Truth Hub, iframe panels, and browser extensions for TruthShield.",
   "version": "0.0.0",
   "license": "MIT",
   "type": "module",
@@ -13,7 +13,7 @@
     "package:extension:local": "node scripts/package-extension-local.mjs",
     "package:extension": "node scripts/package-extension.mjs",
     "package:extension:firefox": "node scripts/package-extension-firefox.mjs",
-    "build:release": "npm run package:extension && npm run build"
+    "build:release": "npm run package:extension && npm run package:extension:firefox && npm run build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",

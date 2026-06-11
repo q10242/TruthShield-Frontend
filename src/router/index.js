@@ -65,8 +65,8 @@ const routeMeta = {
     description: '從安裝、投票、補證據、YouTube 小標到反網軍機制，一頁看懂 TruthShield 的日常使用方式。',
   },
   'extension-install': {
-    title: `下載 Chrome 插件 - ${SITE_NAME}`,
-    description: '下載 TruthShield Chrome 插件 ZIP，依教學載入未封裝項目，把新聞可信度提示放進日常閱讀流程。',
+    title: `下載瀏覽器插件 - ${SITE_NAME}`,
+    description: '取得 TruthShield Chrome 與 Firefox 測試插件，把新聞脈絡提示放進日常閱讀流程。',
   },
   mobile: {
     title: `手機快速查新聞 - ${SITE_NAME}`,

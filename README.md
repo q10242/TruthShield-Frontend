@@ -136,21 +136,21 @@ request reaches the container. Use `/ready` for public smoke checks and
 Cloud Run-facing health checks; `/healthz` remains available for local
 container compatibility where the request reaches nginx.
 
-## Chrome Extension
+## Browser Extensions
 
-During local testing, load the unpacked extension from:
+During local Chrome testing, load the unpacked extension from:
 
 ```text
 public/extension
 ```
 
-Package a downloadable zip:
+Package a downloadable Chrome ZIP:
 
 ```bash
 npm run package:extension
 ```
 
-Package with production origins:
+Package Chrome with production origins:
 
 ```bash
 TRUTHSHIELD_EXTENSION_WEB_ORIGIN=https://truth-shield.otus.tw \
@@ -158,12 +158,22 @@ TRUTHSHIELD_EXTENSION_API_ORIGIN=https://truth-shield-api.otus.tw \
 npm run package:extension
 ```
 
+Package a Firefox review/test ZIP:
+
+```bash
+npm run package:extension:firefox
+```
+
 Generated files:
 
 - `dist/truthshield-extension.zip`
 - `public/truthshield-extension.zip`
+- `dist/truthshield-firefox-extension.zip`
+- `public/truthshield-firefox-extension.zip`
 
-The ZIP is hosted on the website as a fallback and testing artifact alongside the Chrome Web Store listing. Users can install it through Chrome developer mode using the guide at `/extension-install`.
+The Chrome ZIP is hosted on the website as a fallback and testing artifact alongside the Chrome Web Store listing. Users can install it through Chrome developer mode using the guide at `/extension-install`.
+
+The Firefox ZIP is hosted for AMO review, temporary local testing, and version checks. Unsigned Firefox ZIP files are not a normal long-term install path; users should install the AMO-signed version once the AMO listing is live.
 
 ## Evidence Upload
 
@@ -230,9 +240,10 @@ Core local check:
 ```bash
 npm run build
 npm run package:extension
+npm run package:extension:firefox
 ```
 
-Then install `public/extension` as an unpacked Chrome extension and test `/local-news-demo` locally or `/demo-news` on production.
+Then install `public/extension` as an unpacked Chrome extension, or load `dist/firefox-extension-package/manifest.json` as a temporary Firefox add-on from `about:debugging#/runtime/this-firefox`, and test `/local-news-demo` locally or `/demo-news` on production.
 
 Recommended browser QA:
 

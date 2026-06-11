@@ -15,6 +15,7 @@ const botConfig = ref(null)
 const extensionVersion = ref('0.1.0')
 const loading = ref(true)
 const copiedChromeUrl = ref(false)
+const copiedFirefoxUrl = ref(false)
 const zipGeneratedAt = new Date(import.meta.env.VITE_BUILD_TIME || document.lastModified || Date.now()).toLocaleString()
 
 const installSteps = computed(() => [
@@ -59,6 +60,13 @@ const updateSteps = computed(() => [
   t('extensionInstall.updateStep1'),
   t('extensionInstall.updateStep2'),
   t('extensionInstall.updateStep3'),
+])
+
+const firefoxGuide = computed(() => [
+  t('extensionInstall.firefoxGuide1'),
+  t('extensionInstall.firefoxGuide2'),
+  t('extensionInstall.firefoxGuide3'),
+  t('extensionInstall.firefoxGuide4'),
 ])
 
 const githubLinks = computed(() => [
@@ -109,6 +117,10 @@ function trackDownload() {
   trackEvent('extension_zip_download', { feature: 'extension_download' })
 }
 
+function trackFirefoxDownload() {
+  trackEvent('firefox_extension_zip_download', { feature: 'extension_download' })
+}
+
 function trackStoreClick() {
   trackEvent('chrome_web_store_click', { feature: 'extension_install' })
 }
@@ -123,6 +135,19 @@ async function copyChromeExtensionsUrl() {
   trackEvent('chrome_extensions_url_copy', { feature: 'extension_install' })
   window.setTimeout(() => {
     copiedChromeUrl.value = false
+  }, 2400)
+}
+
+async function copyFirefoxDebuggingUrl() {
+  try {
+    await navigator.clipboard?.writeText('about:debugging#/runtime/this-firefox')
+  } catch {
+    // Clipboard access can be unavailable in embedded browsers or strict test contexts.
+  }
+  copiedFirefoxUrl.value = true
+  trackEvent('firefox_debugging_url_copy', { feature: 'extension_install' })
+  window.setTimeout(() => {
+    copiedFirefoxUrl.value = false
   }, 2400)
 }
 </script>
@@ -179,6 +204,9 @@ async function copyChromeExtensionsUrl() {
             <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="/truthshield-extension.zip" download @click="trackDownload">
               {{ t('extensionInstall.downloadZip') }}
             </a>
+            <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="/truthshield-firefox-extension.zip" download @click="trackFirefoxDownload">
+              {{ t('extensionInstall.downloadFirefoxZip') }}
+            </a>
             <button class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" type="button" @click="copyChromeExtensionsUrl">
               {{ t('extensionInstall.openChromeExtensions') }}
             </button>
@@ -230,6 +258,8 @@ async function copyChromeExtensionsUrl() {
         <div class="mt-4 grid gap-3 md:grid-cols-2">
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">Chrome Web Store</code>
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">/truthshield-extension.zip</code>
+          <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">/truthshield-firefox-extension.zip</code>
+          <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">about:debugging</code>
         </div>
       </section>
 
@@ -256,6 +286,23 @@ async function copyChromeExtensionsUrl() {
           <button class="mt-4 inline-flex rounded-md border border-cyan-300/30 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10" type="button" @click="copyChromeExtensionsUrl">
             {{ t('extensionInstall.openChromeExtensions') }}
           </button>
+        </article>
+
+        <article class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <h2 class="text-lg font-semibold text-white">{{ t('extensionInstall.firefoxGuideTitle') }}</h2>
+          <p class="mt-2 text-sm leading-6 text-zinc-400">{{ t('extensionInstall.firefoxGuideIntro') }}</p>
+          <ol class="mt-4 space-y-3 text-sm leading-6 text-zinc-400">
+            <li v-for="step in firefoxGuide" :key="step">{{ step }}</li>
+          </ol>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <a class="inline-flex rounded-md border border-cyan-300/30 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10" href="/truthshield-firefox-extension.zip" download @click="trackFirefoxDownload">
+              {{ t('extensionInstall.downloadFirefoxZip') }}
+            </a>
+            <button class="inline-flex rounded-md border border-cyan-300/30 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10" type="button" @click="copyFirefoxDebuggingUrl">
+              {{ t('extensionInstall.openFirefoxDebugging') }}
+            </button>
+          </div>
+          <p class="mt-3 text-xs leading-5 text-zinc-500">{{ copiedFirefoxUrl ? t('extensionInstall.firefoxDebuggingCopied') : t('extensionInstall.firefoxUnsignedNote') }}</p>
         </article>
 
         <article class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
