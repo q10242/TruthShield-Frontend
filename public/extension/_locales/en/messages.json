@@ -1,6 +1,6 @@
 {
   "extensionName": { "message": "TruthShield News Credibility" },
-  "extensionDescription": { "message": "Show news credibility labels, evidence, voting, timelines, and people/org graphs." },
+  "extensionDescription": { "message": "Add community labels, public evidence, timelines, and context requests to news pages." },
   "linkStatus": { "message": "TruthShield: View link label" },
   "linkVote": { "message": "TruthShield: I read this link, submit rating" },
   "pageStatus": { "message": "TruthShield: View this page rating" },

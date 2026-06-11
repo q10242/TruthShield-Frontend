@@ -849,17 +849,17 @@ async function submitEventReaction() {
   reactionError.value = ''
 
   if (!token.value) {
-    reactionError.value = zh.value ? '登入後才能留下事件心情。' : 'Sign in to leave an event mood.'
+    reactionError.value = zh.value ? '登入後才能留下脈絡需求。' : 'Sign in to request event context.'
     return
   }
 
   if (!selectedFeelings.value.length && !selectedNeeds.value.length) {
-    reactionError.value = zh.value ? '請至少選一個心情或需求。' : 'Choose at least one feeling or need.'
+    reactionError.value = zh.value ? '請至少選一個感受或需求。' : 'Choose at least one signal or need.'
     return
   }
 
   if (!eventReactionSourceUrl.value) {
-    reactionError.value = zh.value ? '這個事件還沒有可作為來源的新聞網址，暫時無法送出心情。' : 'This event has no source article URL yet, so mood cannot be submitted.'
+    reactionError.value = zh.value ? '這個事件還沒有可作為來源的新聞網址，暫時無法送出脈絡需求。' : 'This event has no source article URL yet, so context requests cannot be submitted.'
     return
   }
 
@@ -876,9 +876,9 @@ async function submitEventReaction() {
       ...payload,
       my_reaction: payload.reaction || reactionSummary.value?.my_reaction || null,
     }
-    reactionMessage.value = zh.value ? '已更新你的事件心情。' : 'Your event mood was updated.'
+    reactionMessage.value = zh.value ? '已更新你的脈絡需求。' : 'Your context request was updated.'
   } catch (err) {
-    reactionError.value = err.message || (zh.value ? '事件心情送出失敗。' : 'Failed to submit event mood.')
+    reactionError.value = err.message || (zh.value ? '脈絡需求送出失敗。' : 'Failed to submit context request.')
   } finally {
     reactionSubmitting.value = false
   }
@@ -1245,14 +1245,14 @@ onUnmounted(() => { document.title = 'TruthShield' })
                 <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
                   <span class="rounded-full border border-white/10 px-2.5 py-1 text-zinc-300">{{ zh ? '信用' : 'Trust' }} {{ Number(currentUser.trust_score ?? 0).toFixed(2) }}</span>
                   <span class="rounded-full px-2.5 py-1 font-semibold" :class="canUseEventSystem ? 'bg-emerald-300/10 text-emerald-100' : 'bg-zinc-800 text-zinc-300'">
-                    {{ canUseEventSystem ? (zh ? '可編輯事件' : 'Can edit events') : (zh ? '可閱讀/投心情' : 'Read/react') }}
+                    {{ canUseEventSystem ? (zh ? '可編輯事件' : 'Can edit events') : (zh ? '可閱讀/補需求' : 'Read/request context') }}
                   </span>
                 </div>
               </template>
               <template v-else>
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">{{ zh ? '目前身份' : 'Current identity' }}</p>
                 <p class="mt-2 text-sm font-semibold text-white">{{ zh ? '尚未登入' : 'Not signed in' }}</p>
-                <p class="mt-1 text-xs leading-5 text-zinc-500">{{ zh ? '登入後可以留下事件心情、補時間線與編輯關係圖。' : 'Sign in to react, add timeline entries, and edit the graph.' }}</p>
+                <p class="mt-1 text-xs leading-5 text-zinc-500">{{ zh ? '登入後可以補脈絡需求、時間線來源與人物/組織關係。' : 'Sign in to request context, add timeline sources, and review people/organization relationships.' }}</p>
                 <RouterLink class="mt-3 inline-flex rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950" :to="{ path: '/login', query: { redirect: route.fullPath } }">{{ zh ? '登入' : 'Sign in' }}</RouterLink>
               </template>
             </div>
@@ -1326,11 +1326,22 @@ onUnmounted(() => { document.title = 'TruthShield' })
                 <p class="mt-3 text-3xl font-semibold">{{ stat.value }}</p>
               </button>
             </div>
+            <div class="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.04] p-5">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">{{ zh ? '可完成任務' : 'Actionable tasks' }}</p>
+              <h2 class="mt-3 text-lg font-semibold text-white">{{ zh ? '把隱形編輯變成可累積貢獻' : 'Turn hidden editing into visible contribution' }}</h2>
+              <p class="mt-2 text-sm leading-6 text-zinc-400">{{ zh ? '補時間線、官方來源、人物/組織關係與證據評價都會進入社群任務與個人貢獻紀錄。' : 'Timeline sources, official sources, entity relationships, and evidence ratings flow into community tasks and profile contribution records.' }}</p>
+              <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                <RouterLink class="rounded-md border border-cyan-300/30 px-3 py-2 text-center text-xs font-semibold text-cyan-100 hover:border-cyan-300/70" :to="{ path: '/community-tasks', query: { type: 'timeline_source_review' } }">{{ zh ? '補時間線來源' : 'Timeline sources' }}</RouterLink>
+                <RouterLink class="rounded-md border border-cyan-300/30 px-3 py-2 text-center text-xs font-semibold text-cyan-100 hover:border-cyan-300/70" :to="{ path: '/community-tasks', query: { type: 'official_source_request' } }">{{ zh ? '補官方來源' : 'Official sources' }}</RouterLink>
+                <RouterLink class="rounded-md border border-white/10 px-3 py-2 text-center text-xs font-semibold text-zinc-300 hover:border-cyan-300/50 hover:text-cyan-100" :to="{ path: '/community-tasks', query: { type: 'entity_relationship_review' } }">{{ zh ? '確認人物/組織' : 'Review relationships' }}</RouterLink>
+                <button class="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:border-cyan-300/50 hover:text-cyan-100" type="button" @click="activeTab = 'timeline'">{{ zh ? '直接新增時間線' : 'Add timeline entry' }}</button>
+              </div>
+            </div>
             <div class="rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.04] p-5">
               <div class="flex items-start justify-between gap-3">
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">{{ zh ? '事件反應雷達' : 'Reaction Radar' }}</p>
-                  <h2 class="mt-3 text-lg font-semibold text-white">{{ zh ? '讀者對這個事件的感受與需求' : 'How readers feel about this event' }}</h2>
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">{{ zh ? '事件需求雷達' : 'Context Request Radar' }}</p>
+                  <h2 class="mt-3 text-lg font-semibold text-white">{{ zh ? '讀者想補哪些脈絡' : 'What context readers want next' }}</h2>
                 </div>
                 <span class="rounded-full bg-zinc-950 px-3 py-1 text-xs font-semibold text-zinc-300">
                   {{ reactionSummary?.summary?.total_users || 0 }} {{ zh ? '人' : 'people' }}
@@ -1345,19 +1356,19 @@ onUnmounted(() => { document.title = 'TruthShield' })
                   <span class="shrink-0 text-xs font-semibold text-emerald-200">{{ row.count }}</span>
                 </div>
               </div>
-              <p v-else class="mt-4 text-sm text-zinc-500">{{ zh ? '尚無事件反應。你可以直接在這裡留下心情或想看的補充。' : 'No event reactions yet. You can leave a feeling or request here.' }}</p>
+              <p v-else class="mt-4 text-sm text-zinc-500">{{ zh ? '尚無事件需求訊號。你可以直接在這裡留下想看的補充。' : 'No context requests yet. You can leave one here.' }}</p>
 
               <div class="mt-5 space-y-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
                 <div class="flex items-start justify-between gap-3">
                   <div>
-                    <p class="text-sm font-semibold text-emerald-100">{{ zh ? '留下你的事件心情' : 'Leave your event mood' }}</p>
-                    <p class="mt-1 text-xs leading-5 text-zinc-500">{{ zh ? '這不會取代可信度投票，只用來聚合社群對整起事件的感受。' : 'This does not replace credibility voting; it aggregates how readers feel about the event.' }}</p>
+                    <p class="text-sm font-semibold text-emerald-100">{{ zh ? '留下你的脈絡需求' : 'Request event context' }}</p>
+                    <p class="mt-1 text-xs leading-5 text-zinc-500">{{ zh ? '這不會取代可信度投票，只用來聚合社群想補的脈絡與任務方向。' : 'This does not replace credibility voting; it aggregates what context and tasks readers want next.' }}</p>
                   </div>
                   <RouterLink v-if="!token" class="shrink-0 rounded-md border border-emerald-300/40 px-3 py-2 text-xs font-semibold text-emerald-100" :to="{ path: '/login', query: { redirect: route.fullPath } }">{{ zh ? '登入' : 'Sign in' }}</RouterLink>
                 </div>
 
                 <div class="space-y-2">
-                  <p class="text-xs font-semibold text-zinc-300">{{ zh ? '你的心情' : 'Your feelings' }}</p>
+                  <p class="text-xs font-semibold text-zinc-300">{{ zh ? '你的感受' : 'Your signal' }}</p>
                   <div class="flex flex-wrap gap-2">
                     <button
                       v-for="option in reactionOptions.feelings"
@@ -1396,7 +1407,7 @@ onUnmounted(() => { document.title = 'TruthShield' })
                   :disabled="reactionSubmitting || !token || !eventReactionSourceUrl"
                   @click="submitEventReaction"
                 >
-                  {{ reactionSubmitting ? (zh ? '送出中...' : 'Submitting...') : (zh ? '送出事件心情' : 'Submit event mood') }}
+                  {{ reactionSubmitting ? (zh ? '送出中...' : 'Submitting...') : (zh ? '送出脈絡需求' : 'Submit context request') }}
                 </button>
               </div>
             </div>

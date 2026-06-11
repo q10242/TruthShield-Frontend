@@ -117,10 +117,10 @@ const vp = inject('votePanel')
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <button class="rounded-md border border-emerald-300/30 px-2 py-1 text-xs text-emerald-100 disabled:cursor-not-allowed disabled:opacity-50" :disabled="vp.reactingId.value === item.id || !vp.isVotingOpen.value || (vp.isLoggedIn.value && !vp.canReactToEvidence.value)" @click="vp.react(item, true)">
+        <button class="rounded-md border border-emerald-300/30 px-2 py-1 text-xs text-emerald-100 disabled:cursor-not-allowed disabled:opacity-50" :disabled="vp.reactingId.value === item.id || (vp.isLoggedIn.value && !vp.canReactToEvidence.value)" @click="vp.react(item, true)">
           {{ vp.t('votePanel.helpful') }} {{ item.helpful_count }}
         </button>
-        <button class="rounded-md border border-red-300/30 px-2 py-1 text-xs text-red-100 disabled:cursor-not-allowed disabled:opacity-50" :disabled="vp.reactingId.value === item.id || !vp.isVotingOpen.value || (vp.isLoggedIn.value && !vp.canReactToEvidence.value)" @click="vp.react(item, false)">
+        <button class="rounded-md border border-red-300/30 px-2 py-1 text-xs text-red-100 disabled:cursor-not-allowed disabled:opacity-50" :disabled="vp.reactingId.value === item.id || (vp.isLoggedIn.value && !vp.canReactToEvidence.value)" @click="vp.react(item, false)">
           {{ vp.t('votePanel.unhelpful') }} {{ item.unhelpful_count }}
         </button>
         <button class="ml-auto rounded-md border border-white/10 px-2 py-1 text-xs text-zinc-300" @click="vp.reportItem(item)">

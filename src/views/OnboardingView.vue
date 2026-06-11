@@ -54,7 +54,7 @@ function stepMeta(step) {
       action: 'mark',
       actionLabel: zh.value ? '我知道接下來要做什麼' : 'I know what to do next',
       instruction: zh.value
-        ? '先不要急著投票。你要做的是：在新聞頁看提示，打開面板，看共識與證據，讀完再決定要不要留下心情、投票或補證據。'
+        ? '先不要急著投票。你要做的是：在新聞頁看提示，打開面板，看共識與證據，讀完再決定要不要投票、補證據或補脈絡需求。'
         : 'Do not start by voting. First see the banner on an article, open the panel, review consensus and evidence, then decide whether to react, vote, or add evidence.',
       fallbackTo: '/user-guide#extension',
       fallbackLabel: zh.value ? '看完整說明' : 'Read full guide',
@@ -176,7 +176,7 @@ onMounted(async () => {
             </div>
             <div>
               <p class="text-sm font-semibold text-white">{{ zh ? '2. 打開面板後再判斷' : '2. Open the panel before judging' }}</p>
-              <p class="mt-1 text-xs leading-5 text-zinc-500">{{ zh ? '先看共識、心情與證據，再決定要不要投票。' : 'Review consensus, reactions, and evidence before voting.' }}</p>
+              <p class="mt-1 text-xs leading-5 text-zinc-500">{{ zh ? '先看共識與證據，再決定要不要投票。' : 'Review consensus and evidence before voting.' }}</p>
             </div>
             <div>
               <p class="text-sm font-semibold text-white">{{ zh ? '3. 事件頁看長期脈絡' : '3. Use events for long context' }}</p>

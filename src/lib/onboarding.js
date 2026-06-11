@@ -26,9 +26,9 @@ export const onboardingCopy = {
   'zh-TW': {
     open_demo: { title: '先搞懂你要做什麼', description: 'TruthShield 不是叫你相信平台，而是讓你在新聞旁邊多看一層脈絡。' },
     install_extension: { title: '確認 Chrome 套件可用', description: '真正的使用場景在新聞網站，不是在官網假頁面。' },
-    sync_auth: { title: '同步登入狀態', description: '登入後才能投票、補證據、留下心情與累積徽章。' },
+    sync_auth: { title: '同步登入狀態', description: '登入後才能投票、補證據、補脈絡需求與累積徽章。' },
     see_article_banner: { title: '在真實新聞頁看到上方 bar', description: '打開支援的新聞頁，確認 TruthShield 會在頁面頂端出現。' },
-    open_vote_panel: { title: '從 bar 或 popup 打開面板', description: '面板裡看結果、投心情、投標籤、補證據，也能連到事件。' },
+    open_vote_panel: { title: '從 bar 或 popup 打開面板', description: '面板裡先看結果、證據、投標籤，也能連到事件。' },
     open_event_context: { title: '看一次事件脈絡', description: '事件頁整理多篇新聞背後的時間線、狀態、分類與關係圖。' },
   },
   en: {

@@ -122,6 +122,7 @@ export function useVotePanel(route) {
   const readTimer = ref(null)
   const lastReadSessionSyncSecond = ref(0)
   const advancedMode = ref(false)
+  const keepReactionTabVisible = initialTab === 'reactions'
   const lastAuthHandoffSignature = ref('')
   const authRefreshInFlight = ref(false)
 
@@ -133,9 +134,10 @@ export function useVotePanel(route) {
     { key: 'events', number: 5, label: t('votePanel.tabs.context') },
   ])
   const visibleTabSteps = computed(() => {
-    if (advancedMode.value || relatedEvents.value.length) return tabSteps.value
-
-    return tabSteps.value.filter((step) => step.key !== 'events')
+    return tabSteps.value
+      .filter((step) => step.key !== 'reactions' || advancedMode.value || keepReactionTabVisible)
+      .filter((step) => step.key !== 'events' || advancedMode.value || relatedEvents.value.length)
+      .map((step, index) => ({ ...step, number: index + 1 }))
   })
 
   const newsUrl = computed(() => route.query.news_url || '')
@@ -211,6 +213,20 @@ export function useVotePanel(route) {
   const totalWeight = computed(() => Number(status.value?.total_weight || 0))
   const distribution = computed(() => status.value?.distribution || [])
   const secondaryDistribution = computed(() => status.value?.secondary_distribution || [])
+  const evidenceVerdict = computed(() => status.value?.evidence_verdict || null)
+  const evidenceVerdictLabel = computed(() => {
+    const direction = evidenceVerdict.value?.direction || 'insufficient_evidence'
+    return t(`votePanel.evidenceVerdict.${direction}`)
+  })
+  const clusterSummary = computed(() => {
+    const count = Number(status.value?.cluster_url_count || 0)
+    return {
+      id: status.value?.cluster_id || null,
+      count,
+      title: status.value?.canonical_title || '',
+      visible: count > 1,
+    }
+  })
   const evidenceReactionMinTrustScore = computed(() => Number(user.value?.evidence_reaction_min_trust_score ?? 0.5))
   const eventSystemMinTrustScore = computed(() => Number(user.value?.event_system_min_trust_score ?? 1.0))
   const canReactToEvidence = computed(() => {
@@ -1070,12 +1086,6 @@ export function useVotePanel(route) {
       return
     }
 
-    if (!isVotingOpen.value) {
-      evidenceError.value = t('votePanel.reactionClosed')
-      notifyHeight()
-      return
-    }
-
     if (!canReactToEvidence.value) {
       evidenceError.value = t('votePanel.reactionMinTrust', { score: evidenceReactionMinTrustScore.value.toFixed(2) })
       notifyHeight()
@@ -1085,9 +1095,12 @@ export function useVotePanel(route) {
     reactingId.value = item.id
 
     try {
-      await reactToEvidence(token.value, item.id, helpful)
+      const verdict = helpful
+        ? { credibility: 4, relevance: 4, direction: 'supports' }
+        : { credibility: 2, relevance: 3, direction: 'contextual' }
+      await reactToEvidence(token.value, item.id, helpful, verdict)
       evidence.value = await fetchNewsEvidence(newsUrl.value)
-      trackEvent('evidence_reaction_completed', { feature: 'evidence_reaction', url: newsUrl.value, metadata: { helpful } })
+      trackEvent('evidence_reaction_completed', { feature: 'evidence_reaction', url: newsUrl.value, metadata: { helpful, direction: verdict.direction } })
     } catch (err) {
       evidenceError.value = err.status === 409
         ? t('votePanel.reactionClosed')
@@ -1503,6 +1516,9 @@ export function useVotePanel(route) {
     totalWeight,
     distribution,
     secondaryDistribution,
+    evidenceVerdict,
+    evidenceVerdictLabel,
+    clusterSummary,
     evidenceReactionMinTrustScore,
     eventSystemMinTrustScore,
     canReactToEvidence,

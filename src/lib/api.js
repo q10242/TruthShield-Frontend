@@ -282,13 +282,13 @@ export async function reportNewsChange(payload) {
   })
 }
 
-export async function reactToEvidence(token, voteId, helpful) {
+export async function reactToEvidence(token, voteId, helpful, verdict = {}) {
   return request(`/api/evidence/${voteId}/reaction`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(withChallengePayload({ helpful })),
+    body: JSON.stringify(withChallengePayload({ helpful, ...verdict })),
   })
 }
 

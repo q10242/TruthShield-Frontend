@@ -12,10 +12,11 @@ const VOTE_PANEL_POSITION_KEY = 'truthShieldVotePanelPosition'
 const AUTH_TOKEN_KEY = 'truthshield_api_token'
 const AUTH_USER_KEY = 'truthshield_user'
 const ONBOARDING_STORAGE_KEY = 'truthshield_onboarding_state_v1'
-const BANNER_REACTION_KEYS = ['confused', 'worried', 'angry', 'sad', 'happy', 'indifferent', 'clear', 'credible']
+const BANNER_REACTION_KEYS = ['confused', 'worried', 'absurd', 'angry', 'sad', 'happy', 'indifferent', 'clear', 'credible']
 const FALLBACK_REACTION_FEELINGS = [
   { key: 'confused', emoji: '😕', label: '資訊混亂' },
   { key: 'worried', emoji: '😟', label: '擔心' },
+  { key: 'absurd', emoji: '🙄', label: '很瞎' },
   { key: 'angry', emoji: '😠', label: '憤怒' },
   { key: 'sad', emoji: '😔', label: '難過' },
   { key: 'happy', emoji: '😊', label: '看了開心' },
@@ -203,14 +204,14 @@ const contentMessages = {
     finalized: '已定案',
     voteClosed: '投票已截止',
     tooltipHint: 'TruthShield 標籤提示',
-    readerReactionTitle: '讀者心情',
+    readerReactionTitle: '脈絡需求',
     readerReactionHoverHint: 'hover 顯示',
-    readerReactionEmpty: '尚無心情',
-    readerReactionVote: '心情',
-    readerReactionVoteHint: '點 emoji 快速投心情',
+    readerReactionEmpty: '尚無脈絡需求',
+    readerReactionVote: '脈絡',
+    readerReactionVoteHint: '到面板補充想看的脈絡',
     readerReactionSaved: '已送出',
     readerReactionFailed: '送出失敗',
-    readerReactionLogin: '登入後投心情',
+    readerReactionLogin: '登入後補脈絡',
     eventContext: '事件',
     checking: '檢查中',
     live: '即時',
@@ -224,7 +225,7 @@ const contentMessages = {
     closePanel: '關閉 TruthShield 投票面板',
     votePanelTitle: 'TruthShield 新聞投票面板',
     bannerCoachTitle: '這是 TruthShield 新聞提示',
-    bannerCoachDesc: '點擊橫幅可開啟投票與證據面板；emoji 可以留下讀者心情。',
+    bannerCoachDesc: '點擊橫幅可開啟投票與證據面板；脈絡需求收在面板與事件頁。',
     bannerCoachOpen: '開面板',
     bannerCoachDismiss: '知道了',
   },
@@ -235,14 +236,14 @@ const contentMessages = {
     finalized: 'Finalized',
     voteClosed: 'Voting closed',
     tooltipHint: 'TruthShield label hint',
-    readerReactionTitle: 'Reader mood',
+    readerReactionTitle: 'Context request',
     readerReactionHoverHint: 'shown on hover',
-    readerReactionEmpty: 'No mood yet',
-    readerReactionVote: 'Mood',
-    readerReactionVoteHint: 'Tap an emoji to react',
+    readerReactionEmpty: 'No context requests yet',
+    readerReactionVote: 'Context',
+    readerReactionVoteHint: 'Open the panel to request context',
     readerReactionSaved: 'Saved',
     readerReactionFailed: 'Failed',
-    readerReactionLogin: 'Sign in to react',
+    readerReactionLogin: 'Sign in to request context',
     eventContext: 'Event',
     checking: 'Checking',
     live: 'Live',
@@ -256,7 +257,7 @@ const contentMessages = {
     closePanel: 'Close TruthShield vote panel',
     votePanelTitle: 'TruthShield news vote panel',
     bannerCoachTitle: 'This is the TruthShield article banner',
-    bannerCoachDesc: 'Click the banner to open voting and evidence. Emoji buttons let you leave a reader mood.',
+    bannerCoachDesc: 'Click the banner to open voting and evidence. Context requests live in the panel and event pages.',
     bannerCoachOpen: 'Open panel',
     bannerCoachDismiss: 'Got it',
   },
@@ -1706,60 +1707,26 @@ function articleBannerReactionOptions(payload) {
 }
 
 function renderArticleBannerReactionControls(payload, compact = false) {
-  const topRows = payload?.hover_reactions || []
-  const selected = Array.isArray(payload?.my_reaction?.feelings) ? payload.my_reaction.feelings : []
-  const topEmoji = topRows.length
-    ? topRows.map((row) => {
-      const text = reactionTooltipText(row.label || row.key, row.count || 0)
-
-      return `<span data-truthshield-reaction-tooltip="${escapeHtml(text)}" title="${escapeHtml(text)}" style="font-size:${compact ? '14px' : '15px'};line-height:1;cursor:help;">${escapeHtml(row.emoji || '')}</span>`
-    }).join('')
-    : compact
-      ? '<span style="color:#71717a;font-size:13px;line-height:1;">♡</span>'
-      : `<span style="color:#71717a;font-size:11px;white-space:nowrap;">${escapeHtml(t('readerReactionEmpty'))}</span>`
-  const availableOptions = articleBannerReactionOptions(payload)
-  const visibleOptions = compact
-    ? ['confused', 'worried', 'happy', 'clear']
-      .map((key) => availableOptions.find((option) => option.key === key))
-      .filter(Boolean)
-    : availableOptions.slice(0, 8)
-  const buttons = visibleOptions
-    .map((option) => {
-      const active = selected.includes(option.key)
-      const loading = articleBannerReactionSubmittingKey === option.key
-      const background = active ? 'rgba(110,231,183,.92)' : 'rgba(255,255,255,.06)'
-      const color = active ? '#09090b' : '#f4f4f5'
-      const border = active ? 'rgba(167,243,208,.98)' : 'rgba(255,255,255,.14)'
-      const label = `${t('readerReactionVote')}: ${option.label}`
-
-      return `
-        <button
-          data-truthshield-reaction-key="${escapeHtml(option.key)}"
-          data-truthshield-reaction-tooltip="${escapeHtml(label)}"
-          type="button"
-          title="${escapeHtml(label)}"
-          aria-label="${escapeHtml(label)}"
-          style="display:inline-flex;align-items:center;justify-content:center;width:${compact ? '24px' : '28px'};height:${compact ? '24px' : '28px'};border:1px solid ${border};border-radius:999px;background:${background};color:${color};font:${compact ? '14px' : '16px'} system-ui;cursor:pointer;padding:0;line-height:1;"
-        >${loading ? '…' : escapeHtml(option.emoji || '')}</button>
-      `
-    })
-    .join('')
-  const statusColor = articleBannerReactionFailed ? '#fca5a5' : articleBannerReactionMessage ? '#86efac' : '#a1a1aa'
+  const topRow = (payload?.hover_reactions || [])[0]
 
   if (compact) {
+    if (!topRow) return ''
+    const text = reactionTooltipText(topRow.label || topRow.key, topRow.count || 0)
+
     return `
-      <div data-truthshield-reaction-zone style="display:inline-flex;align-items:center;gap:5px;min-width:0;flex-wrap:wrap;">
-        <span style="display:inline-flex;align-items:center;gap:2px;max-width:44px;overflow:hidden;">${topEmoji}</span>
-        <span style="display:inline-flex;gap:3px;">${buttons}</span>
+      <div data-truthshield-reaction-zone style="display:inline-flex;align-items:center;gap:4px;min-width:0;">
+        <span data-truthshield-reaction-tooltip="${escapeHtml(text)}" title="${escapeHtml(text)}" style="font-size:14px;line-height:1;cursor:help;">${escapeHtml(topRow.emoji || '')}</span>
       </div>
     `
   }
 
+  if (!topRow) return ''
+  const text = reactionTooltipText(topRow.label || topRow.key, topRow.count || 0)
+
   return `
-    <div data-truthshield-reaction-zone style="display:flex;align-items:center;gap:8px;min-width:0;flex:0 1 auto;flex-wrap:wrap;">
-      <div style="display:flex;min-width:54px;align-items:center;gap:3px;justify-content:flex-end;">${topEmoji}</div>
-      <div style="display:flex;align-items:center;gap:4px;">${buttons}</div>
-      <span style="color:${statusColor};font:700 11px system-ui;white-space:nowrap;">${escapeHtml(articleBannerReactionMessage || t('readerReactionVote'))}</span>
+    <div data-truthshield-reaction-zone style="display:inline-flex;align-items:center;gap:5px;min-width:0;flex:0 1 auto;max-width:180px;color:#d4d4d8;font:700 11px system-ui;">
+      <span data-truthshield-reaction-tooltip="${escapeHtml(text)}" title="${escapeHtml(text)}" style="font-size:15px;line-height:1;cursor:help;">${escapeHtml(topRow.emoji || '')}</span>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(topRow.label || t('readerReactionTitle'))}</span>
     </div>
   `
 }

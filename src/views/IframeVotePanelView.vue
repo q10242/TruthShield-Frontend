@@ -110,7 +110,7 @@ onMounted(async () => {
         <div class="flex items-start justify-between gap-3">
           <div>
             <p class="font-semibold text-cyan-100">{{ panelZh ? '這裡是投票與證據面板' : 'This is the voting and evidence panel' }}</p>
-            <p class="mt-1">{{ panelZh ? '先看結果與讀者心情；讀完文章後，可以投標籤、留下證據，也可以把文章加入事件脈絡。' : 'Check the result and reader reactions first. After reading, you can vote, add evidence, or attach the article to an event.' }}</p>
+            <p class="mt-1">{{ panelZh ? '先看結果與證據；讀完文章後，可以投標籤、留下證據，也可以把文章加入事件脈絡。感受與需求訊號收在進階模式。' : 'Check the result and evidence first. After reading, you can vote, add evidence, or attach the article to an event. Signals and context requests live in advanced mode.' }}</p>
           </div>
           <button class="shrink-0 rounded-md border border-white/10 px-2 py-1 font-semibold text-zinc-400 hover:border-cyan-300/60 hover:text-cyan-100" type="button" @click="dismissVotePanelCoach">
             {{ panelZh ? '知道了' : 'Got it' }}

@@ -1,6 +1,6 @@
 {
   "extensionName": { "message": "TruthShield 新聞信譽提示" },
-  "extensionDescription": { "message": "在新聞頁顯示社群標籤、證據、投票面板與事件關係工具。" },
+  "extensionDescription": { "message": "在新聞頁補上社群標籤、公開證據、事件時間線與脈絡需求。" },
   "linkStatus": { "message": "TruthShield：查看連結標籤" },
   "linkVote": { "message": "TruthShield：我已閱讀此連結，提交評分" },
   "pageStatus": { "message": "TruthShield：查看此頁評分" },

@@ -78,7 +78,7 @@ const eventShowcaseText = computed(() => ({
   eyebrow: zh.value ? '正在整理的事件' : 'Live event context',
   title: zh.value ? '先看事件脈絡，再看單篇新聞' : 'Start with the event, then inspect each article',
   intro: zh.value
-    ? 'TruthShield 把新聞、證據、時間線、讀者心情與治理紀錄收斂到同一個事件頁，讓脈絡比標題更早出現。'
+    ? 'TruthShield 把新聞、證據、時間線、脈絡需求與治理紀錄收斂到同一個事件頁，讓脈絡比標題更早出現。'
     : 'TruthShield groups articles, evidence, timelines, reader reactions, and governance logs into event pages so context appears before a headline takes over.',
   fallbackSummary: zh.value ? '整理公開新聞、證據與後續進展。' : 'Public articles, evidence, and follow-up status are being organized.',
   openEvent: zh.value ? '查看事件' : 'Open event',

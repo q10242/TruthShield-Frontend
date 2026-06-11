@@ -69,8 +69,8 @@ const routeMeta = {
     description: '下載 TruthShield Chrome 插件 ZIP，依教學載入未封裝項目，把新聞可信度提示放進日常閱讀流程。',
   },
   mobile: {
-    title: `手機版 - ${SITE_NAME}`,
-    description: '在手機上貼上或分享新聞 URL，查看 TruthShield 加權結果、證據、澄清與投票入口。',
+    title: `手機快速查新聞 - ${SITE_NAME}`,
+    description: '手機分享或貼上新聞 URL 時使用的快速查詢入口；一般 TruthShield 頁面仍使用同一網址自動適配手機與桌機。',
   },
   events: {
     title: `事件脈絡 - ${SITE_NAME}`,
@@ -94,7 +94,7 @@ const routeMeta = {
   },
   onboarding: {
     title: `新手導覽 - ${SITE_NAME}`,
-    description: '用新手任務快速了解 TruthShield 插件、投票、證據、心情與事件脈絡。',
+    description: '用新手任務快速了解 TruthShield 插件、投票、證據、脈絡需求與事件脈絡。',
   },
 }
 

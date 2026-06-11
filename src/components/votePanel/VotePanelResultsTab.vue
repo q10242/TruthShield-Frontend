@@ -6,6 +6,37 @@ const vp = inject('votePanel')
 
 <template>
   <section class="mt-4 space-y-3">
+    <div class="rounded-md border border-emerald-300/20 bg-emerald-300/[0.04] p-3">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="text-xs font-semibold text-emerald-100">{{ vp.t('votePanel.evidenceVerdictTitle') }}</p>
+          <p class="mt-1 text-xs leading-5 text-zinc-400">{{ vp.evidenceVerdictLabel.value }}</p>
+        </div>
+        <button class="shrink-0 rounded-md border border-emerald-300/30 px-2 py-1 text-xs font-semibold text-emerald-100" @click="vp.activeTab.value = 'evidence'">
+          {{ vp.t('votePanel.viewEvidence') }}
+        </button>
+      </div>
+      <div class="mt-3 grid grid-cols-3 gap-2 text-center text-[11px] text-zinc-400">
+        <div class="rounded bg-zinc-950/70 px-2 py-2">
+          <p class="font-semibold text-emerald-100">{{ Number(vp.evidenceVerdict.value?.supports_weight || 0).toFixed(1) }}</p>
+          <p>{{ vp.t('votePanel.evidenceSupports') }}</p>
+        </div>
+        <div class="rounded bg-zinc-950/70 px-2 py-2">
+          <p class="font-semibold text-red-100">{{ Number(vp.evidenceVerdict.value?.refutes_weight || 0).toFixed(1) }}</p>
+          <p>{{ vp.t('votePanel.evidenceRefutes') }}</p>
+        </div>
+        <div class="rounded bg-zinc-950/70 px-2 py-2">
+          <p class="font-semibold text-cyan-100">{{ Number(vp.evidenceVerdict.value?.contextual_weight || 0).toFixed(1) }}</p>
+          <p>{{ vp.t('votePanel.evidenceContextual') }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="vp.clusterSummary.value.visible" class="rounded-md border border-cyan-300/20 bg-cyan-300/[0.04] p-3 text-xs leading-5 text-cyan-100">
+      {{ vp.t('votePanel.clusterSummary', { count: vp.clusterSummary.value.count }) }}
+      <span v-if="vp.clusterSummary.value.title" class="text-zinc-300"> {{ vp.clusterSummary.value.title }}</span>
+    </div>
+
     <div v-if="vp.distribution.value.length === 0" class="rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm text-zinc-400">
       <p>{{ vp.t('votePanel.noVotes') }}</p>
       <div class="mt-3 grid grid-cols-2 gap-2">
