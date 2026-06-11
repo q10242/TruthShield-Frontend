@@ -53,6 +53,7 @@ export const messages = {
       github: 'GitHub',
       githubFrontend: '前端原始碼',
       githubBackend: '後端原始碼',
+      facebookPage: 'Facebook 粉專',
       companyWebsite: 'Otus 官網',
     },
     home: {
@@ -1859,6 +1860,7 @@ export const messages = {
       github: 'GitHub',
       githubFrontend: 'Frontend source',
       githubBackend: 'Backend source',
+      facebookPage: 'Facebook Page',
       companyWebsite: 'Otus website',
     },
     home: {

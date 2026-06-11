@@ -8,6 +8,7 @@ import { useI18n } from '../i18n'
 const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
 const FIREFOX_ADDONS_URL = 'https://addons.mozilla.org/zh-TW/firefox/addon/truthshield-%E6%96%B0%E8%81%9E%E4%BF%A1%E8%AD%BD%E6%8F%90%E7%A4%BA/'
+const FACEBOOK_PAGE_URL = 'https://www.facebook.com/profile.php?id=61590569198089'
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
 const communityStats = ref(null)
@@ -703,6 +704,7 @@ onMounted(async () => {
         <RouterLink class="hover:text-cyan-100" to="/label-guide">{{ t('common.labelGuide') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/vision-readiness">{{ t('common.visionReadiness') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/donate">{{ t('common.donate') }}</RouterLink>
+        <a class="hover:text-cyan-100" :href="FACEBOOK_PAGE_URL" target="_blank" rel="noopener noreferrer">{{ t('common.facebookPage') }}</a>
         <a class="hover:text-cyan-100" href="https://www.otus.tw/" target="_blank" rel="noopener noreferrer">{{ t('common.companyWebsite') }}</a>
         <a
           v-for="link in githubLinks"
