@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { fetchCommunityTaskStats, fetchEvents } from '../lib/api'
+import { fetchCommunityTaskStats, fetchEvents, fetchPublicCommunityMetrics } from '../lib/api'
 import { trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
 
@@ -11,6 +11,7 @@ const FIREFOX_ADDONS_URL = 'https://addons.mozilla.org/zh-TW/firefox/addon/truth
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
 const communityStats = ref(null)
+const communityMetrics = ref(null)
 const featuredEvents = ref([])
 const { t, locale } = useI18n()
 const zh = computed(() => locale.value !== 'en')
@@ -175,6 +176,13 @@ const communityCards = computed(() => [
   { value: communityStats.value?.authenticated_signals ?? 0, label: t('communityTasks.authSignals') },
 ])
 
+const communityProgressCards = computed(() => [
+  { value: communityMetrics.value?.registered_users_total ?? 0, label: t('home.communityProgressUsers') },
+  { value: communityMetrics.value?.active_registered_users_30d ?? 0, label: t('home.communityProgressActive') },
+  { value: communityMetrics.value?.active_extension_clients_7d ?? 0, label: t('home.communityProgressExtensionClients') },
+  { value: communityMetrics.value?.content_totals?.evidence ?? 0, label: t('home.communityProgressEvidence') },
+])
+
 const presenterLinks = computed(() => [
   { to: '/demo-news', label: t('common.demoNews'), description: t('home.presenterDemoDesc') },
   { to: '/user-guide', label: t('common.userGuide'), description: t('home.presenterGuideDesc') },
@@ -210,11 +218,13 @@ function eventMetric(event, key) {
 
 onMounted(async () => {
   trackPageView('home')
-  const [statsPayload, eventsPayload] = await Promise.all([
+  const [statsPayload, metricsPayload, eventsPayload] = await Promise.all([
     fetchCommunityTaskStats().catch(() => null),
+    fetchPublicCommunityMetrics().catch(() => null),
     fetchEvents({ per_page: 18, sort: 'updated' }).catch(() => null),
   ])
   communityStats.value = statsPayload
+  communityMetrics.value = metricsPayload
   featuredEvents.value = shuffleEvents(eventsPayload?.data || []).slice(0, 3)
 })
 </script>
@@ -322,6 +332,24 @@ onMounted(async () => {
               </a>
             </div>
             <p class="mt-3 text-xs leading-5 text-amber-50/70">{{ t('home.firefoxReviewNote') }}</p>
+          </div>
+
+          <div class="rounded-lg border border-emerald-300/25 bg-emerald-300/[0.07] p-4">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <div class="max-w-2xl">
+                <p class="text-sm font-semibold text-emerald-100">{{ t('home.communityProgressTitle') }}</p>
+                <p class="mt-2 text-sm leading-6 text-emerald-50/80">{{ t('home.communityProgressDesc') }}</p>
+              </div>
+              <RouterLink class="rounded-md border border-emerald-200/40 px-3 py-2 text-xs font-semibold text-emerald-100 hover:border-emerald-200" to="/community-tasks">
+                {{ t('home.communityProgressCta') }}
+              </RouterLink>
+            </div>
+            <div class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <div v-for="card in communityProgressCards" :key="card.label" class="rounded-md border border-emerald-200/15 bg-zinc-950/50 p-3">
+                <p class="text-2xl font-semibold text-white">{{ Number(card.value || 0).toLocaleString() }}</p>
+                <p class="mt-1 text-xs leading-5 text-emerald-100/75">{{ card.label }}</p>
+              </div>
+            </div>
           </div>
 
           <div class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.06] p-4">

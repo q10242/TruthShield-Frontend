@@ -345,6 +345,12 @@ export async function fetchTransparency() {
   })
 }
 
+export async function fetchPublicCommunityMetrics() {
+  return request('/api/public/community-metrics', {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
 export async function fetchAlgorithm() {
   return request('/api/algorithm', {
     headers: { 'Content-Type': undefined },

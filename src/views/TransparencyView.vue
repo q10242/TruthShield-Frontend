@@ -54,6 +54,28 @@ const visibleSections = computed(() => sections.map((section) => ({
     .map((key) => ({ key, value: stats.value[key] })),
 })))
 
+const publicCommunityCards = computed(() => {
+  const metrics = stats.value?.community_metrics || {}
+  const contributors = metrics.contributors_total || {}
+  const activity = metrics.activity_30d || {}
+  const tasks = metrics.task_totals || {}
+
+  return [
+    { key: 'registered_users_total', value: metrics.registered_users_total ?? 0 },
+    { key: 'active_registered_users_7d', value: metrics.active_registered_users_7d ?? 0 },
+    { key: 'active_registered_users_30d', value: metrics.active_registered_users_30d ?? 0 },
+    { key: 'active_extension_clients_7d', value: metrics.active_extension_clients_7d ?? 0 },
+    { key: 'active_extension_clients_30d', value: metrics.active_extension_clients_30d ?? 0 },
+    { key: 'voters_total', value: contributors.voters ?? 0 },
+    { key: 'evidence_submitters_total', value: contributors.evidence_submitters ?? 0 },
+    { key: 'evidence_reviewers_total', value: contributors.evidence_reviewers ?? 0 },
+    { key: 'votes_30d', value: activity.votes ?? 0 },
+    { key: 'evidence_submissions_30d', value: activity.evidence_submissions ?? 0 },
+    { key: 'evidence_reactions_30d', value: activity.evidence_reactions ?? 0 },
+    { key: 'open_community_tasks', value: tasks.open ?? 0 },
+  ]
+})
+
 function labelFor(key) {
   return t(`transparency.labels.${key}`)
 }
@@ -108,6 +130,21 @@ onMounted(async () => {
       <div v-else-if="!stats" class="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-zinc-400">{{ t('common.loading') }}</div>
 
       <div v-else class="mt-6 space-y-6">
+        <section class="rounded-lg border border-emerald-300/25 bg-emerald-300/[0.06] p-4">
+          <div class="mb-4">
+            <h2 class="text-lg font-semibold text-white">{{ t('transparency.publicCommunity') }}</h2>
+            <p class="mt-1 text-sm leading-6 text-emerald-50/75">{{ t('transparency.publicCommunityDesc') }}</p>
+            <p class="mt-2 text-xs leading-5 text-emerald-100/70">{{ t('transparency.publicCommunityPrivacyNote') }}</p>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div v-for="item in publicCommunityCards" :key="item.key" class="rounded-md border border-emerald-200/15 bg-zinc-950/70 p-4">
+              <p class="text-xs font-semibold text-emerald-100/70">{{ labelFor(item.key) }}</p>
+              <p class="mt-2 break-words text-2xl font-semibold text-white">{{ Number(item.value || 0).toLocaleString() }}</p>
+            </div>
+          </div>
+        </section>
+
         <section v-for="section in visibleSections" :key="section.titleKey" class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <div class="mb-4">
             <h2 class="text-lg font-semibold text-white">{{ t(section.titleKey) }}</h2>
