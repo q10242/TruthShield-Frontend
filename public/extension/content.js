@@ -1166,6 +1166,24 @@ function reactionIcon(row, style) {
   return icon
 }
 
+function reactionSummaryChip(row, compact = false) {
+  const text = reactionTooltipText(row.label || row.key, row.count || 0)
+  const chip = styledElement(
+    'span',
+    compact
+      ? 'display:inline-flex;align-items:center;gap:3px;min-width:0;color:#d4d4d8;font:700 11px system-ui;'
+      : 'display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:160px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.04);padding:3px 7px;color:#d4d4d8;font:700 11px system-ui;',
+  )
+  chip.dataset.truthshieldReactionTooltip = text
+  chip.title = text
+  chip.appendChild(styledElement('span', 'font-size:14px;line-height:1;', row.emoji || ''))
+  if (!compact) {
+    chip.appendChild(styledElement('span', 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', row.label || row.key))
+  }
+  chip.appendChild(styledElement('span', 'color:#a1a1aa;', String(row.count || 0)))
+  return chip
+}
+
 function renderTooltip(payload, loading = false, failed = false, reactionPayload = null) {
   const box = ensureTooltipBox()
   const tone = tooltipToneStyle(payload?.tone)
@@ -1623,6 +1641,14 @@ function ensureArticleBanner() {
       return
     }
 
+    if (target?.closest?.('[data-truthshield-open-reactions]')) {
+      event.preventDefault()
+      event.stopPropagation()
+      recordOnboardingStep('open_vote_panel').catch(() => null)
+      openVotePanelModal(articleBannerUrl || window.location.href, '/iframe-vote-panel', { tab: 'reactions' }, 'vote_panel_opened')
+      return
+    }
+
     recordOnboardingStep('open_vote_panel').catch(() => null)
     ensureVotePanelFrame()
   })
@@ -1722,21 +1748,27 @@ function articleBannerReactionOptions(payload) {
 }
 
 function renderArticleBannerReactionControls(payload, compact = false) {
-  const topRow = (payload?.hover_reactions || [])[0]
+  const rows = (payload?.hover_reactions || []).slice(0, compact ? 2 : 3)
 
   if (compact) {
-    if (!topRow) return null
+    if (!rows.length) return null
     const zone = styledElement('div', 'display:inline-flex;align-items:center;gap:4px;min-width:0;')
     zone.dataset.truthshieldReactionZone = ''
-    zone.appendChild(reactionIcon(topRow, 'font-size:14px;line-height:1;cursor:help;'))
+    zone.dataset.truthshieldOpenReactions = ''
+    for (const row of rows) {
+      zone.appendChild(reactionSummaryChip(row, true))
+    }
     return zone
   }
 
-  if (!topRow) return null
-  const zone = styledElement('div', 'display:inline-flex;align-items:center;gap:5px;min-width:0;flex:0 1 auto;max-width:180px;color:#d4d4d8;font:700 11px system-ui;')
+  if (!rows.length) return null
+  const zone = styledElement('div', 'display:inline-flex;align-items:center;gap:5px;min-width:0;flex:0 1 auto;max-width:260px;color:#d4d4d8;font:700 11px system-ui;cursor:pointer;')
   zone.dataset.truthshieldReactionZone = ''
-  zone.appendChild(reactionIcon(topRow, 'font-size:15px;line-height:1;cursor:help;'))
-  zone.appendChild(styledElement('span', 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', topRow.label || t('readerReactionTitle')))
+  zone.dataset.truthshieldOpenReactions = ''
+  zone.title = t('readerReactionVoteHint')
+  for (const row of rows) {
+    zone.appendChild(reactionSummaryChip(row))
+  }
   return zone
 }
 

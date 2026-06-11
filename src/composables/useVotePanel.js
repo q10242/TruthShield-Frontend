@@ -122,7 +122,6 @@ export function useVotePanel(route) {
   const readTimer = ref(null)
   const lastReadSessionSyncSecond = ref(0)
   const advancedMode = ref(false)
-  const keepReactionTabVisible = initialTab === 'reactions'
   const lastAuthHandoffSignature = ref('')
   const authRefreshInFlight = ref(false)
 
@@ -135,7 +134,6 @@ export function useVotePanel(route) {
   ])
   const visibleTabSteps = computed(() => {
     return tabSteps.value
-      .filter((step) => step.key !== 'reactions' || advancedMode.value || keepReactionTabVisible)
       .filter((step) => step.key !== 'events' || advancedMode.value || relatedEvents.value.length)
       .map((step, index) => ({ ...step, number: index + 1 }))
   })
