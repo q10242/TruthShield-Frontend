@@ -10,6 +10,7 @@ const { t } = useI18n()
 const PRODUCTION_WEB_ORIGIN = 'https://truth-shield.otus.tw'
 const PRODUCTION_API_ORIGIN = 'https://truth-shield-api.otus.tw'
 const CHROME_WEB_STORE_URL = 'https://chromewebstore.google.com/detail/truthshield/liobfmdknkkpbpogdfefmglpgcijmkfk'
+const FIREFOX_ADDONS_URL = 'https://addons.mozilla.org/zh-TW/firefox/addon/truthshield-%E6%96%B0%E8%81%9E%E4%BF%A1%E8%AD%BD%E6%8F%90%E7%A4%BA/'
 const health = ref(null)
 const botConfig = ref(null)
 const extensionVersion = ref('0.1.0')
@@ -22,7 +23,7 @@ const installSteps = computed(() => [
   {
     title: t('extensionInstall.stepStoreTitle'),
     description: t('extensionInstall.stepStoreDesc'),
-    code: 'Chrome Web Store',
+    code: 'Chrome Web Store / Firefox Add-ons',
   },
   {
     title: t('extensionInstall.stepPinTitle'),
@@ -125,6 +126,10 @@ function trackStoreClick() {
   trackEvent('chrome_web_store_click', { feature: 'extension_install' })
 }
 
+function trackFirefoxStoreClick() {
+  trackEvent('firefox_addons_click', { feature: 'extension_install' })
+}
+
 async function copyChromeExtensionsUrl() {
   try {
     await navigator.clipboard?.writeText('chrome://extensions')
@@ -201,6 +206,15 @@ async function copyFirefoxDebuggingUrl() {
             >
               {{ t('extensionInstall.installStore') }}
             </a>
+            <a
+              class="rounded-md bg-orange-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-orange-200"
+              :href="FIREFOX_ADDONS_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+              @click="trackFirefoxStoreClick"
+            >
+              {{ t('extensionInstall.installFirefoxStore') }}
+            </a>
             <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="/truthshield-extension.zip" download @click="trackDownload">
               {{ t('extensionInstall.downloadZip') }}
             </a>
@@ -212,6 +226,7 @@ async function copyFirefoxDebuggingUrl() {
             </button>
           </div>
           <p class="mt-3 text-xs leading-5 text-zinc-500">{{ copiedChromeUrl ? t('extensionInstall.chromeExtensionsCopied') : t('extensionInstall.storeNote') }}</p>
+          <p class="mt-2 text-xs leading-5 text-zinc-500">{{ t('extensionInstall.firefoxStoreReviewNote') }}</p>
         </div>
 
         <aside class="rounded-lg border border-cyan-300/20 bg-zinc-900 p-5 shadow-2xl shadow-cyan-950/30">
@@ -257,9 +272,9 @@ async function copyFirefoxDebuggingUrl() {
         <p class="mt-2 text-sm leading-6 text-zinc-400">{{ t('extensionInstall.packageDesc') }}</p>
         <div class="mt-4 grid gap-3 md:grid-cols-2">
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">Chrome Web Store</code>
+          <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">Firefox Add-ons</code>
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">/truthshield-extension.zip</code>
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">/truthshield-firefox-extension.zip</code>
-          <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">about:debugging</code>
         </div>
       </section>
 
