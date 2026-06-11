@@ -63,10 +63,16 @@ replaceInPackage('content.js', [
 
 const firefoxManifestPath = resolve(packageDir, 'manifest.json')
 const firefoxManifest = JSON.parse(readFileSync(firefoxManifestPath, 'utf8'))
+firefoxManifest.background = {
+  scripts: ['background.js'],
+}
 firefoxManifest.browser_specific_settings = {
   gecko: {
     id: 'truthshield@otus.tw',
-    strict_min_version: '121.0',
+    data_collection_permissions: {
+      required: ['websiteActivity', 'websiteContent'],
+    },
+    strict_min_version: '142.0',
   },
 }
 writeFileSync(firefoxManifestPath, `${JSON.stringify(firefoxManifest, null, 2)}\n`)

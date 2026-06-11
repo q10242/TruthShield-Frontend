@@ -76,7 +76,10 @@ if (manifest) {
   }
 
   requireFile(manifest.action?.default_popup || 'popup.html')
-  requireFile(manifest.background?.service_worker || 'background.js')
+  requireFile(manifest.background?.service_worker || manifest.background?.scripts?.[0] || 'background.js')
+  for (const script of manifest.background?.scripts || []) {
+    requireFile(script)
+  }
   requireFile(manifest.options_page || 'options.html')
 
   for (const script of manifest.content_scripts?.flatMap((item) => item.js || []) || []) {
