@@ -69,6 +69,7 @@ const FALLBACK_NEWS_DOMAINS = [
   'www.cmmedia.com.tw',
 ]
 const DEFAULT_BLOCKED_PATH_PATTERN = '^/(?:$|search|tag|tags|tagging|category|categories|cat|cate|topic|topics|author|authors|member|login|register|privacy|about|rss|(?:list|lists|latest|realtime|realtimenews|breaking|breaknews|hot|popular|archive|archives|video|videos|photo|photos|live)/?$)'
+const CAVA_BLOCKED_PATH_PATTERN = '^/(?:$|search|tag|tags|tagging|category|categories|cat|cate|topics|author|authors|member|login|register|privacy|about|rss|(?:list|lists|latest|realtime|realtimenews|breaking|breaknews|hot|popular|archive|archives|video|videos|photo|photos|live)/?$)'
 const FALLBACK_DOMAIN_CONFIGS = [
   { domain: 'cna.com.tw', article_url_pattern: '^/news/.+\\.aspx$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.cna.com.tw', article_url_pattern: '^/news/.+\\.aspx$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
@@ -77,6 +78,7 @@ const FALLBACK_DOMAIN_CONFIGS = [
   { domain: 'www.setn.com', article_url_pattern: '^/News\\.aspx$', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'udn.com', article_url_pattern: '^/news/story/\\d+/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'news.ebc.net.tw', article_url_pattern: '^/news/[^/]+/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
+  { domain: 'cava.tw', article_url_pattern: '^/(?:topic|lifestyle|money|fashion|beauty|fitness|entertainment|coverstory|survey)(?:/[^/]+)?/\\d+', blocked_path_pattern: CAVA_BLOCKED_PATH_PATTERN },
   { domain: 'news.tvbs.com.tw', article_url_pattern: '^/[^/]+/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.ftvnews.com.tw', article_url_pattern: '^/news/detail/', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
   { domain: 'www.nownews.com', article_url_pattern: '^/news/\\d+', blocked_path_pattern: DEFAULT_BLOCKED_PATH_PATTERN },
