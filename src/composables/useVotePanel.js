@@ -174,7 +174,7 @@ export function useVotePanel(route) {
     if (!selectedTag.value) return false
     if (typeof selectedTag.value.evidence_note_required === 'boolean') return selectedTag.value.evidence_note_required
 
-    return Boolean(selectedTag.value.requires_evidence)
+    return false
   })
   const selectedEvidenceGuidance = computed(() => {
     const key = `votePanel.evidenceRequirement.${selectedEvidenceRequirement.value}`
