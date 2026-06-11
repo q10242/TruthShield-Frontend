@@ -4,6 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 const PUBLIC_READ_CACHE_PREFIX = 'truthshield_public_read_cache_v1:'
 const SHORT_PUBLIC_CACHE_TTL_MS = 60 * 1000
 const STATIC_PUBLIC_CACHE_TTL_MS = 6 * 60 * 60 * 1000
+const PUBLIC_READ_CACHE_MAX_ENTRIES = 120
 
 export { API_BASE_URL }
 
@@ -49,12 +50,22 @@ async function cachedRequest(path, options = {}, ttlMs = SHORT_PUBLIC_CACHE_TTL_
   const key = publicReadCacheKey(path)
   const cached = readPublicReadCache(key)
   if (cached && Date.now() - Number(cached.cachedAt || 0) < ttlMs) {
+    touchPublicReadCache(key, cached)
     return cached.payload
   }
 
-  const payload = await request(path, options)
-  writePublicReadCache(key, payload)
-  return payload
+  try {
+    const payload = await request(path, options)
+    writePublicReadCache(key, payload)
+    prunePublicReadCache()
+    return payload
+  } catch (error) {
+    if (cached?.payload && shouldUseStalePublicReadCache(error)) {
+      return cached.payload
+    }
+
+    throw error
+  }
 }
 
 function publicReadCacheKey(path) {
@@ -71,9 +82,47 @@ function readPublicReadCache(key) {
 
 function writePublicReadCache(key, payload) {
   try {
-    localStorage.setItem(key, JSON.stringify({ cachedAt: Date.now(), payload }))
+    localStorage.setItem(key, JSON.stringify({ cachedAt: Date.now(), lastAccessedAt: Date.now(), payload }))
   } catch {
     // Browser-side cache is an optimization; ignore quota/private-mode failures.
+  }
+}
+
+function touchPublicReadCache(key, cached) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ ...cached, lastAccessedAt: Date.now() }))
+  } catch {
+    // Recency tracking is optional.
+  }
+}
+
+function shouldUseStalePublicReadCache(error) {
+  return !error?.status || error.status >= 500
+}
+
+function prunePublicReadCache() {
+  try {
+    const entries = []
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index)
+      if (!key?.startsWith(PUBLIC_READ_CACHE_PREFIX)) continue
+
+      const value = readPublicReadCache(key)
+      entries.push({
+        key,
+        cachedAt: Number(value?.cachedAt || 0),
+        lastAccessedAt: Number(value?.lastAccessedAt || value?.cachedAt || 0),
+      })
+    }
+
+    if (entries.length <= PUBLIC_READ_CACHE_MAX_ENTRIES) return
+
+    entries
+      .sort((a, b) => (a.lastAccessedAt - b.lastAccessedAt) || (a.cachedAt - b.cachedAt))
+      .slice(0, entries.length - PUBLIC_READ_CACHE_MAX_ENTRIES)
+      .forEach((entry) => localStorage.removeItem(entry.key))
+  } catch {
+    // Cache pruning is best-effort.
   }
 }
 
