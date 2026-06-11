@@ -282,6 +282,13 @@ export async function reportNewsChange(payload) {
   })
 }
 
+export async function reportJournalistMatch(matchId, payload = {}) {
+  return request(`/api/news/journalist-matches/${encodeURIComponent(matchId)}/report`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function reactToEvidence(token, voteId, helpful, verdict = {}) {
   return request(`/api/evidence/${voteId}/reaction`, {
     method: 'POST',
@@ -317,6 +324,34 @@ export async function fetchMediaLeaderboard() {
   })
 
   return payload.data || []
+}
+
+export async function fetchMediaOutlets(params = {}) {
+  const query = toQuery(params)
+  return request(`/api/media-outlets${query ? `?${query}` : ''}`, {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
+export async function fetchMediaOutletStats(id) {
+  const payload = await request(`/api/media-outlets/${encodeURIComponent(id)}/stats`, {
+    headers: { 'Content-Type': undefined },
+  })
+
+  return { ...(payload.data || {}), media: payload.media || null }
+}
+
+export async function fetchJournalists(params = {}) {
+  const query = toQuery(params)
+  return request(`/api/journalists${query ? `?${query}` : ''}`, {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
+export async function fetchJournalist(id) {
+  return request(`/api/journalists/${encodeURIComponent(id)}`, {
+    headers: { 'Content-Type': undefined },
+  })
 }
 
 function toQuery(params = {}) {

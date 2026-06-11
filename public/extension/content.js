@@ -12,6 +12,8 @@ const VOTE_PANEL_POSITION_KEY = 'truthShieldVotePanelPosition'
 const AUTH_TOKEN_KEY = 'truthshield_api_token'
 const AUTH_USER_KEY = 'truthshield_user'
 const ONBOARDING_STORAGE_KEY = 'truthshield_onboarding_state_v1'
+const JOURNALIST_CACHE_STORAGE_KEY = 'truthshield_journalist_cache_v1'
+const JOURNALIST_CACHE_TTL_MS = 24 * 60 * 60 * 1000
 const BANNER_REACTION_KEYS = ['confused', 'worried', 'absurd', 'angry', 'sad', 'happy', 'indifferent', 'clear', 'credible']
 const FALLBACK_REACTION_FEELINGS = [
   { key: 'confused', emoji: '😕', label: '資訊混亂' },
@@ -141,6 +143,7 @@ const FALLBACK_YOUTUBE_CHANNELS = [
 let newsDomains = [...FALLBACK_NEWS_DOMAINS]
 let domainConfigs = [...FALLBACK_DOMAIN_CONFIGS]
 let youtubeChannels = FALLBACK_YOUTUBE_CHANNELS.map(normalizeYoutubeChannelRecord).filter(Boolean)
+let journalistCache = { journalists: [], exclusions: [], fetchedAt: 0, version: '' }
 let extensionNonce = null
 let tooltipBox = null
 let reactionTooltip = null
@@ -159,6 +162,7 @@ const articleBannerStatusCache = new Map()
 const articleBannerStatusRequests = new Map()
 const articleBannerReportedUrls = new Set()
 const articleBannerSkippedUrls = new Set()
+const journalistMatchReportedUrls = new Set()
 let articleBannerReactionLoading = false
 let articleBannerReactionFailed = false
 let articleBannerReactionSubmittingKey = ''
@@ -710,6 +714,42 @@ async function loadYoutubeChannels() {
   }
 }
 
+async function loadJournalistCache() {
+  const stored = await readExtensionLocal(JOURNALIST_CACHE_STORAGE_KEY)
+  const cached = stored?.[JOURNALIST_CACHE_STORAGE_KEY]
+  if (cached?.fetchedAt && Date.now() - Number(cached.fetchedAt) < JOURNALIST_CACHE_TTL_MS) {
+    journalistCache = {
+      journalists: Array.isArray(cached.journalists) ? cached.journalists : [],
+      exclusions: Array.isArray(cached.exclusions) ? cached.exclusions : [],
+      fetchedAt: Number(cached.fetchedAt),
+      version: cached.version || '',
+    }
+    return journalistCache
+  }
+
+  try {
+    const payload = await fetchApiViaBackground('/api/journalists/cache', {
+      headers: extensionRequestHeaders({ Accept: 'application/json' }),
+    })
+    journalistCache = {
+      journalists: Array.isArray(payload.journalists) ? payload.journalists : [],
+      exclusions: Array.isArray(payload.exclusions) ? payload.exclusions : [],
+      fetchedAt: Date.now(),
+      version: payload.version || '',
+    }
+    await writeExtensionLocal({ [JOURNALIST_CACHE_STORAGE_KEY]: journalistCache })
+  } catch {
+    journalistCache = {
+      journalists: Array.isArray(cached?.journalists) ? cached.journalists : [],
+      exclusions: Array.isArray(cached?.exclusions) ? cached.exclusions : [],
+      fetchedAt: Number(cached?.fetchedAt || 0),
+      version: cached?.version || '',
+    }
+  }
+
+  return journalistCache
+}
+
 async function loadSettings() {
   if (typeof chrome === 'undefined' || !chrome.storage?.sync) {
     return
@@ -1041,6 +1081,187 @@ function isPotentialUntrackedNewsPage() {
   const hasArticleShape = articleElement && articleElement.getBoundingClientRect().height > 360
 
   return Boolean(articleMeta || hasArticleShape || /news|article|story|politics|world|business/.test(path))
+}
+
+function normalizeJournalistText(value) {
+  return String(value || '')
+    .replace(/\s+/g, '')
+    .replace(/[　,，、／/|｜:：;；()（）\[\]【】「」『』]/g, '')
+    .trim()
+}
+
+function textFromSelector(selector) {
+  if (!selector) return ''
+  try {
+    return [...document.querySelectorAll(selector)]
+      .map((node) => node?.textContent || node?.getAttribute?.('content') || '')
+      .join(' ')
+      .trim()
+      .slice(0, 320)
+  } catch {
+    return ''
+  }
+}
+
+function jsonLdAuthorTexts() {
+  const texts = []
+  const visit = (value) => {
+    if (!value) return
+    if (Array.isArray(value)) {
+      value.forEach(visit)
+      return
+    }
+    if (typeof value !== 'object') return
+    if (value.author) visit(value.author)
+    if (value['@graph']) visit(value['@graph'])
+    const name = typeof value.name === 'string' ? value.name.trim() : ''
+    if (name) texts.push(name)
+  }
+
+  for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+    try {
+      visit(JSON.parse(script.textContent || 'null'))
+    } catch {
+      // Ignore malformed publisher JSON-LD.
+    }
+  }
+
+  return [...new Set(texts)].slice(0, 8)
+}
+
+function articleAuthorCandidates() {
+  const config = matchedDomainConfig()
+  const candidates = []
+  for (const text of jsonLdAuthorTexts()) {
+    candidates.push({ source: 'json_ld', text, confidence: 'high' })
+  }
+
+  const metaSelectors = [
+    'meta[name="author"][content]',
+    'meta[property="article:author"][content]',
+    'meta[name="parsely-author"][content]',
+    'meta[name="byl"][content]',
+  ]
+  for (const selector of metaSelectors) {
+    for (const node of document.querySelectorAll(selector)) {
+      const text = node.getAttribute('content')?.trim()
+      if (text) candidates.push({ source: 'meta_author', text, confidence: 'high' })
+    }
+  }
+
+  const selectorText = textFromSelector(config?.author_selector)
+  if (selectorText) candidates.push({ source: 'selector', text: selectorText, confidence: 'high' })
+
+  const likelyBylineText = textFromSelector([
+    '[class*="author" i]',
+    '[class*="byline" i]',
+    '[itemprop="author"]',
+    '[rel="author"]',
+  ].join(', '))
+  if (likelyBylineText) candidates.push({ source: 'selector', text: likelyBylineText, confidence: 'medium' })
+
+  const titleArea = document.querySelector('article, main, [role="main"]')?.textContent?.slice(0, 1200) || ''
+  const regexes = [config?.author_regex, '記者\\s*([\\u4e00-\\u9fff]{2,4})(?:／|/|\\s)*(?:[^\\n]{0,12})報導', '文\\s*[／/]\\s*([\\u4e00-\\u9fff]{2,4})']
+  for (const pattern of regexes.filter(Boolean)) {
+    try {
+      const match = titleArea.match(new RegExp(pattern))
+      const text = match?.[1] || match?.[0] || ''
+      if (text) candidates.push({ source: 'regex', text, confidence: 'medium' })
+    } catch {
+      // Invalid admin-provided regex is ignored.
+    }
+  }
+
+  const bodyText = document.body?.innerText?.slice(0, 12000) || ''
+  if (bodyText) candidates.push({ source: 'full_text', text: bodyText, confidence: 'low' })
+
+  return candidates
+}
+
+function journalistAliasEntries(journalist) {
+  const aliases = Array.isArray(journalist.aliases) ? journalist.aliases : []
+  return [
+    { alias: journalist.display_name, domain: journalist.media_outlet?.domain || null, confidence: 'medium' },
+    { alias: journalist.canonical_name, domain: null, confidence: 'medium' },
+    ...aliases,
+  ].filter((entry) => entry.alias)
+}
+
+function journalistMatchExcluded(journalist, alias, domain) {
+  const normalizedAlias = normalizeJournalistText(alias)
+  return (journalistCache.exclusions || []).some((rule) => {
+    if (rule.journalist_id && Number(rule.journalist_id) !== Number(journalist.id)) return false
+    if (rule.domain && rule.domain !== domain) return false
+    if (rule.alias && normalizeJournalistText(rule.alias) !== normalizedAlias) return false
+    return true
+  })
+}
+
+function localJournalistMatches() {
+  const domain = window.location.hostname.toLowerCase()
+  const candidates = articleAuthorCandidates()
+  const matches = new Map()
+
+  for (const candidate of candidates) {
+    const normalizedText = normalizeJournalistText(candidate.text)
+    if (!normalizedText) continue
+
+    for (const journalist of journalistCache.journalists || []) {
+      for (const aliasEntry of journalistAliasEntries(journalist)) {
+        if (aliasEntry.domain && aliasEntry.domain !== domain) continue
+        const normalizedAlias = normalizeJournalistText(aliasEntry.alias)
+        if (!normalizedAlias || normalizedAlias.length < 2) continue
+        if (!normalizedText.includes(normalizedAlias)) continue
+        if (journalistMatchExcluded(journalist, aliasEntry.alias, domain)) continue
+
+        const confidence = candidate.source === 'full_text'
+          ? 'low'
+          : (candidate.confidence === 'high' && aliasEntry.confidence !== 'low' ? 'high' : 'medium')
+        const previous = matches.get(journalist.id)
+        const rank = { high: 3, medium: 2, low: 1 }
+        if (!previous || rank[confidence] > rank[previous.confidence]) {
+          matches.set(journalist.id, {
+            journalist_id: journalist.id,
+            match_source: candidate.source,
+            confidence,
+            matched_text: candidate.source === 'full_text' ? aliasEntry.alias.slice(0, 120) : candidate.text.slice(0, 240),
+          })
+        }
+      }
+    }
+  }
+
+  return [...matches.values()].slice(0, 3)
+}
+
+async function reportJournalistMatchesOnce(url = window.location.href) {
+  const cacheKey = canonicalStatusUrl(url)
+  if (journalistMatchReportedUrls.has(cacheKey) || !isCurrentNewsPage() || !isLikelyArticlePage()) return
+  journalistMatchReportedUrls.add(cacheKey)
+
+  await loadJournalistCache()
+  const matches = localJournalistMatches()
+  if (!matches.length) return
+
+  for (const match of matches) {
+    try {
+      await fetchApiViaBackground('/api/news/journalist-matches', {
+        method: 'POST',
+        headers: extensionRequestHeaders({ Accept: 'application/json', 'Content-Type': 'application/json' }),
+        body: {
+          news_url: cacheKey,
+          journalist_id: match.journalist_id,
+          match_source: match.match_source,
+          confidence: match.confidence,
+          matched_text: match.matched_text,
+          title_snapshot: document.title || '',
+          metadata: { extension_version: extensionVersion(), domain: window.location.hostname },
+        },
+      })
+    } catch {
+      // Reporter matching is best-effort and must not affect article reading.
+    }
+  }
 }
 
 function shouldSuppressHoverTooltip() {
@@ -2294,6 +2515,7 @@ function maybeInjectVotePanel() {
 
   if (ensureArticleBanner()) {
     startArticleReadTimer()
+    reportJournalistMatchesOnce(window.location.href).catch(() => null)
   }
 }
 
@@ -2595,7 +2817,7 @@ chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
 })
 
 loadSettings().then(loadExtensionNonce).then(async () => {
-  await Promise.all([loadNewsDomains(), loadYoutubeChannels()])
+  await Promise.all([loadNewsDomains(), loadYoutubeChannels(), loadJournalistCache()])
 }).finally(async () => {
   installPageAuthBridge()
   requestPageAuthState()

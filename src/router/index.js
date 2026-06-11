@@ -44,6 +44,10 @@ import EventDetailView from '../views/EventDetailView.vue'
 import GlobalEntitiesView from '../views/GlobalEntitiesView.vue'
 import IframeEventPinView from '../views/IframeEventPinView.vue'
 import OnboardingView from '../views/OnboardingView.vue'
+import MediaStatsView from '../views/MediaStatsView.vue'
+import MediaStatsDetailView from '../views/MediaStatsDetailView.vue'
+import JournalistStatsView from '../views/JournalistStatsView.vue'
+import JournalistStatsDetailView from '../views/JournalistStatsDetailView.vue'
 
 const SITE_ORIGIN = 'https://truth-shield.otus.tw'
 const SITE_NAME = 'TruthShield 真相護盾'
@@ -79,6 +83,14 @@ const routeMeta = {
   'news-search': {
     title: `新聞搜尋 - ${SITE_NAME}`,
     description: '貼上新聞 URL 或搜尋已收錄新聞，查看目前標籤、加權結果、證據與定案狀態。',
+  },
+  'media-stats': {
+    title: `媒體報導標籤統計 - ${SITE_NAME}`,
+    description: '查看 TruthShield 已確認收錄新聞中的媒體報導標籤分布；這不是媒體可信度排行。',
+  },
+  'journalist-stats': {
+    title: `記者報導標籤統計 - ${SITE_NAME}`,
+    description: '查看 TruthShield 已確認作者對應新聞中的記者報導標籤分布；疑似對應不納入正式比例。',
   },
   'evidence-library': {
     title: `證據庫 - ${SITE_NAME}`,
@@ -162,6 +174,10 @@ const router = createRouter({
     { path: '/profile', name: 'profile', component: ProfileView },
     { path: '/onboarding', name: 'onboarding', component: OnboardingView },
     { path: '/news-search', name: 'news-search', component: NewsSearchView },
+    { path: '/stats/media', name: 'media-stats', component: MediaStatsView },
+    { path: '/stats/media/:id', name: 'media-stats-detail', component: MediaStatsDetailView },
+    { path: '/stats/journalists', name: 'journalist-stats', component: JournalistStatsView },
+    { path: '/stats/journalists/:id', name: 'journalist-stats-detail', component: JournalistStatsDetailView },
     { path: '/events', name: 'events', component: EventsView },
     { path: '/events/:id', name: 'event-detail', component: EventDetailView },
     { path: '/global-entities', name: 'global-entities', component: GlobalEntitiesView },

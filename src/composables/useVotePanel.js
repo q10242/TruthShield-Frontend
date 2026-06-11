@@ -23,6 +23,7 @@ import {
   reactToEvidence,
   reactToOfficialResponse,
   reportNewsChange,
+  reportJournalistMatch,
   reportEvidence,
   createOfficialResponse,
   submitReaderReaction,
@@ -212,6 +213,8 @@ export function useVotePanel(route) {
   const distribution = computed(() => status.value?.distribution || [])
   const secondaryDistribution = computed(() => status.value?.secondary_distribution || [])
   const evidenceVerdict = computed(() => status.value?.evidence_verdict || null)
+  const mediaContext = computed(() => status.value?.media_context || null)
+  const journalistContext = computed(() => status.value?.journalist_context || [])
   const evidenceVerdictLabel = computed(() => {
     const direction = evidenceVerdict.value?.direction || 'insufficient_evidence'
     return t(`votePanel.evidenceVerdict.${direction}`)
@@ -1076,6 +1079,23 @@ export function useVotePanel(route) {
     }
   }
 
+  async function reportJournalistMismatch(matchId) {
+    if (!matchId) return
+
+    try {
+      await reportJournalistMatch(matchId, { reason: '使用者回報作者對應可能有誤。' })
+      const rows = Array.isArray(status.value?.journalist_context) ? status.value.journalist_context : []
+      status.value = {
+        ...status.value,
+        journalist_context: rows.map((row) => row.match_id === matchId ? { ...row, review_status: 'reported', included_in_stats: false } : row),
+      }
+    } catch {
+      // Keep this lightweight; users can still report through the main bug form if needed.
+    } finally {
+      notifyHeight()
+    }
+  }
+
   async function react(item, helpful) {
     evidenceError.value = ''
 
@@ -1516,6 +1536,8 @@ export function useVotePanel(route) {
     secondaryDistribution,
     evidenceVerdict,
     evidenceVerdictLabel,
+    mediaContext,
+    journalistContext,
     clusterSummary,
     evidenceReactionMinTrustScore,
     eventSystemMinTrustScore,
@@ -1561,6 +1583,7 @@ export function useVotePanel(route) {
     loadData,
     notifyVoteUpdated,
     shareCurrentResult,
+    reportJournalistMismatch,
     submitOfficialResponse,
     reactOfficial,
     openLogin,

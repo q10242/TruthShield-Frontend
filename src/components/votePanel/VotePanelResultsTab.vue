@@ -37,6 +37,62 @@ const vp = inject('votePanel')
       <span v-if="vp.clusterSummary.value.title" class="text-zinc-300"> {{ vp.clusterSummary.value.title }}</span>
     </div>
 
+    <div v-if="vp.mediaContext.value || vp.journalistContext.value.length" class="space-y-2">
+      <div v-if="vp.mediaContext.value" class="rounded-md border border-white/10 bg-white/[0.03] p-3">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold text-zinc-200">媒體報導標籤統計</p>
+            <p class="mt-1 text-xs text-zinc-500">{{ vp.mediaContext.value.name }}</p>
+          </div>
+          <a class="shrink-0 text-xs font-semibold text-cyan-200 hover:text-cyan-100" :href="`/stats/media/${vp.mediaContext.value.id}`" target="_blank" rel="noopener noreferrer">詳情</a>
+        </div>
+        <div class="mt-3 grid grid-cols-3 gap-2 text-center text-[11px]">
+          <div class="rounded bg-zinc-950/70 px-2 py-2">
+            <p class="font-semibold text-white">{{ vp.mediaContext.value.stats.article_count }}</p>
+            <p class="text-zinc-500">已確認收錄</p>
+          </div>
+          <div class="rounded bg-zinc-950/70 px-2 py-2">
+            <p class="font-semibold text-orange-100">{{ vp.mediaContext.value.stats.tracked_tag_count }}</p>
+            <p class="text-zinc-500">標題殺人</p>
+          </div>
+          <div class="rounded bg-zinc-950/70 px-2 py-2">
+            <p class="font-semibold text-cyan-100">{{ vp.mediaContext.value.stats.ratio_available ? `${vp.mediaContext.value.stats.tracked_tag_ratio}%` : '樣本不足' }}</p>
+            <p class="text-zinc-500">比例</p>
+          </div>
+        </div>
+      </div>
+
+      <div v-for="row in vp.journalistContext.value" :key="row.match_id" class="rounded-md border border-white/10 bg-white/[0.03] p-3">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold text-zinc-200">記者報導標籤統計</p>
+            <p class="mt-1 text-xs text-zinc-500">
+              <span v-if="row.review_status === 'confirmed'">已確認收錄：{{ row.journalist.display_name }}</span>
+              <span v-else>可能對應記者：{{ row.journalist.display_name }}，尚未納入統計</span>
+            </p>
+          </div>
+          <button class="shrink-0 rounded border border-white/10 px-2 py-1 text-[11px] font-semibold text-zinc-400 hover:border-orange-300/50 hover:text-orange-100" @click="vp.reportJournalistMismatch(row.match_id)">
+            回報作者有誤
+          </button>
+        </div>
+        <div v-if="row.stats" class="mt-3 grid grid-cols-3 gap-2 text-center text-[11px]">
+          <div class="rounded bg-zinc-950/70 px-2 py-2">
+            <p class="font-semibold text-white">{{ row.stats.article_count }}</p>
+            <p class="text-zinc-500">已確認收錄</p>
+          </div>
+          <div class="rounded bg-zinc-950/70 px-2 py-2">
+            <p class="font-semibold text-orange-100">{{ row.stats.tracked_tag_count }}</p>
+            <p class="text-zinc-500">標題殺人</p>
+          </div>
+          <div class="rounded bg-zinc-950/70 px-2 py-2">
+            <p class="font-semibold text-cyan-100">{{ row.stats.ratio_available ? `${row.stats.tracked_tag_ratio}%` : '樣本不足' }}</p>
+            <p class="text-zinc-500">比例</p>
+          </div>
+        </div>
+        <p v-else class="mt-2 text-xs leading-5 text-zinc-500">來源：{{ row.match_source }} · {{ row.confidence }} confidence</p>
+      </div>
+    </div>
+
     <div v-if="vp.distribution.value.length === 0" class="rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm text-zinc-400">
       <p>{{ vp.t('votePanel.noVotes') }}</p>
       <div class="mt-3 grid grid-cols-2 gap-2">
