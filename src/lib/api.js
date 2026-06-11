@@ -1,6 +1,9 @@
 import { currentLocale } from '../i18n'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const PUBLIC_READ_CACHE_PREFIX = 'truthshield_public_read_cache_v1:'
+const SHORT_PUBLIC_CACHE_TTL_MS = 60 * 1000
+const STATIC_PUBLIC_CACHE_TTL_MS = 6 * 60 * 60 * 1000
 
 export { API_BASE_URL }
 
@@ -37,6 +40,60 @@ async function request(path, options = {}) {
   return data
 }
 
+async function cachedRequest(path, options = {}, ttlMs = SHORT_PUBLIC_CACHE_TTL_MS) {
+  const headers = options.headers || {}
+  if (headers.Authorization || headers.authorization || options.cache === 'no-store') {
+    return request(path, options)
+  }
+
+  const key = publicReadCacheKey(path)
+  const cached = readPublicReadCache(key)
+  if (cached && Date.now() - Number(cached.cachedAt || 0) < ttlMs) {
+    return cached.payload
+  }
+
+  const payload = await request(path, options)
+  writePublicReadCache(key, payload)
+  return payload
+}
+
+function publicReadCacheKey(path) {
+  return `${PUBLIC_READ_CACHE_PREFIX}${API_BASE_URL}${path}`
+}
+
+function readPublicReadCache(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || 'null')
+  } catch {
+    return null
+  }
+}
+
+function writePublicReadCache(key, payload) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ cachedAt: Date.now(), payload }))
+  } catch {
+    // Browser-side cache is an optimization; ignore quota/private-mode failures.
+  }
+}
+
+function forgetPublicReadCacheForUrl(url) {
+  const target = String(url || '')
+  if (!target) return
+
+  const encoded = encodeURIComponent(target)
+  try {
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const key = localStorage.key(index)
+      if (key?.startsWith(PUBLIC_READ_CACHE_PREFIX) && (key.includes(encoded) || key.includes(target))) {
+        localStorage.removeItem(key)
+      }
+    }
+  } catch {
+    // Cache invalidation must not block user actions.
+  }
+}
+
 export function botChallengeToken() {
   return localStorage.getItem('truthshield_challenge_token') || undefined
 }
@@ -58,45 +115,51 @@ export async function fetchBotProtectionConfig() {
 export async function fetchNewsStatus(url, options = {}) {
   const fresh = options.fresh ? `&fresh=${Date.now()}` : ''
 
-  return request(`/api/news/status?url=${encodeURIComponent(url)}&locale=${encodeURIComponent(currentLocale())}${fresh}`, {
+  const path = `/api/news/status?url=${encodeURIComponent(url)}&locale=${encodeURIComponent(currentLocale())}${fresh}`
+
+  return cachedRequest(path, {
     cache: options.fresh ? 'no-store' : undefined,
     headers: { 'Content-Type': undefined },
-  })
+  }, SHORT_PUBLIC_CACHE_TTL_MS)
 }
 
 export async function fetchReactionSummary(params = {}, token = '') {
   const query = toQuery(params)
 
-  return request(`/api/reactions/summary${query ? `?${query}` : ''}`, {
+  const path = `/api/reactions/summary${query ? `?${query}` : ''}`
+
+  return cachedRequest(path, {
     headers: {
       Authorization: token ? `Bearer ${token}` : undefined,
       'Content-Type': undefined,
     },
-  })
+  }, SHORT_PUBLIC_CACHE_TTL_MS)
 }
 
 export async function submitReaderReaction(token, payload) {
-  return request('/api/reactions', {
+  const response = await request('/api/reactions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(payload),
   })
+  forgetPublicReadCacheForUrl(payload?.news_url)
+  return response
 }
 
 export async function fetchNewsEvidence(url) {
-  const payload = await request(`/api/news/evidence?url=${encodeURIComponent(url)}&locale=${encodeURIComponent(currentLocale())}`, {
+  const payload = await cachedRequest(`/api/news/evidence?url=${encodeURIComponent(url)}&locale=${encodeURIComponent(currentLocale())}`, {
     headers: { 'Content-Type': undefined },
-  })
+  }, SHORT_PUBLIC_CACHE_TTL_MS)
 
   return payload.data || []
 }
 
 export async function fetchTags() {
-  const payload = await request(`/api/tags?locale=${encodeURIComponent(currentLocale())}`, {
+  const payload = await cachedRequest(`/api/tags?locale=${encodeURIComponent(currentLocale())}`, {
     headers: { 'Content-Type': undefined },
-  })
+  }, STATIC_PUBLIC_CACHE_TTL_MS)
 
   return payload.data || []
 }
@@ -159,9 +222,9 @@ export async function createClaimant(token, payload) {
 }
 
 export async function fetchOfficialResponses(url) {
-  const payload = await request(`/api/news/official-responses?url=${encodeURIComponent(url)}`, {
+  const payload = await cachedRequest(`/api/news/official-responses?url=${encodeURIComponent(url)}`, {
     headers: { 'Content-Type': undefined },
-  })
+  }, SHORT_PUBLIC_CACHE_TTL_MS)
 
   return payload.data || []
 }
@@ -246,13 +309,15 @@ export async function oauthCallback(provider, payload) {
 }
 
 export async function createVote(token, payload) {
-  return request('/api/vote', {
+  const response = await request('/api/vote', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(withChallengePayload(payload)),
   })
+  forgetPublicReadCacheForUrl(payload?.url)
+  return response
 }
 
 export async function recordReadSession(token, payload) {
@@ -319,9 +384,9 @@ export async function reportEvidence(token, voteId, payload) {
 }
 
 export async function fetchMediaLeaderboard() {
-  const payload = await request('/api/leaderboard/media', {
+  const payload = await cachedRequest('/api/leaderboard/media', {
     headers: { 'Content-Type': undefined },
-  })
+  }, 5 * 60 * 1000)
 
   return payload.data || []
 }
@@ -375,27 +440,27 @@ export async function fetchEvidenceLibrary(params = {}) {
 }
 
 export async function fetchTransparency() {
-  return request('/api/transparency', {
+  return cachedRequest('/api/transparency', {
     headers: { 'Content-Type': undefined },
-  })
+  }, SHORT_PUBLIC_CACHE_TTL_MS)
 }
 
 export async function fetchPublicCommunityMetrics() {
-  return request('/api/public/community-metrics', {
+  return cachedRequest('/api/public/community-metrics', {
     headers: { 'Content-Type': undefined },
-  })
+  }, SHORT_PUBLIC_CACHE_TTL_MS)
 }
 
 export async function fetchAlgorithm() {
-  return request('/api/algorithm', {
+  return cachedRequest('/api/algorithm', {
     headers: { 'Content-Type': undefined },
-  })
+  }, 10 * 60 * 1000)
 }
 
 export async function fetchVisionReadiness() {
-  return request('/api/vision-readiness', {
+  return cachedRequest('/api/vision-readiness', {
     headers: { 'Content-Type': undefined },
-  })
+  }, SHORT_PUBLIC_CACHE_TTL_MS)
 }
 
 export async function fetchCommunityTasks(params = {}) {
@@ -435,9 +500,9 @@ export async function fetchEvents(params = {}) {
 }
 
 export async function fetchEventOptions() {
-  return request('/api/events/options', {
+  return cachedRequest('/api/events/options', {
     headers: { 'Content-Type': undefined },
-  })
+  }, STATIC_PUBLIC_CACHE_TTL_MS)
 }
 
 export async function createEvent(token, payload) {
@@ -647,9 +712,9 @@ export async function fetchNewsDetail(id) {
 }
 
 export async function fetchExtensionSummary() {
-  return request('/api/extension/summary', {
+  return cachedRequest('/api/extension/summary', {
     headers: { 'Content-Type': undefined },
-  })
+  }, SHORT_PUBLIC_CACHE_TTL_MS)
 }
 
 export async function fetchExtensionCoverage() {
@@ -750,9 +815,9 @@ export async function revokeApiClient(token, clientId) {
 }
 
 export async function fetchEvidenceReportReasons() {
-  const payload = await request('/api/evidence-report-reasons', {
+  const payload = await cachedRequest('/api/evidence-report-reasons', {
     headers: { 'Content-Type': undefined },
-  })
+  }, STATIC_PUBLIC_CACHE_TTL_MS)
 
   return payload.data || []
 }
@@ -801,9 +866,9 @@ export async function fetchYoutubeChannelReportStatus(channelUrl) {
 }
 
 export async function fetchYoutubeChannels() {
-  const payload = await request('/api/youtube-channels', {
+  const payload = await cachedRequest('/api/youtube-channels', {
     headers: { 'Content-Type': undefined },
-  })
+  }, STATIC_PUBLIC_CACHE_TTL_MS)
 
   return payload.data || []
 }
@@ -816,17 +881,17 @@ export async function fetchNewsDomainReportStatus(domainOrUrl) {
 }
 
 export async function fetchTrustedEvidenceSources() {
-  const payload = await request('/api/trusted-evidence-sources', {
+  const payload = await cachedRequest('/api/trusted-evidence-sources', {
     headers: { 'Content-Type': undefined },
-  })
+  }, STATIC_PUBLIC_CACHE_TTL_MS)
 
   return payload.data || []
 }
 
 export async function fetchRateLimitPolicies() {
-  const payload = await request('/api/rate-limit-policies', {
+  const payload = await cachedRequest('/api/rate-limit-policies', {
     headers: { 'Content-Type': undefined },
-  })
+  }, STATIC_PUBLIC_CACHE_TTL_MS)
 
   return payload.data || []
 }
@@ -890,31 +955,31 @@ export async function fetchDonation(tradeNo) {
 }
 
 export async function fetchDonationSummary() {
-  return request('/api/donations/summary', {
+  return cachedRequest('/api/donations/summary', {
     headers: { 'Content-Type': undefined },
-  })
+  }, SHORT_PUBLIC_CACHE_TTL_MS)
 }
 
 export async function fetchDonationSupporters() {
-  const payload = await request('/api/donations/supporters', {
+  const payload = await cachedRequest('/api/donations/supporters', {
     headers: { 'Content-Type': undefined },
-  })
+  }, 5 * 60 * 1000)
 
   return payload.data || []
 }
 
 export async function fetchDonationMonthly() {
-  const payload = await request('/api/donations/monthly', {
+  const payload = await cachedRequest('/api/donations/monthly', {
     headers: { 'Content-Type': undefined },
-  })
+  }, 5 * 60 * 1000)
 
   return payload.data || []
 }
 
 export async function fetchDonationConfig() {
-  return request('/api/donations/config', {
+  return cachedRequest('/api/donations/config', {
     headers: { 'Content-Type': undefined },
-  })
+  }, 10 * 60 * 1000)
 }
 
 export async function createUserDataRequest(payload) {

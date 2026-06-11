@@ -40,6 +40,8 @@ function resolveLocale(setting = 'auto') {
 const nonceCache = new Map()
 const apiResponseCache = new Map()
 const API_RESPONSE_CACHE_TTL_MS = 10 * 60 * 1000
+const API_RESPONSE_STORAGE_KEY = 'truthshield_api_response_cache_v1'
+const API_RESPONSE_STORAGE_MAX = 180
 const AUTH_STORAGE_KEY = 'truthshieldAuth'
 const ONBOARDING_STORAGE_KEY = 'truthshield_onboarding_state_v1'
 let menuCreationPromise = null
@@ -188,34 +190,139 @@ async function extensionNonce(apiOrigin) {
 function cacheableApiResponseKey(target, method, headers = {}) {
   const normalizedMethod = String(method || 'GET').toUpperCase()
   if (normalizedMethod !== 'GET') return null
-  if (target.search) return null
+  if (headers.Authorization || headers.authorization) return null
 
-  if (!['/api/news-domains', '/api/youtube-channels'].includes(target.pathname)) {
+  if (!cacheableApiResponseTtl(target)) {
     return null
   }
 
   return [
     target.origin,
     target.pathname,
+    normalizedSearch(target),
     headers['Accept-Language'] || headers['accept-language'] || '',
   ].join('|')
 }
 
-function cachedApiResponse(cacheKey) {
+function cacheableApiResponseTtl(target) {
+  if (target.pathname === '/api/news/status' && target.searchParams.has('url')) return 60 * 1000
+  if (target.pathname === '/api/reactions/summary' && target.searchParams.has('news_url')) return 60 * 1000
+  if (target.pathname === '/api/tags') return 6 * 60 * 60 * 1000
+  if (target.pathname === '/api/events/options') return 6 * 60 * 60 * 1000
+  if (target.pathname === '/api/news-domains') return 6 * 60 * 60 * 1000
+  if (target.pathname === '/api/youtube-channels') return 6 * 60 * 60 * 1000
+  if (target.pathname === '/api/journalists/cache') return 24 * 60 * 60 * 1000
+
+  return 0
+}
+
+function normalizedSearch(target) {
+  const copy = new URL(target.toString())
+  const entries = [...copy.searchParams.entries()].sort(([aKey, aValue], [bKey, bValue]) => {
+    const keyCompare = aKey.localeCompare(bKey)
+    return keyCompare || aValue.localeCompare(bValue)
+  })
+
+  copy.search = ''
+  for (const [key, value] of entries) {
+    copy.searchParams.append(key, value)
+  }
+
+  return copy.search
+}
+
+async function cachedApiResponse(cacheKey) {
   const cached = apiResponseCache.get(cacheKey)
-  if (!cached || cached.expiresAt <= Date.now()) {
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.response
+  }
+
+  if (cached) {
     apiResponseCache.delete(cacheKey)
+  }
+
+  const store = await localGet(API_RESPONSE_STORAGE_KEY)
+  const persisted = store?.[API_RESPONSE_STORAGE_KEY]?.[cacheKey]
+  if (!persisted || Number(persisted.expiresAt || 0) <= Date.now()) {
+    if (persisted) await forgetPersistentApiResponse(cacheKey)
     return null
   }
 
-  return cached.response
+  apiResponseCache.set(cacheKey, {
+    response: persisted.response,
+    expiresAt: Number(persisted.expiresAt),
+  })
+
+  return persisted.response
 }
 
-function rememberApiResponse(cacheKey, response) {
+async function rememberApiResponse(cacheKey, response, ttlMs = API_RESPONSE_CACHE_TTL_MS) {
+  const expiresAt = Date.now() + ttlMs
   apiResponseCache.set(cacheKey, {
     response,
-    expiresAt: Date.now() + API_RESPONSE_CACHE_TTL_MS,
+    expiresAt,
   })
+
+  try {
+    const payload = await localGet(API_RESPONSE_STORAGE_KEY)
+    const existing = payload?.[API_RESPONSE_STORAGE_KEY] || {}
+    const next = {
+      ...existing,
+      [cacheKey]: {
+        response,
+        expiresAt,
+        cachedAt: Date.now(),
+      },
+    }
+    const entries = Object.entries(next)
+      .filter(([, value]) => Number(value?.expiresAt || 0) > Date.now())
+      .sort(([, a], [, b]) => Number(b?.cachedAt || 0) - Number(a?.cachedAt || 0))
+      .slice(0, API_RESPONSE_STORAGE_MAX)
+
+    await localSet({ [API_RESPONSE_STORAGE_KEY]: Object.fromEntries(entries) })
+  } catch {
+    // Persistent cache is an optimization; memory cache is enough if storage fails.
+  }
+}
+
+async function forgetPersistentApiResponse(cacheKey) {
+  try {
+    const payload = await localGet(API_RESPONSE_STORAGE_KEY)
+    const current = payload?.[API_RESPONSE_STORAGE_KEY] || {}
+    if (!current[cacheKey]) return
+    delete current[cacheKey]
+    await localSet({ [API_RESPONSE_STORAGE_KEY]: current })
+  } catch {
+    // Cache cleanup must not affect extension behavior.
+  }
+}
+
+async function clearApiResponseCacheForUrl(url) {
+  const target = String(url || '')
+  if (!target) return
+
+  for (const key of [...apiResponseCache.keys()]) {
+    if (key.includes(encodeURIComponent(target)) || key.includes(target)) {
+      apiResponseCache.delete(key)
+    }
+  }
+
+  try {
+    const payload = await localGet(API_RESPONSE_STORAGE_KEY)
+    const current = payload?.[API_RESPONSE_STORAGE_KEY] || {}
+    let changed = false
+    for (const key of Object.keys(current)) {
+      if (key.includes(encodeURIComponent(target)) || key.includes(target)) {
+        delete current[key]
+        changed = true
+      }
+    }
+    if (changed) {
+      await localSet({ [API_RESPONSE_STORAGE_KEY]: current })
+    }
+  } catch {
+    // Best-effort cache invalidation.
+  }
 }
 
 function targetUrl(info, tab) {
@@ -400,6 +507,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true
   }
 
+  if (message?.type === 'TRUTH_SHIELD_CLEAR_URL_CACHE') {
+    clearApiResponseCacheForUrl(message.url)
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ ok: false }))
+    return true
+  }
+
   if (message?.type === 'TRUTH_SHIELD_FETCH_API' && message.path) {
     getSettings()
       .then(async (settings) => {
@@ -421,7 +535,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           ...(message.headers || {}),
         }
         const cacheKey = cacheableApiResponseKey(target, method, baseHeaders)
-        const cached = cacheKey ? cachedApiResponse(cacheKey) : null
+        const cached = cacheKey ? await cachedApiResponse(cacheKey) : null
         if (cached) {
           return { ...cached, fromInternalCache: true }
         }
@@ -440,7 +554,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         const payload = await response.json().catch(() => null)
         const result = { ok: response.ok, status: response.status, payload }
         if (cacheKey && response.ok) {
-          rememberApiResponse(cacheKey, result)
+          await rememberApiResponse(cacheKey, result, cacheableApiResponseTtl(target))
         }
 
         return result
@@ -460,12 +574,29 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   getSettings()
-    .then(async (settings) => fetch(`${settings.apiOrigin}/api/news/status?url=${encodeURIComponent(message.url)}`, {
-      headers: await extensionRequestHeaders(settings, { Accept: 'application/json' }),
-    }))
-    .then(async (response) => {
+    .then(async (settings) => {
+      const target = new URL('/api/news/status', settings.apiOrigin)
+      target.searchParams.set('url', message.url)
+      const baseHeaders = { Accept: 'application/json', 'Accept-Language': resolveLocale(settings.locale) }
+      const cacheKey = cacheableApiResponseKey(target, 'GET', baseHeaders)
+      const cached = cacheKey ? await cachedApiResponse(cacheKey) : null
+      if (cached) {
+        return { ...cached, fromInternalCache: true }
+      }
+
+      const response = await fetch(target.toString(), {
+        headers: await extensionRequestHeaders(settings, baseHeaders),
+      })
       const payload = await response.json().catch(() => null)
-      sendResponse({ ok: response.ok, status: response.status, payload })
+      const result = { ok: response.ok, status: response.status, payload }
+      if (cacheKey && response.ok) {
+        await rememberApiResponse(cacheKey, result, cacheableApiResponseTtl(target))
+      }
+
+      return result
+    })
+    .then((response) => {
+      sendResponse(response)
     })
     .catch((error) => {
       sendResponse({ ok: false, status: 0, message: error?.message || 'fetch failed' })

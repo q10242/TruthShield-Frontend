@@ -424,6 +424,13 @@ async function fetchApiViaBackground(path, options = {}) {
   return response.payload
 }
 
+function clearBackgroundUrlCache(url = window.location.href) {
+  sendRuntimeMessage({
+    type: 'TRUTH_SHIELD_CLEAR_URL_CACHE',
+    url: canonicalStatusUrl(url),
+  }).catch(() => null)
+}
+
 async function syncWebAuthToExtensionStorage() {
   if (!isTruthShieldWebOrigin()) return
 
@@ -1778,6 +1785,7 @@ async function submitArticleBannerReaction(key) {
       related_events: currentPayload?.related_events || payload.related_events || [],
       my_reaction: payload.reaction || currentPayload?.my_reaction || null,
     }
+    clearBackgroundUrlCache(targetUrl)
     setTooltipReactionCache(targetUrl, { state: 'success', payload: nextPayload })
     articleBannerReactionFailed = false
     articleBannerReactionMessage = t('readerReactionSaved')
@@ -2737,6 +2745,7 @@ window.addEventListener('message', (event) => {
   }
 
   if (event.data?.type === 'TRUTH_SHIELD_VOTE_UPDATED') {
+    clearBackgroundUrlCache(event.data.url || votePanelUrl || window.location.href)
     refreshArticleBannerStatus(event.data.url || votePanelUrl || window.location.href, event.data.status || null)
   }
 })
