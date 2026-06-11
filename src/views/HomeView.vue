@@ -12,6 +12,7 @@ const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
 const communityStats = ref(null)
 const communityMetrics = ref(null)
+const communityMetricsLoaded = ref(false)
 const featuredEvents = ref([])
 const { t, locale } = useI18n()
 const zh = computed(() => locale.value !== 'en')
@@ -225,6 +226,7 @@ onMounted(async () => {
   ])
   communityStats.value = statsPayload
   communityMetrics.value = metricsPayload
+  communityMetricsLoaded.value = true
   featuredEvents.value = shuffleEvents(eventsPayload?.data || []).slice(0, 3)
 })
 </script>
@@ -344,12 +346,15 @@ onMounted(async () => {
                 {{ t('home.communityProgressCta') }}
               </RouterLink>
             </div>
-            <div class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div v-if="communityMetrics" class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <div v-for="card in communityProgressCards" :key="card.label" class="rounded-md border border-emerald-200/15 bg-zinc-950/50 p-3">
                 <p class="text-2xl font-semibold text-white">{{ Number(card.value || 0).toLocaleString() }}</p>
                 <p class="mt-1 text-xs leading-5 text-emerald-100/75">{{ card.label }}</p>
               </div>
             </div>
+            <p v-else class="mt-4 rounded-md border border-emerald-200/15 bg-zinc-950/50 p-3 text-sm text-emerald-50/75">
+              {{ communityMetricsLoaded ? t('home.communityProgressUnavailable') : t('common.loading') }}
+            </p>
           </div>
 
           <div class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
