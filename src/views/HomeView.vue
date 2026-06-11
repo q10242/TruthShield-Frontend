@@ -7,6 +7,7 @@ import { useI18n } from '../i18n'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
+const FIREFOX_ADDONS_URL = 'https://addons.mozilla.org/zh-TW/firefox/addon/truthshield-%E6%96%B0%E8%81%9E%E4%BF%A1%E8%AD%BD%E6%8F%90%E7%A4%BA/'
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
 const communityStats = ref(null)
@@ -180,6 +181,15 @@ const presenterLinks = computed(() => [
   { to: '/transparency', label: t('common.transparency'), description: t('home.presenterTransparencyDesc') },
 ])
 
+function shuffleEvents(events) {
+  const shuffled = [...events]
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1))
+    ;[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]]
+  }
+  return shuffled
+}
+
 function eventSummary(event) {
   const summary = String(event.summary || '').split('\n').find((line) => line.trim())
   return summary || eventShowcaseText.value.fallbackSummary
@@ -202,10 +212,10 @@ onMounted(async () => {
   trackPageView('home')
   const [statsPayload, eventsPayload] = await Promise.all([
     fetchCommunityTaskStats().catch(() => null),
-    fetchEvents({ per_page: 3, sort: 'updated' }).catch(() => null),
+    fetchEvents({ per_page: 18, sort: 'updated' }).catch(() => null),
   ])
   communityStats.value = statsPayload
-  featuredEvents.value = eventsPayload?.data || []
+  featuredEvents.value = shuffleEvents(eventsPayload?.data || []).slice(0, 3)
 })
 </script>
 
@@ -271,7 +281,8 @@ onMounted(async () => {
             <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/demo-news">
               {{ t('home.demoNewsCta') }}
             </RouterLink>
-            <RouterLink class="rounded-md border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-semibold text-amber-100 hover:border-amber-200" to="/extension-install">
+            <RouterLink class="inline-flex items-center gap-2 rounded-md border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-semibold text-amber-100 hover:border-amber-200" to="/extension-install">
+              <img class="h-5 w-5" src="/extension/icons/icon-32.png" alt="" />
               {{ t('home.installExtensionCta') }}
             </RouterLink>
           </div>
@@ -290,10 +301,27 @@ onMounted(async () => {
               <RouterLink class="rounded-md bg-amber-200 px-3 py-2 text-xs font-semibold text-zinc-950" to="/demo-news">
                 {{ t('home.demoNewsCta') }}
               </RouterLink>
-              <RouterLink class="rounded-md border border-amber-200/40 px-3 py-2 text-xs font-semibold text-amber-100" to="/extension-install">
-                {{ t('common.extensionInstall') }}
+              <RouterLink class="inline-flex items-center gap-2 rounded-md border border-amber-200/40 bg-zinc-950/30 px-3 py-2 text-xs font-semibold text-amber-100 hover:border-amber-200" to="/extension-install">
+                <span class="relative inline-flex h-5 w-5 shrink-0 overflow-hidden rounded-full bg-white">
+                  <span class="absolute inset-0 bg-[conic-gradient(#e43d30_0_33%,#f6c443_0_66%,#26a65b_0_83%,#e43d30_0)]"></span>
+                  <span class="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-blue-500"></span>
+                </span>
+                {{ t('home.installChromeCta') }}
               </RouterLink>
+              <a
+                class="inline-flex items-center gap-2 rounded-md border border-orange-200/40 bg-orange-400/10 px-3 py-2 text-xs font-semibold text-orange-100 hover:border-orange-200"
+                :href="FIREFOX_ADDONS_URL"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span class="relative inline-flex h-5 w-5 shrink-0 overflow-hidden rounded-full bg-purple-900">
+                  <span class="absolute inset-0 bg-[radial-gradient(circle_at_68%_62%,#4f46e5_0_25%,transparent_26%),conic-gradient(from_210deg,#ff7139,#ffb000,#ff7139,#a855f7,#4f46e5,#ff7139)]"></span>
+                  <span class="absolute bottom-0.5 left-0.5 right-0.5 top-1.5 rounded-full border-t border-orange-100/60 bg-orange-400/80"></span>
+                </span>
+                {{ t('home.installFirefoxCta') }}
+              </a>
             </div>
+            <p class="mt-3 text-xs leading-5 text-amber-50/70">{{ t('home.firefoxReviewNote') }}</p>
           </div>
 
           <div class="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
