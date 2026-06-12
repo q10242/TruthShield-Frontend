@@ -265,6 +265,12 @@ onMounted(async () => {
           >
             {{ link.label }}
           </RouterLink>
+          <RouterLink
+            class="rounded-md bg-emerald-300 px-3 py-2 text-sm font-semibold text-zinc-950 hover:bg-emerald-200"
+            to="/donate"
+          >
+            {{ t('common.donate') }}
+          </RouterLink>
           <div class="relative">
             <button
               class="flex items-center gap-1 rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-cyan-300/60 hover:text-cyan-100"
@@ -335,6 +341,9 @@ onMounted(async () => {
             <RouterLink class="inline-flex items-center gap-2 rounded-md border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-semibold text-amber-100 hover:border-amber-200" to="/extension-install">
               <img class="h-5 w-5" src="/extension/icons/icon-32.png" alt="" />
               {{ t('home.installExtensionCta') }}
+            </RouterLink>
+            <RouterLink class="rounded-md border border-emerald-300/50 bg-emerald-300/10 px-4 py-3 text-sm font-semibold text-emerald-100 hover:border-emerald-200" to="/donate">
+              {{ t('common.donate') }}
             </RouterLink>
           </div>
           <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-zinc-400">
