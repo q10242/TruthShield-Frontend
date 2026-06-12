@@ -52,7 +52,7 @@ import JournalistStatsDetailView from '../views/JournalistStatsDetailView.vue'
 const SITE_ORIGIN = 'https://truth-shield.otus.tw'
 const SITE_NAME = 'TruthShield 真相護盾'
 const DEFAULT_TITLE = SITE_NAME
-const DEFAULT_DESCRIPTION = 'TruthShield 真相護盾用社群證據、信用權重與透明治理，讓讀者在新聞頁旁查看可信度訊號、證據與投票結果。'
+const DEFAULT_DESCRIPTION = 'TruthShield 真相護盾免費提供新聞頁脈絡提示，用社群證據、信用權重與透明治理，讓讀者查看公開來源、標籤與投票結果。'
 const DEFAULT_IMAGE = `${SITE_ORIGIN}/brand/export/social-preview-1200x630.png`
 
 const routeMeta = {
@@ -70,7 +70,7 @@ const routeMeta = {
   },
   'extension-install': {
     title: `下載瀏覽器插件 - ${SITE_NAME}`,
-    description: '取得 TruthShield Chrome 與 Firefox 測試插件，把新聞脈絡提示放進日常閱讀流程。',
+    description: '免費取得 TruthShield Chrome、Firefox 與 Safari 原始包安裝說明，把新聞脈絡提示放進日常閱讀流程。',
   },
   mobile: {
     title: `手機快速查新聞 - ${SITE_NAME}`,
@@ -107,6 +107,14 @@ const routeMeta = {
   onboarding: {
     title: `新手導覽 - ${SITE_NAME}`,
     description: '用新手任務快速了解 TruthShield 插件、投票、證據、脈絡需求與事件脈絡。',
+  },
+  algorithm: {
+    title: `演算法說明 - ${SITE_NAME}`,
+    description: '用淺顯方式了解 TruthShield 如何處理投票權重、證據、72 小時定案與反濫用訊號。',
+  },
+  donate: {
+    title: `支持 TruthShield - ${SITE_NAME}`,
+    description: 'TruthShield 核心功能免費；捐款是自願支持伺服器、備份、插件測試、AI 輔助整理與公開維護。',
   },
 }
 
