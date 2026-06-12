@@ -37,7 +37,12 @@ const {
   userTitle,
   achievementCount,
   achievementTotal,
-  featuredAchievements,
+  selectableBadges,
+  selectedBadge,
+  selectedBadgeId,
+  selectedBadgeSaving,
+  selectedBadgeMessage,
+  selectedBadgeError,
   nextAchievement,
   snapshot,
   snapshotAlert,
@@ -48,6 +53,7 @@ const {
   advancedMode,
   relatedEvents,
   openLogin,
+  updateSelectedBadge,
   formatDateTime,
 } = vp
 
@@ -197,23 +203,39 @@ onMounted(async () => {
             {{ t('votePanel.openProfile') }}
           </a>
         </div>
-        <div v-if="featuredAchievements.length" class="mt-3 flex flex-wrap gap-2">
-          <span
-            v-for="achievement in featuredAchievements"
-            :key="achievement.slug"
-            class="rounded-full px-2.5 py-1 text-[11px] font-semibold text-zinc-950"
-            :style="{ backgroundColor: achievement.color || '#67e8f9' }"
-          >
-            {{ achievement.name }}
-          </span>
-        </div>
-        <div v-else-if="nextAchievement" class="mt-3 rounded border border-white/10 bg-zinc-950/60 p-2">
-          <div class="flex items-center justify-between gap-3 text-[11px]">
-            <span class="font-semibold text-zinc-300">{{ t('votePanel.nextBadge', { name: nextAchievement.name }) }}</span>
-            <span class="text-zinc-500">{{ nextAchievement.current }} / {{ nextAchievement.target }}</span>
+        <div class="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
+          <div class="rounded-md border border-white/10 bg-zinc-950/60 p-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[11px] font-semibold text-zinc-500">{{ panelZh ? '展示徽章' : 'Display badge' }}</span>
+              <span
+                v-if="selectedBadge"
+                class="rounded-full px-2.5 py-1 text-[11px] font-semibold text-zinc-950"
+                :style="{ backgroundColor: selectedBadge.color || '#67e8f9' }"
+              >
+                {{ selectedBadge.name }}
+              </span>
+            </div>
+            <select
+              v-if="selectableBadges.length"
+              v-model="selectedBadgeId"
+              class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-2 py-2 text-xs text-white outline-none focus:border-cyan-300"
+              :disabled="selectedBadgeSaving"
+              @change="updateSelectedBadge"
+            >
+              <option value="">{{ panelZh ? '不顯示徽章' : 'No display badge' }}</option>
+              <option v-for="badge in selectableBadges" :key="badge.id" :value="String(badge.id)">{{ badge.name }}</option>
+            </select>
+            <p v-if="selectedBadgeMessage" class="mt-2 text-[11px] text-emerald-200">{{ selectedBadgeMessage }}</p>
+            <p v-if="selectedBadgeError" class="mt-2 text-[11px] text-red-200">{{ selectedBadgeError }}</p>
           </div>
-          <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-            <div class="h-full rounded-full" :style="{ width: `${nextAchievement.percentage}%`, backgroundColor: nextAchievement.color || '#67e8f9' }"></div>
+          <div v-if="nextAchievement" class="rounded-md border border-white/10 bg-zinc-950/60 p-3">
+            <div class="flex items-center justify-between gap-3 text-[11px]">
+              <span class="font-semibold text-zinc-300">{{ t('votePanel.nextBadge', { name: nextAchievement.name }) }}</span>
+              <span class="text-zinc-500">{{ nextAchievement.current }} / {{ nextAchievement.target }}</span>
+            </div>
+            <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div class="h-full rounded-full" :style="{ width: `${nextAchievement.percentage}%`, backgroundColor: nextAchievement.color || '#67e8f9' }"></div>
+            </div>
           </div>
         </div>
       </div>

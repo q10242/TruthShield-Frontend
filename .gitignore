@@ -12,6 +12,7 @@ dist
 dist-ssr
 public/truthshield-extension*.zip
 public/truthshield-firefox-extension*.zip
+public/truthshield-safari-extension-source*.zip
 .env
 .env.*
 !.env.example

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { fetchCommunityTaskStats, fetchEvents, fetchPublicCommunityMetrics } from '../lib/api'
+import { fetchCommunityTaskStats, fetchDonationConfig, fetchDonationSummary, fetchEvents, fetchPublicCommunityMetrics } from '../lib/api'
 import { trackPageView } from '../lib/traffic'
 import { useI18n } from '../i18n'
 
@@ -15,6 +15,8 @@ const communityStats = ref(null)
 const communityMetrics = ref(null)
 const communityMetricsLoaded = ref(false)
 const featuredEvents = ref([])
+const donationSummary = ref(null)
+const donationPurposes = ref([])
 const homeNavOpen = ref(false)
 const { t, locale } = useI18n()
 const zh = computed(() => locale.value !== 'en')
@@ -194,6 +196,32 @@ const communityProgressCards = computed(() => [
   { value: communityMetrics.value?.content_totals?.evidence ?? 0, label: t('home.communityProgressEvidence') },
 ])
 
+const supportGoal = computed(() => {
+  const purposes = donationPurposes.value.length ? donationPurposes.value : [
+    {
+      key: 'operations_ai',
+      label: zh.value ? '伺服器與 AI 營運' : 'Server and AI operations',
+      label_en: 'Server and AI operations',
+      description: zh.value ? '含金流手續費；達標代表這期營運有社群支持。' : 'Includes payment processing fees; reaching the goal means this round is community-supported.',
+      description_en: 'Includes payment processing fees; reaching the goal means this round is community-supported.',
+      target_amount: 8000,
+      period: 'monthly',
+    },
+  ]
+  const purpose = purposes.find((item) => item.key === 'operations_ai') || purposes[0]
+  const row = (donationSummary.value?.purpose_breakdown || []).find((item) => item.purpose === purpose.key) || {}
+  const current = purpose.period === 'monthly' ? Number(row.month_amount || 0) : Number(row.amount || 0)
+  const target = Number(purpose.target_amount || 0)
+
+  return {
+    label: zh.value ? purpose.label : (purpose.label_en || purpose.label),
+    description: zh.value ? purpose.description : (purpose.description_en || purpose.description),
+    current,
+    target,
+    progress: target ? Math.min(100, Math.round((current / target) * 100)) : 0,
+  }
+})
+
 const presenterLinks = computed(() => [
   { to: '/demo-news', label: t('common.demoNews'), description: t('home.presenterDemoDesc') },
   { to: '/user-guide', label: t('common.userGuide'), description: t('home.presenterGuideDesc') },
@@ -233,15 +261,19 @@ function closeHomeNav() {
 
 onMounted(async () => {
   trackPageView('home')
-  const [statsPayload, metricsPayload, eventsPayload] = await Promise.all([
+  const [statsPayload, metricsPayload, eventsPayload, donationConfigPayload, donationSummaryPayload] = await Promise.all([
     fetchCommunityTaskStats().catch(() => null),
     fetchPublicCommunityMetrics().catch(() => null),
     fetchEvents({ per_page: 18, sort: 'updated' }).catch(() => null),
+    fetchDonationConfig().catch(() => null),
+    fetchDonationSummary().catch(() => null),
   ])
   communityStats.value = statsPayload
   communityMetrics.value = metricsPayload
   communityMetricsLoaded.value = true
   featuredEvents.value = shuffleEvents(eventsPayload?.data || []).slice(0, 3)
+  donationPurposes.value = donationConfigPayload?.purposes || []
+  donationSummary.value = donationSummaryPayload
 })
 </script>
 
@@ -414,6 +446,18 @@ onMounted(async () => {
               <RouterLink class="rounded-md border border-cyan-300/40 px-3 py-2 text-xs font-semibold text-cyan-100 hover:border-cyan-200" to="/donate">
                 {{ t('home.supportPromptCta') }}
               </RouterLink>
+            </div>
+            <div class="mt-4 rounded-md border border-cyan-300/15 bg-zinc-950/50 p-3">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p class="text-sm font-semibold text-white">{{ supportGoal.label }}</p>
+                  <p class="mt-1 text-xs leading-5 text-zinc-500">{{ supportGoal.description }}</p>
+                </div>
+                <span class="text-xs font-semibold text-cyan-100">NT$ {{ Number(supportGoal.current || 0).toLocaleString() }} / {{ Number(supportGoal.target || 0).toLocaleString() }}</span>
+              </div>
+              <div class="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                <div class="h-full rounded-full bg-cyan-300" :style="{ width: `${supportGoal.progress}%` }"></div>
+              </div>
             </div>
           </div>
 

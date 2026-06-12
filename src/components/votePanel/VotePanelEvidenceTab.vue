@@ -105,6 +105,24 @@ const vp = inject('votePanel')
         <span class="ml-auto text-[11px] text-zinc-500">{{ vp.t('evidence.netHelpfulWeight') }} {{ Number(item.net_helpful_weight).toFixed(2) }}</span>
       </div>
 
+      <div v-if="item.author?.name" class="flex flex-wrap items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-zinc-200">
+          {{ String(item.author.name || '?').slice(0, 1).toUpperCase() }}
+        </span>
+        <div class="min-w-0">
+          <p class="truncate text-xs font-semibold text-zinc-200">{{ item.author.name }}</p>
+          <p class="text-[11px] text-zinc-500">{{ vp.t('profile.weight') }} {{ Number(item.author.trust_score || 0).toFixed(2) }}</p>
+        </div>
+        <span v-if="item.author.identity_label" class="rounded bg-white/10 px-2 py-1 text-[11px] text-zinc-300">{{ item.author.identity_label }}</span>
+        <span
+          v-if="item.author.selected_badge"
+          class="ml-auto rounded-full px-2.5 py-1 text-[11px] font-semibold text-zinc-950"
+          :style="{ backgroundColor: item.author.selected_badge.color || '#67e8f9' }"
+        >
+          {{ item.author.selected_badge.name }}
+        </span>
+      </div>
+
       <img v-if="vp.evidencePreviewUrl(item)" :src="vp.evidencePreviewUrl(item)" alt="" class="max-h-36 w-full rounded-md border border-white/10 object-cover" />
 
       <p class="text-sm leading-5 text-zinc-200">{{ item.evidence_note || vp.t('evidence.noNote') }}</p>

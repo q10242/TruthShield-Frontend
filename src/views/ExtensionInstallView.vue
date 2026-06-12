@@ -17,6 +17,7 @@ const extensionVersion = ref('0.1.0')
 const loading = ref(true)
 const copiedChromeUrl = ref(false)
 const copiedFirefoxUrl = ref(false)
+const copiedSafariCommand = ref(false)
 const zipGeneratedAt = new Date(import.meta.env.VITE_BUILD_TIME || document.lastModified || Date.now()).toLocaleString()
 
 const installSteps = computed(() => [
@@ -68,6 +69,13 @@ const firefoxGuide = computed(() => [
   t('extensionInstall.firefoxGuide2'),
   t('extensionInstall.firefoxGuide3'),
   t('extensionInstall.firefoxGuide4'),
+])
+
+const safariGuide = computed(() => [
+  t('extensionInstall.safariGuide1'),
+  t('extensionInstall.safariGuide2'),
+  t('extensionInstall.safariGuide3'),
+  t('extensionInstall.safariGuide4'),
 ])
 
 const githubLinks = computed(() => [
@@ -122,6 +130,10 @@ function trackFirefoxDownload() {
   trackEvent('firefox_extension_zip_download', { feature: 'extension_download' })
 }
 
+function trackSafariDownload() {
+  trackEvent('safari_extension_source_download', { feature: 'extension_download' })
+}
+
 function trackStoreClick() {
   trackEvent('chrome_web_store_click', { feature: 'extension_install' })
 }
@@ -153,6 +165,19 @@ async function copyFirefoxDebuggingUrl() {
   trackEvent('firefox_debugging_url_copy', { feature: 'extension_install' })
   window.setTimeout(() => {
     copiedFirefoxUrl.value = false
+  }, 2400)
+}
+
+async function copySafariPackageCommand() {
+  try {
+    await navigator.clipboard?.writeText('npm run package:extension:safari')
+  } catch {
+    // Clipboard access can be unavailable in embedded browsers or strict test contexts.
+  }
+  copiedSafariCommand.value = true
+  trackEvent('safari_package_command_copy', { feature: 'extension_install' })
+  window.setTimeout(() => {
+    copiedSafariCommand.value = false
   }, 2400)
 }
 </script>
@@ -221,6 +246,9 @@ async function copyFirefoxDebuggingUrl() {
             <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="/truthshield-firefox-extension.zip" download @click="trackFirefoxDownload">
               {{ t('extensionInstall.downloadFirefoxZip') }}
             </a>
+            <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="/truthshield-safari-extension-source.zip" download @click="trackSafariDownload">
+              {{ t('extensionInstall.downloadSafariSourceZip') }}
+            </a>
             <button class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" type="button" @click="copyChromeExtensionsUrl">
               {{ t('extensionInstall.openChromeExtensions') }}
             </button>
@@ -275,6 +303,7 @@ async function copyFirefoxDebuggingUrl() {
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">Firefox Add-ons</code>
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">/truthshield-extension.zip</code>
           <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">/truthshield-firefox-extension.zip</code>
+          <code class="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-cyan-100">/truthshield-safari-extension-source.zip</code>
         </div>
       </section>
 
@@ -318,6 +347,27 @@ async function copyFirefoxDebuggingUrl() {
             </button>
           </div>
           <p class="mt-3 text-xs leading-5 text-zinc-500">{{ copiedFirefoxUrl ? t('extensionInstall.firefoxDebuggingCopied') : t('extensionInstall.firefoxUnsignedNote') }}</p>
+        </article>
+
+        <article class="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <h2 class="text-lg font-semibold text-white">{{ t('extensionInstall.safariGuideTitle') }}</h2>
+          <p class="mt-2 text-sm leading-6 text-zinc-400">{{ t('extensionInstall.safariGuideIntro') }}</p>
+          <ol class="mt-4 space-y-3 text-sm leading-6 text-zinc-400">
+            <li v-for="step in safariGuide" :key="step">{{ step }}</li>
+          </ol>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <a class="inline-flex rounded-md border border-cyan-300/30 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10" href="/truthshield-safari-extension-source.zip" download @click="trackSafariDownload">
+              {{ t('extensionInstall.downloadSafariSourceZip') }}
+            </a>
+            <button class="inline-flex rounded-md border border-cyan-300/30 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10" type="button" @click="copySafariPackageCommand">
+              {{ t('extensionInstall.copySafariCommand') }}
+            </button>
+          </div>
+          <p class="mt-3 text-xs leading-5 text-zinc-500">{{ copiedSafariCommand ? t('extensionInstall.safariCommandCopied') : t('extensionInstall.safariUnsignedNote') }}</p>
+          <div class="mt-4 rounded-md border border-amber-300/25 bg-amber-300/[0.07] p-3 text-xs leading-5 text-amber-50/80">
+            <p class="font-semibold text-amber-100">{{ t('extensionInstall.safariNotListedTitle') }}</p>
+            <p class="mt-1">{{ t('extensionInstall.safariNotListedDesc') }}</p>
+          </div>
         </article>
 
         <article class="rounded-lg border border-white/10 bg-white/[0.03] p-5">

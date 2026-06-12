@@ -18,6 +18,7 @@ import {
   fetchEventTimeline,
   fetchEventGraph,
   fetchProfile,
+  updateProfile,
   recordReadSession,
   recordNewsSnapshot,
   reactToEvidence,
@@ -104,6 +105,10 @@ export function useVotePanel(route) {
   const officialResponseMessage = ref('')
   const officialResponseError = ref('')
   const profile = ref(null)
+  const selectedBadgeId = ref('')
+  const selectedBadgeSaving = ref(false)
+  const selectedBadgeMessage = ref('')
+  const selectedBadgeError = ref('')
   const reportReasons = ref([])
   const selectedTagId = ref('')
   const selectedSecondaryTagIds = ref([])
@@ -252,6 +257,8 @@ export function useVotePanel(route) {
   const approvedClaimants = computed(() => (profile.value?.verified_claimants || []).filter((claim) => claim.status === 'approved'))
   const unlockedAchievements = computed(() => (profile.value?.achievements || []).filter((achievement) => achievement.unlocked))
   const featuredAchievements = computed(() => unlockedAchievements.value.slice(0, 3))
+  const selectableBadges = computed(() => profile.value?.badges || [])
+  const selectedBadge = computed(() => profile.value?.selected_badge || user.value?.selected_badge || null)
   const nextAchievement = computed(() => (profile.value?.achievements || []).find((achievement) => !achievement.unlocked) || null)
   const userDisplayName = computed(() => user.value?.display_name || user.value?.name || user.value?.email || '')
   const userTitle = computed(() => profile.value?.title?.name || t('profile.observer'))
@@ -512,6 +519,35 @@ export function useVotePanel(route) {
     }
 
     profile.value = await fetchProfile(token.value).catch(() => null)
+    selectedBadgeId.value = profile.value?.selected_badge?.id ? String(profile.value.selected_badge.id) : ''
+  }
+
+  async function updateSelectedBadge() {
+    if (!token.value || !profile.value?.user) return
+
+    selectedBadgeSaving.value = true
+    selectedBadgeMessage.value = ''
+    selectedBadgeError.value = ''
+
+    try {
+      const payload = await updateProfile(token.value, {
+        display_name: profile.value.user.display_name || profile.value.user.name || user.value?.display_name || user.value?.name || '',
+        is_real_name_public: Boolean(profile.value.user.is_real_name_public),
+        profile_bio: profile.value.user.profile_bio || '',
+        selected_badge_id: selectedBadgeId.value ? Number(selectedBadgeId.value) : null,
+        email_preferences: profile.value.email_preferences || {},
+      })
+      profile.value.user = payload.user
+      profile.value.selected_badge = payload.selected_badge
+      user.value = { ...user.value, ...payload.user, selected_badge: payload.selected_badge }
+      localStorage.setItem(USER_KEY, JSON.stringify(user.value))
+      selectedBadgeMessage.value = locale.value === 'en' ? 'Badge updated.' : '展示徽章已更新。'
+    } catch (err) {
+      selectedBadgeError.value = err.message || (locale.value === 'en' ? 'Failed to update badge.' : '徽章更新失敗。')
+    } finally {
+      selectedBadgeSaving.value = false
+      notifyHeight()
+    }
   }
 
   function requestAuthFromParent() {
@@ -1412,7 +1448,7 @@ export function useVotePanel(route) {
     }
   })
 
-  watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, evidenceUploading, evidenceUploadMessage, voteError, voteMessage, achievementToastMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, reactionSummary, reactionLoading, reactionError, reactionMessage, selectedFeelings, selectedNeeds], notifyHeight)
+  watch([collapsed, activeTab, selectedTagId, selectedSecondaryTagIds, evidenceUrl, evidenceNote, evidenceUploading, evidenceUploadMessage, voteError, voteMessage, achievementToastMessage, evidenceError, reportMessage, changeReportMessage, officialResponseMessage, officialResponseError, officialResponseText, selectedBadgeMessage, selectedBadgeError, reactionSummary, reactionLoading, reactionError, reactionMessage, selectedFeelings, selectedNeeds], notifyHeight)
 
   onMounted(async () => {
     trackEvent('vote_panel_open', { source: 'extension', feature: 'vote_panel', url: newsUrl.value })
@@ -1498,6 +1534,10 @@ export function useVotePanel(route) {
     officialResponseMessage,
     officialResponseError,
     profile,
+    selectedBadgeId,
+    selectedBadgeSaving,
+    selectedBadgeMessage,
+    selectedBadgeError,
     reportReasons,
     selectedTagId,
     selectedSecondaryTagIds,
@@ -1547,6 +1587,8 @@ export function useVotePanel(route) {
     approvedClaimants,
     unlockedAchievements,
     featuredAchievements,
+    selectableBadges,
+    selectedBadge,
     nextAchievement,
     userDisplayName,
     userTitle,
@@ -1577,6 +1619,7 @@ export function useVotePanel(route) {
     // functions
     formatDateTime,
     loadAuth,
+    updateSelectedBadge,
     syncReadSession,
     syncSnapshot,
     startReadTracking,

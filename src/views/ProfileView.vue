@@ -14,7 +14,7 @@ const loading = ref(false)
 const exportMessage = ref('')
 const profileMessage = ref('')
 const claimantMessage = ref('')
-const profileForm = ref({ display_name: '', is_real_name_public: false, profile_bio: '', email_preferences: {} })
+const profileForm = ref({ display_name: '', is_real_name_public: false, profile_bio: '', selected_badge_id: '', email_preferences: {} })
 const claimantForm = ref({ claim_type: 'subject', domain: '', proof_url: '', statement: '' })
 const { t } = useI18n()
 
@@ -68,6 +68,7 @@ async function loadProfile() {
       display_name: profile.value.user.display_name || profile.value.user.name || '',
       is_real_name_public: Boolean(profile.value.user.is_real_name_public),
       profile_bio: profile.value.user.profile_bio || '',
+      selected_badge_id: profile.value.selected_badge?.id || profile.value.user.selected_badge_id || '',
       email_preferences: { ...(profile.value.email_preferences || {}) },
     }
   } finally {
@@ -79,6 +80,7 @@ async function saveProfile() {
   profileMessage.value = ''
   const payload = await updateProfile(token.value, profileForm.value)
   profile.value.user = payload.user
+  profile.value.selected_badge = payload.selected_badge
   localStorage.setItem(USER_KEY, JSON.stringify(payload.user))
   profileMessage.value = t('profile.profileSaved')
 }
@@ -183,6 +185,16 @@ onMounted(async () => {
             <label class="block text-xs text-zinc-400 md:col-span-2">
               {{ t('profile.profileBio') }}
               <textarea v-model="profileForm.profile_bio" rows="3" class="mt-2 w-full resize-none rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"></textarea>
+            </label>
+            <label class="block text-xs text-zinc-400 md:col-span-2">
+              {{ t('profile.badgeWall') }}
+              <select v-model="profileForm.selected_badge_id" class="mt-2 w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300">
+                <option value="">{{ t('profile.badgeHint') }}</option>
+                <option v-for="badge in profile.badges" :key="badge.id" :value="badge.id">{{ badge.name }}</option>
+              </select>
+              <span v-if="profile.selected_badge" class="mt-2 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold text-zinc-950" :style="{ backgroundColor: profile.selected_badge.color || '#67e8f9' }">
+                {{ profile.selected_badge.name }}
+              </span>
             </label>
           </div>
           <button class="mt-4 rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950" @click="saveProfile">{{ t('profile.saveProfile') }}</button>

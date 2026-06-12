@@ -6,16 +6,30 @@ import { spawnSync } from 'node:child_process'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const extensionDir = resolve(root, 'public', 'extension')
 const outputDir = resolve(root, 'dist')
-const packageDir = resolve(outputDir, 'safari-extension-package')
-const safariProjectRoot = resolve(outputDir, 'safari')
-const appName = process.env.TRUTHSHIELD_SAFARI_APP_NAME || 'TruthShield Safari'
-const bundleIdentifier = process.env.TRUTHSHIELD_SAFARI_BUNDLE_ID || 'tw.otus.truthshield.safari'
+const packageDir = resolve(outputDir, 'safari-extension-source')
+const manifest = JSON.parse(readFileSync(resolve(extensionDir, 'manifest.json'), 'utf8'))
+const version = manifest.version
+const outputFile = resolve(outputDir, `truthshield-safari-extension-source-v${version}.zip`)
+const outputLatestFile = resolve(outputDir, 'truthshield-safari-extension-source.zip')
+const publicOutputFile = resolve(root, 'public', 'truthshield-safari-extension-source.zip')
+const publicVersionedOutputFile = resolve(root, 'public', `truthshield-safari-extension-source-v${version}.zip`)
 const webOrigin = process.env.TRUTHSHIELD_EXTENSION_WEB_ORIGIN || process.env.VITE_WEB_ORIGIN || ''
 const apiOrigin = process.env.TRUTHSHIELD_EXTENSION_API_ORIGIN || process.env.VITE_API_BASE_URL || ''
 
 mkdirSync(outputDir, { recursive: true })
 rmSync(packageDir, { recursive: true, force: true })
-rmSync(safariProjectRoot, { recursive: true, force: true })
+rmSync(outputFile, { force: true })
+rmSync(outputLatestFile, { force: true })
+rmSync(publicOutputFile, { force: true })
+rmSync(publicVersionedOutputFile, { force: true })
+
+for (const dir of [outputDir, resolve(root, 'public')]) {
+  for (const entry of readdirSync(dir)) {
+    if (/^truthshield-safari-extension-source-v.+\.zip$/.test(entry)) {
+      rmSync(resolve(dir, entry), { force: true })
+    }
+  }
+}
 
 cpSync(extensionDir, packageDir, { recursive: true })
 
@@ -58,45 +72,29 @@ replaceInPackage('content.js', [
   ["  '127.0.0.1',\n  'localhost',\n", ''],
 ])
 
-const check = spawnSync('node', ['scripts/check-extension-release.mjs', 'dist/safari-extension-package'], {
+const check = spawnSync('node', ['scripts/check-extension-release.mjs', 'dist/safari-extension-source'], {
   cwd: root,
   stdio: 'inherit',
 })
 
 if (check.status !== 0) {
-  throw new Error('Safari extension release check failed.')
+  throw new Error('Safari source extension release check failed.')
 }
 
-const sourcePackage = spawnSync('node', ['scripts/package-extension-safari-source.mjs'], {
-  cwd: root,
-  stdio: 'inherit',
-})
-
-if (sourcePackage.status !== 0) {
-  throw new Error('Safari source package failed.')
-}
-
-const result = spawnSync('xcrun', [
-  'safari-web-extension-converter',
-  packageDir,
-  '--project-location',
-  safariProjectRoot,
-  '--app-name',
-  appName,
-  '--bundle-identifier',
-  bundleIdentifier,
-  '--swift',
-  '--copy-resources',
-  '--no-open',
-  '--no-prompt',
-  '--force',
-], {
-  cwd: root,
+const result = spawnSync('zip', ['-r', outputFile, '.'], {
+  cwd: packageDir,
   stdio: 'inherit',
 })
 
 if (result.status !== 0) {
-  throw new Error('Safari Web Extension packaging failed. Install/update Xcode and try again.')
+  throw new Error('zip command failed; install zip or package dist/safari-extension-source manually.')
 }
 
-console.log(resolve(safariProjectRoot, appName, `${appName}.xcodeproj`))
+cpSync(outputFile, outputLatestFile)
+cpSync(outputFile, publicOutputFile)
+cpSync(outputFile, publicVersionedOutputFile)
+console.log(packageDir)
+console.log(outputFile)
+console.log(outputLatestFile)
+console.log(publicOutputFile)
+console.log(publicVersionedOutputFile)
