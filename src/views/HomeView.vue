@@ -85,6 +85,9 @@ const navGroups = computed(() => [
   { title: t('home.opsGroup'), links: secondaryLinks.value.slice(6) },
 ])
 
+const chromeLogoClass = 'relative inline-flex h-5 w-5 shrink-0 overflow-hidden rounded-full bg-white'
+const safariLogoClass = 'relative inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full border border-sky-100/80 bg-[radial-gradient(circle_at_center,#f8fafc_0_33%,#38bdf8_34%_100%)] text-[9px] font-bold text-sky-950'
+
 const missionStats = computed(() => [
   { value: '72h', label: t('home.missionStatWindow'), description: t('home.missionStatWindowDesc') },
   { value: t('home.missionStatOnePersonValue'), label: t('home.missionStatOnePerson'), description: t('home.missionStatOnePersonDesc') },
@@ -378,14 +381,22 @@ onMounted(async () => {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <img class="h-5 w-5" src="/extension/icons/icon-32.png" alt="" />
+              <span :class="chromeLogoClass" aria-hidden="true">
+                <span class="absolute inset-0 bg-[conic-gradient(#e43d30_0_33%,#f6c443_0_66%,#26a65b_0_83%,#e43d30_0)]"></span>
+                <span class="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-blue-500"></span>
+              </span>
               {{ t('home.installChromeCta') }}
             </a>
             <a
-              class="rounded-md border border-sky-300/40 bg-sky-300/10 px-4 py-3 text-sm font-semibold text-sky-100 hover:border-sky-200"
+              class="inline-flex items-center gap-2 rounded-md border border-sky-300/40 bg-sky-300/10 px-4 py-3 text-sm font-semibold text-sky-100 hover:border-sky-200"
               :href="SAFARI_SOURCE_ZIP_URL"
               download
             >
+              <span :class="safariLogoClass" aria-hidden="true">
+                <span class="absolute h-3.5 w-0.5 rotate-45 rounded-full bg-red-500"></span>
+                <span class="absolute h-3.5 w-0.5 -rotate-45 rounded-full bg-sky-700"></span>
+                <span class="relative h-1.5 w-1.5 rounded-full bg-white"></span>
+              </span>
               {{ t('home.installSafariCta') }}
             </a>
             <RouterLink class="rounded-md border border-emerald-300/50 bg-emerald-300/10 px-4 py-3 text-sm font-semibold text-emerald-100 hover:border-emerald-200" to="/donate">
@@ -413,7 +424,7 @@ onMounted(async () => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span class="relative inline-flex h-5 w-5 shrink-0 overflow-hidden rounded-full bg-white">
+                <span :class="chromeLogoClass" aria-hidden="true">
                   <span class="absolute inset-0 bg-[conic-gradient(#e43d30_0_33%,#f6c443_0_66%,#26a65b_0_83%,#e43d30_0)]"></span>
                   <span class="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-blue-500"></span>
                 </span>
@@ -436,7 +447,11 @@ onMounted(async () => {
                 :href="SAFARI_SOURCE_ZIP_URL"
                 download
               >
-                <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white text-[11px] font-bold text-zinc-950">S</span>
+                <span :class="safariLogoClass" aria-hidden="true">
+                  <span class="absolute h-3.5 w-0.5 rotate-45 rounded-full bg-red-500"></span>
+                  <span class="absolute h-3.5 w-0.5 -rotate-45 rounded-full bg-sky-700"></span>
+                  <span class="relative h-1.5 w-1.5 rounded-full bg-white"></span>
+                </span>
                 {{ t('home.installSafariCta') }}
               </a>
               <RouterLink class="rounded-md border border-amber-200/30 px-3 py-2 text-xs font-semibold text-amber-100 hover:border-amber-200" to="/extension-install">
