@@ -7,7 +7,9 @@ import { useI18n } from '../i18n'
 
 const TOKEN_KEY = 'truthshield_api_token'
 const USER_KEY = 'truthshield_user'
+const CHROME_WEB_STORE_URL = 'https://chromewebstore.google.com/detail/truthshield/liobfmdknkkpbpogdfefmglpgcijmkfk'
 const FIREFOX_ADDONS_URL = 'https://addons.mozilla.org/zh-TW/firefox/addon/truthshield-%E6%96%B0%E8%81%9E%E4%BF%A1%E8%AD%BD%E6%8F%90%E7%A4%BA/'
+const SAFARI_SOURCE_ZIP_URL = '/truthshield-safari-extension-source.zip'
 const FACEBOOK_PAGE_URL = 'https://www.facebook.com/profile.php?id=61590569198089'
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
@@ -370,10 +372,22 @@ onMounted(async () => {
             <RouterLink class="rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-cyan-200" to="/demo-news">
               {{ t('home.demoNewsCta') }}
             </RouterLink>
-            <RouterLink class="inline-flex items-center gap-2 rounded-md border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-semibold text-amber-100 hover:border-amber-200" to="/extension-install">
+            <a
+              class="inline-flex items-center gap-2 rounded-md border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-semibold text-amber-100 hover:border-amber-200"
+              :href="CHROME_WEB_STORE_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <img class="h-5 w-5" src="/extension/icons/icon-32.png" alt="" />
-              {{ t('home.installExtensionCta') }}
-            </RouterLink>
+              {{ t('home.installChromeCta') }}
+            </a>
+            <a
+              class="rounded-md border border-sky-300/40 bg-sky-300/10 px-4 py-3 text-sm font-semibold text-sky-100 hover:border-sky-200"
+              :href="SAFARI_SOURCE_ZIP_URL"
+              download
+            >
+              {{ t('home.installSafariCta') }}
+            </a>
             <RouterLink class="rounded-md border border-emerald-300/50 bg-emerald-300/10 px-4 py-3 text-sm font-semibold text-emerald-100 hover:border-emerald-200" to="/donate">
               {{ t('common.donate') }}
             </RouterLink>
@@ -393,13 +407,18 @@ onMounted(async () => {
               <RouterLink class="rounded-md bg-amber-200 px-3 py-2 text-xs font-semibold text-zinc-950" to="/demo-news">
                 {{ t('home.demoNewsCta') }}
               </RouterLink>
-              <RouterLink class="inline-flex items-center gap-2 rounded-md border border-amber-200/40 bg-zinc-950/30 px-3 py-2 text-xs font-semibold text-amber-100 hover:border-amber-200" to="/extension-install">
+              <a
+                class="inline-flex items-center gap-2 rounded-md border border-amber-200/40 bg-zinc-950/30 px-3 py-2 text-xs font-semibold text-amber-100 hover:border-amber-200"
+                :href="CHROME_WEB_STORE_URL"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <span class="relative inline-flex h-5 w-5 shrink-0 overflow-hidden rounded-full bg-white">
                   <span class="absolute inset-0 bg-[conic-gradient(#e43d30_0_33%,#f6c443_0_66%,#26a65b_0_83%,#e43d30_0)]"></span>
                   <span class="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-blue-500"></span>
                 </span>
                 {{ t('home.installChromeCta') }}
-              </RouterLink>
+              </a>
               <a
                 class="inline-flex items-center gap-2 rounded-md border border-orange-200/40 bg-orange-400/10 px-3 py-2 text-xs font-semibold text-orange-100 hover:border-orange-200"
                 :href="FIREFOX_ADDONS_URL"
@@ -412,8 +431,19 @@ onMounted(async () => {
                 </span>
                 {{ t('home.installFirefoxCta') }}
               </a>
+              <a
+                class="inline-flex items-center gap-2 rounded-md border border-sky-200/40 bg-sky-400/10 px-3 py-2 text-xs font-semibold text-sky-100 hover:border-sky-200"
+                :href="SAFARI_SOURCE_ZIP_URL"
+                download
+              >
+                <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white text-[11px] font-bold text-zinc-950">S</span>
+                {{ t('home.installSafariCta') }}
+              </a>
+              <RouterLink class="rounded-md border border-amber-200/30 px-3 py-2 text-xs font-semibold text-amber-100 hover:border-amber-200" to="/extension-install">
+                {{ t('home.installGuideCta') }}
+              </RouterLink>
             </div>
-            <p class="mt-3 text-xs leading-5 text-amber-50/70">{{ t('home.firefoxReviewNote') }}</p>
+            <p class="mt-3 text-xs leading-5 text-amber-50/70">{{ t('home.browserInstallNote') }}</p>
           </div>
 
           <div class="rounded-lg border border-emerald-300/25 bg-emerald-300/[0.07] p-4">
