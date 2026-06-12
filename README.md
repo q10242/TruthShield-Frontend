@@ -164,16 +164,25 @@ Package a Firefox review/test ZIP:
 npm run package:extension:firefox
 ```
 
+Generate a Safari Web Extension Xcode project for local QA or TestFlight/App Store preparation:
+
+```bash
+npm run package:extension:safari
+```
+
 Generated files:
 
 - `dist/truthshield-extension.zip`
 - `public/truthshield-extension.zip`
 - `dist/truthshield-firefox-extension.zip`
 - `public/truthshield-firefox-extension.zip`
+- `dist/safari/TruthShield Safari/TruthShield Safari.xcodeproj`
 
 The Chrome ZIP is hosted on the website as a fallback and testing artifact alongside the Chrome Web Store listing. Users can install it through Chrome developer mode using the guide at `/extension-install`.
 
 The Firefox ZIP is hosted for AMO review, temporary local testing, and version checks. Unsigned Firefox ZIP files are not a normal long-term install path; users should install the AMO-signed version once the AMO listing is live.
+
+Safari does not use the Chrome/Firefox ZIP install flow for normal users. The Safari target generates an Xcode project that packages the web extension in an app; public release requires Apple Developer Program access, App Store Connect, and Apple review. See `docs/safari-extension-checklist.md`.
 
 ## Evidence Upload
 

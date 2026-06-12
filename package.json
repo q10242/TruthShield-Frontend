@@ -13,6 +13,7 @@
     "package:extension:local": "node scripts/package-extension-local.mjs",
     "package:extension": "node scripts/package-extension.mjs",
     "package:extension:firefox": "node scripts/package-extension-firefox.mjs",
+    "package:extension:safari": "node scripts/package-extension-safari.mjs",
     "build:release": "npm run package:extension && npm run package:extension:firefox && npm run build"
   },
   "dependencies": {
