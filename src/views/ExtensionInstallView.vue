@@ -10,7 +10,6 @@ const { t } = useI18n()
 const PRODUCTION_WEB_ORIGIN = 'https://truth-shield.otus.tw'
 const PRODUCTION_API_ORIGIN = 'https://truth-shield-api.otus.tw'
 const CHROME_WEB_STORE_URL = 'https://chromewebstore.google.com/detail/truthshield/liobfmdknkkpbpogdfefmglpgcijmkfk'
-const FIREFOX_ADDONS_URL = 'https://addons.mozilla.org/zh-TW/firefox/addon/truthshield-%E6%96%B0%E8%81%9E%E4%BF%A1%E8%AD%BD%E6%8F%90%E7%A4%BA/'
 const health = ref(null)
 const botConfig = ref(null)
 const extensionVersion = ref('0.1.0')
@@ -138,10 +137,6 @@ function trackStoreClick() {
   trackEvent('chrome_web_store_click', { feature: 'extension_install' })
 }
 
-function trackFirefoxStoreClick() {
-  trackEvent('firefox_addons_click', { feature: 'extension_install' })
-}
-
 async function copyChromeExtensionsUrl() {
   try {
     await navigator.clipboard?.writeText('chrome://extensions')
@@ -230,15 +225,6 @@ async function copySafariPackageCommand() {
               @click="trackStoreClick"
             >
               {{ t('extensionInstall.installStore') }}
-            </a>
-            <a
-              class="rounded-md bg-orange-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-orange-200"
-              :href="FIREFOX_ADDONS_URL"
-              target="_blank"
-              rel="noopener noreferrer"
-              @click="trackFirefoxStoreClick"
-            >
-              {{ t('extensionInstall.installFirefoxStore') }}
             </a>
             <a class="rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-cyan-300/60 hover:text-cyan-100" href="/truthshield-extension.zip" download @click="trackDownload">
               {{ t('extensionInstall.downloadZip') }}
