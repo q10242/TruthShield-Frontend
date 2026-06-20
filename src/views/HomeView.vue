@@ -387,6 +387,18 @@ onMounted(async () => {
               {{ t('home.installChromeCta') }}
             </a>
             <a
+              class="inline-flex items-center gap-2 rounded-md border border-orange-200/40 bg-orange-400/10 px-4 py-3 text-sm font-semibold text-orange-100 hover:border-orange-200"
+              href="https://addons.mozilla.org/zh-TW/firefox/addon/truthshield-%E6%96%B0%E8%81%9E%E4%BF%A1%E8%AD%BD%E6%8F%90%E7%A4%BA/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="relative inline-flex h-5 w-5 shrink-0 overflow-hidden rounded-full bg-purple-900">
+                <span class="absolute inset-0 bg-[radial-gradient(circle_at_68%_62%,#4f46e5_0_25%,transparent_26%),conic-gradient(from_210deg,#ff7139,#ffb000,#ff7139,#a855f7,#4f46e5,#ff7139)]"></span>
+                <span class="absolute bottom-0.5 left-0.5 right-0.5 top-1.5 rounded-full border-t border-orange-100/60 bg-orange-400/80"></span>
+              </span>
+              {{ t('home.installFirefoxCta') }}
+            </a>
+            <a
               class="inline-flex items-center gap-2 rounded-md border border-sky-300/40 bg-sky-300/10 px-4 py-3 text-sm font-semibold text-sky-100 hover:border-sky-200"
               :href="SAFARI_SOURCE_ZIP_URL"
               download
@@ -410,55 +422,6 @@ onMounted(async () => {
             <RouterLink class="hover:text-cyan-100" to="/evidence-library">{{ t('home.thirdCta') }}</RouterLink>
           </div>
 
-          <div class="rounded-lg border border-amber-300/30 bg-amber-300/10 p-4">
-            <p class="text-sm font-semibold text-amber-100">{{ t('home.extensionReviewTitle') }}</p>
-            <p class="mt-2 text-sm leading-6 text-amber-50/80">{{ t('home.extensionReviewDesc') }}</p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <RouterLink class="rounded-md bg-amber-200 px-3 py-2 text-xs font-semibold text-zinc-950" to="/demo-news">
-                {{ t('home.demoNewsCta') }}
-              </RouterLink>
-              <a
-                class="inline-flex items-center gap-2 rounded-md border border-amber-200/40 bg-zinc-950/30 px-3 py-2 text-xs font-semibold text-amber-100 hover:border-amber-200"
-                :href="CHROME_WEB_STORE_URL"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span :class="chromeLogoClass" aria-hidden="true">
-                  <span class="absolute inset-0 bg-[conic-gradient(#e43d30_0_33%,#f6c443_0_66%,#26a65b_0_83%,#e43d30_0)]"></span>
-                  <span class="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-blue-500"></span>
-                </span>
-                {{ t('home.installChromeCta') }}
-              </a>
-              <a
-                class="inline-flex items-center gap-2 rounded-md border border-orange-200/40 bg-orange-400/10 px-3 py-2 text-xs font-semibold text-orange-100 hover:border-orange-200"
-                href="https://addons.mozilla.org/zh-TW/firefox/addon/truthshield-%E6%96%B0%E8%81%9E%E4%BF%A1%E8%AD%BD%E6%8F%90%E7%A4%BA/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span class="relative inline-flex h-5 w-5 shrink-0 overflow-hidden rounded-full bg-purple-900">
-                  <span class="absolute inset-0 bg-[radial-gradient(circle_at_68%_62%,#4f46e5_0_25%,transparent_26%),conic-gradient(from_210deg,#ff7139,#ffb000,#ff7139,#a855f7,#4f46e5,#ff7139)]"></span>
-                  <span class="absolute bottom-0.5 left-0.5 right-0.5 top-1.5 rounded-full border-t border-orange-100/60 bg-orange-400/80"></span>
-                </span>
-                {{ t('home.installFirefoxCta') }}
-              </a>
-              <a
-                class="inline-flex items-center gap-2 rounded-md border border-sky-200/40 bg-sky-400/10 px-3 py-2 text-xs font-semibold text-sky-100 hover:border-sky-200"
-                :href="SAFARI_SOURCE_ZIP_URL"
-                download
-              >
-                <span :class="safariLogoClass" aria-hidden="true">
-                  <span class="absolute h-3.5 w-0.5 rotate-45 rounded-full bg-red-500"></span>
-                  <span class="absolute h-3.5 w-0.5 -rotate-45 rounded-full bg-sky-700"></span>
-                  <span class="relative h-1.5 w-1.5 rounded-full bg-white"></span>
-                </span>
-                {{ t('home.installSafariCta') }}
-              </a>
-              <RouterLink class="rounded-md border border-amber-200/30 px-3 py-2 text-xs font-semibold text-amber-100 hover:border-amber-200" to="/extension-install">
-                {{ t('home.installGuideCta') }}
-              </RouterLink>
-            </div>
-            <p class="mt-3 text-xs leading-5 text-amber-50/70">{{ t('home.browserInstallNote') }}</p>
-          </div>
 
           <div class="rounded-lg border border-emerald-300/25 bg-emerald-300/[0.07] p-4">
             <div class="flex flex-wrap items-start justify-between gap-4">
