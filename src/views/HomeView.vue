@@ -429,16 +429,18 @@ onMounted(async () => {
                 </span>
                 {{ t('home.installChromeCta') }}
               </a>
-              <RouterLink
+              <a
                 class="inline-flex items-center gap-2 rounded-md border border-orange-200/40 bg-orange-400/10 px-3 py-2 text-xs font-semibold text-orange-100 hover:border-orange-200"
-                to="/extension-install"
+                href="https://addons.mozilla.org/zh-TW/firefox/addon/truthshield-%E6%96%B0%E8%81%9E%E4%BF%A1%E8%AD%BD%E6%8F%90%E7%A4%BA/"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <span class="relative inline-flex h-5 w-5 shrink-0 overflow-hidden rounded-full bg-purple-900">
                   <span class="absolute inset-0 bg-[radial-gradient(circle_at_68%_62%,#4f46e5_0_25%,transparent_26%),conic-gradient(from_210deg,#ff7139,#ffb000,#ff7139,#a855f7,#4f46e5,#ff7139)]"></span>
                   <span class="absolute bottom-0.5 left-0.5 right-0.5 top-1.5 rounded-full border-t border-orange-100/60 bg-orange-400/80"></span>
                 </span>
                 {{ t('home.installFirefoxCta') }}
-              </RouterLink>
+              </a>
               <a
                 class="inline-flex items-center gap-2 rounded-md border border-sky-200/40 bg-sky-400/10 px-3 py-2 text-xs font-semibold text-sky-100 hover:border-sky-200"
                 :href="SAFARI_SOURCE_ZIP_URL"
