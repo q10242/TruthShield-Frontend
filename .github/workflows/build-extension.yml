@@ -1,0 +1,33 @@
+name: Build Browser Extensions
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Package extensions
+        run: npm run build:release
+        env:
+          VITE_API_BASE_URL: https://truth-shield-api.otus.tw
+          VITE_WEB_ORIGIN: https://truth-shield.otus.tw
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser-extensions
+          retention-days: 30
+          path: |
+            dist/truthshield-extension-v*.zip
+            dist/truthshield-firefox-extension-v*.zip
+            dist/truthshield-safari-extension-source-v*.zip
