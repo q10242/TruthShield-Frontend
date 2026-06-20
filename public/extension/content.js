@@ -188,6 +188,8 @@ let articleBannerLatestVersion = null
 let articleBannerInstallUrl = null
 let articleBannerAuth = null
 let articleBannerUserBadges = []
+let articleBannerUserTitle = null
+let articleBannerProgressAchievement = null
 let bannerMenuActiveMenu = null
 let bannerMenuCloseTimer = null
 let bannerMenuMoveHandler = null
@@ -2326,6 +2328,8 @@ function removeArticleBanner() {
   articleBannerCommentTotal = null
   articleBannerAuth = null
   articleBannerUserBadges = []
+  articleBannerUserTitle = null
+  articleBannerProgressAchievement = null
 }
 
 function dismissArticleBanner() {
@@ -2532,14 +2536,50 @@ function buildSettingsMenu() {
   const selectedBadgeId = user?.selected_badge_id || user?.selected_badge?.id || null
   const options = []
 
-  // ── Auth ──
+  // ── User card ──
   if (user) {
-    const userInfo = styledElement('div', 'padding:6px 10px 5px;border-bottom:1px solid rgba(255,255,255,.06);')
-    userInfo.appendChild(styledElement('div', 'font-weight:800;font-size:12px;color:#e4e4e7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;', user.display_name || '讀者'))
-    if (user.trust_score != null) {
-      userInfo.appendChild(styledElement('div', 'font-size:10px;color:#71717a;margin-top:1px;', `${t('settingsTrust')} ${Number(user.trust_score).toFixed(2)}`))
+    const badge = user.selected_badge || null
+    const badgeColor = badge?.color || '#67e8f9'
+
+    const card = styledElement('div', `margin:0 0 4px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-top:3px solid ${badgeColor};overflow:hidden;`)
+
+    const cardInner = styledElement('div', 'padding:10px 12px 8px;')
+    const nameRow = styledElement('div', 'display:flex;align-items:center;gap:6px;margin-bottom:4px;')
+    nameRow.appendChild(styledElement('span', 'font-size:14px;font-weight:800;color:#f4f4f5;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', user.display_name || '讀者'))
+    if (badge) {
+      const chip = styledElement('span', `flex-shrink:0;border-radius:4px;padding:1px 6px;background:${badgeColor};color:#09090b;font-size:10px;font-weight:800;`, badge.name)
+      nameRow.appendChild(chip)
     }
-    options.push(userInfo)
+    cardInner.appendChild(nameRow)
+
+    const metaRow = styledElement('div', 'display:flex;align-items:center;gap:8px;')
+    if (articleBannerUserTitle?.name) {
+      metaRow.appendChild(styledElement('span', 'font-size:11px;color:#a1a1aa;', articleBannerUserTitle.name))
+    }
+    if (user.trust_score != null) {
+      metaRow.appendChild(styledElement('span', 'font-size:11px;color:#52525b;', `${t('settingsTrust')} ${Number(user.trust_score).toFixed(2)}`))
+    }
+    cardInner.appendChild(metaRow)
+    card.appendChild(cardInner)
+    options.push(card)
+
+    // ── Progress bar ──
+    const ach = articleBannerProgressAchievement
+    if (ach) {
+      const achColor = ach.color || '#67e8f9'
+      const pct = Math.max(1, Math.min(100, ach.percentage))
+      const progressCard = styledElement('div', 'margin:0 0 4px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:9px 12px;')
+      progressCard.appendChild(styledElement('div', 'font-size:10px;font-weight:700;letter-spacing:.06em;color:#52525b;text-transform:uppercase;margin-bottom:5px;', '即將解鎖'))
+      progressCard.appendChild(styledElement('div', 'font-size:12px;font-weight:700;color:#d4d4d8;margin-bottom:2px;', ach.name))
+      progressCard.appendChild(styledElement('div', 'font-size:10px;color:#71717a;margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;', ach.description || ''))
+      const track = styledElement('div', 'border-radius:99px;background:rgba(255,255,255,.08);height:6px;overflow:hidden;margin-bottom:4px;')
+      track.appendChild(styledElement('div', `height:100%;border-radius:99px;background:${achColor};width:${pct}%;transition:width .3s;`))
+      progressCard.appendChild(track)
+      progressCard.appendChild(styledElement('div', 'font-size:10px;color:#71717a;text-align:right;', `${ach.current} / ${ach.target}`))
+      options.push(progressCard)
+    }
+
+    options.push(settingsDivider())
     const logoutBtn = barButton(t('settingsLogout'), { truthshieldLogout: '' })
     logoutBtn.setAttribute('style', 'color:#fda4af;')
     options.push(logoutBtn)
@@ -2732,8 +2772,15 @@ async function loadArticleBannerUserInfo(url) {
       headers: { Accept: 'application/json', Authorization: `Bearer ${auth.token}` },
     }).catch(() => null)
     articleBannerUserBadges = profile?.badges || []
+    articleBannerUserTitle = profile?.title || null
+    const candidates = (profile?.achievements || []).filter((a) => !a.unlocked && a.percentage > 0)
+    articleBannerProgressAchievement = candidates.length > 0
+      ? candidates[Math.floor(Math.random() * candidates.length)]
+      : null
   } else {
     articleBannerUserBadges = []
+    articleBannerUserTitle = null
+    articleBannerProgressAchievement = null
   }
   renderArticleBannerFromCache(url)
 }
