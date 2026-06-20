@@ -789,6 +789,25 @@ onMounted(async () => {
           </div>
         </div>
       </section>
+      <details class="group border-t border-white/10 py-5">
+        <summary class="flex cursor-pointer list-none items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300">
+          <svg class="size-4 shrink-0 transition-transform group-open:rotate-90" viewBox="0 0 16 16" fill="currentColor"><path d="M6 4l4 4-4 4"/></svg>
+          最新消息（Facebook）
+        </summary>
+        <div class="mt-4 overflow-hidden rounded-lg">
+          <iframe
+            src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fprofile.php%3Fid%3D61590569198089&tabs=timeline&width=500&height=600&small_header=true&adapt_container_width=true&hide_cover=true&show_facepile=false"
+            width="500"
+            height="600"
+            style="border:none;overflow:hidden;max-width:100%"
+            scrolling="no"
+            frameborder="0"
+            allowfullscreen
+            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+          />
+        </div>
+      </details>
+
       <footer class="flex flex-wrap gap-3 border-t border-white/10 py-5 text-sm text-zinc-500">
         <RouterLink class="hover:text-cyan-100" to="/privacy">{{ t('common.privacy') }}</RouterLink>
         <RouterLink class="hover:text-cyan-100" to="/user-guide">{{ t('common.userGuide') }}</RouterLink>
