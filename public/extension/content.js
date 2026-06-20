@@ -186,6 +186,8 @@ let articleBannerCommentTotal = null
 let articleBannerUserVote = null
 let articleBannerLatestVersion = null
 let articleBannerInstallUrl = null
+let articleBannerAuth = null
+let articleBannerUserBadges = []
 let bannerMenuActiveMenu = null
 let bannerMenuCloseTimer = null
 let bannerMenuMoveHandler = null
@@ -266,6 +268,11 @@ const contentMessages = {
     settingsMenu: '設定',
     settingsUpdateAvailable: '更新',
     settingsUpToDate: '已是最新版',
+    settingsLogin: '登入 TruthShield',
+    settingsLogout: '登出',
+    settingsBadgeLabel: '徽章',
+    settingsBadgeNone: '（無）',
+    settingsTrust: '信用',
   },
   en: {
     checkingLink: 'Checking this link...',
@@ -302,6 +309,11 @@ const contentMessages = {
     settingsMenu: 'Settings',
     settingsUpdateAvailable: 'Update',
     settingsUpToDate: 'Up to date',
+    settingsLogin: 'Sign in to TruthShield',
+    settingsLogout: 'Sign out',
+    settingsBadgeLabel: 'Badge',
+    settingsBadgeNone: '(None)',
+    settingsTrust: 'Trust',
   },
 }
 
@@ -2191,6 +2203,47 @@ function ensureArticleBanner() {
       return
     }
 
+    const loginButton = event.composedPath().find((node) => 'truthshieldLogin' in (node?.dataset || {}))
+    if (loginButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      deferQuickActionAfterLogin(() => loadArticleBannerUserInfo(articleBannerUrl || window.location.href))
+      return
+    }
+
+    const logoutButton = event.composedPath().find((node) => 'truthshieldLogout' in (node?.dataset || {}))
+    if (logoutButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      sendRuntimeMessage({ type: 'TRUTH_SHIELD_CLEAR_AUTH' }).catch(() => null)
+      articleBannerAuth = null
+      articleBannerUserBadges = []
+      renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+      return
+    }
+
+    const badgeButton = event.composedPath().find((node) => 'truthshieldBadgeId' in (node?.dataset || {}))
+    if (badgeButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      const auth = articleBannerAuth
+      if (!auth?.token) return
+      const badgeId = badgeButton.dataset.truthshieldBadgeId
+      const badgeIdNum = badgeId ? parseInt(badgeId, 10) : null
+      // Optimistic update
+      if (auth.user) {
+        auth.user.selected_badge_id = badgeIdNum
+        auth.user.selected_badge = badgeIdNum ? (articleBannerUserBadges.find((b) => b.id === badgeIdNum) || null) : null
+      }
+      renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+      fetchApiViaBackground('/api/me/profile', {
+        method: 'PUT',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${auth.token}` },
+        body: JSON.stringify({ selected_badge_id: badgeIdNum }),
+      }).catch(() => null)
+      return
+    }
+
     const localeButton = event.composedPath().find((node) => node?.dataset?.truthshieldLocale)
     if (localeButton) {
       event.preventDefault()
@@ -2271,6 +2324,8 @@ function removeArticleBanner() {
   articleBannerUrl = ''
   articleBannerUserVote = null
   articleBannerCommentTotal = null
+  articleBannerAuth = null
+  articleBannerUserBadges = []
 }
 
 function dismissArticleBanner() {
@@ -2465,16 +2520,60 @@ function semverNewer(a, b) {
   return b1 !== a1 ? b1 > a1 : b2 !== a2 ? b2 > a2 : b3 > a3
 }
 
+function settingsDivider() {
+  return styledElement('hr', 'border:0;border-top:1px solid rgba(255,255,255,.08);margin:4px 0;')
+}
+
 function buildSettingsMenu() {
   const cur = extensionVersion()
   const latest = articleBannerLatestVersion
   const isOutdated = cur && latest && semverNewer(cur, latest)
+  const user = articleBannerAuth?.user || null
+  const selectedBadgeId = user?.selected_badge_id || user?.selected_badge?.id || null
+  const options = []
 
-  const zhBtn = barButton(contentLocale === 'zh-TW' ? '✓ 繁體中文' : '繁體中文', { truthshieldLocale: 'zh-TW' })
-  const enBtn = barButton(contentLocale === 'en' ? '✓ English' : 'English', { truthshieldLocale: 'en' })
+  // ── Auth ──
+  if (user) {
+    const userInfo = styledElement('div', 'padding:6px 10px 5px;border-bottom:1px solid rgba(255,255,255,.06);')
+    userInfo.appendChild(styledElement('div', 'font-weight:800;font-size:12px;color:#e4e4e7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;', user.display_name || '讀者'))
+    if (user.trust_score != null) {
+      userInfo.appendChild(styledElement('div', 'font-size:10px;color:#71717a;margin-top:1px;', `${t('settingsTrust')} ${Number(user.trust_score).toFixed(2)}`))
+    }
+    options.push(userInfo)
+    const logoutBtn = barButton(t('settingsLogout'), { truthshieldLogout: '' })
+    logoutBtn.setAttribute('style', 'color:#fda4af;')
+    options.push(logoutBtn)
+  } else {
+    const loginBtn = barButton(t('settingsLogin'), { truthshieldLogin: '' })
+    loginBtn.setAttribute('style', 'color:#67e8f9;')
+    options.push(loginBtn)
+  }
 
-  const divider = styledElement('hr', 'border:0;border-top:1px solid rgba(255,255,255,.08);margin:4px 0;')
+  options.push(settingsDivider())
 
+  // ── Badge picker ──
+  if (user && articleBannerUserBadges.length > 0) {
+    options.push(styledElement('div', 'padding:4px 10px 2px;color:#52525b;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;', t('settingsBadgeLabel')))
+    const noneSelected = !selectedBadgeId
+    const noneBtn = barButton(noneSelected ? `✓ ${t('settingsBadgeNone')}` : t('settingsBadgeNone'), { truthshieldBadgeId: '' })
+    if (noneSelected) noneBtn.setAttribute('style', 'font-weight:800;')
+    options.push(noneBtn)
+    for (const badge of articleBannerUserBadges) {
+      const isSelected = badge.id === selectedBadgeId
+      const badgeBtn = barButton(isSelected ? `✓ ${badge.name}` : badge.name, { truthshieldBadgeId: String(badge.id) })
+      const borderColor = badge.color || '#67e8f9'
+      badgeBtn.setAttribute('style', `border-left:3px solid ${borderColor};padding-left:9px;${isSelected ? 'font-weight:800;' : ''}`)
+      options.push(badgeBtn)
+    }
+    options.push(settingsDivider())
+  }
+
+  // ── Language ──
+  options.push(barButton(contentLocale === 'zh-TW' ? '✓ 繁體中文' : '繁體中文', { truthshieldLocale: 'zh-TW' }))
+  options.push(barButton(contentLocale === 'en' ? '✓ English' : 'English', { truthshieldLocale: 'en' }))
+  options.push(settingsDivider())
+
+  // ── Version ──
   let versionItem
   if (isOutdated) {
     versionItem = document.createElement('a')
@@ -2487,11 +2586,12 @@ function buildSettingsMenu() {
   } else {
     versionItem = barButton(cur ? `v${cur} · ${t('settingsUpToDate')}` : `v? · ${t('settingsUpToDate')}`, {})
     versionItem.disabled = true
-    versionItem.style.opacity = '0.5'
+    versionItem.setAttribute('style', 'opacity:.45;')
   }
+  options.push(versionItem)
 
   const trigger = t('settingsMenu') + (isOutdated ? ' ●' : '')
-  return buildQuickMenu(trigger, 'settings', [zhBtn, enBtn, divider, versionItem], false)
+  return buildQuickMenu(trigger, 'settings', options, false)
 }
 
 function barButton(label, data = {}) {
@@ -2620,7 +2720,22 @@ async function preloadArticleBannerActions(url) {
   renderArticleBannerFromCache(url)
   loadArticleBannerUserVote(url)
   loadArticleBannerUserReaction(url)
+  loadArticleBannerUserInfo(url)
   syncAuthFromChallengeFrame().catch(() => null)
+}
+
+async function loadArticleBannerUserInfo(url) {
+  const auth = await storedExtensionAuth().catch(() => null)
+  articleBannerAuth = auth || null
+  if (auth?.token) {
+    const profile = await fetchApiViaBackground('/api/me/profile', {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${auth.token}` },
+    }).catch(() => null)
+    articleBannerUserBadges = profile?.badges || []
+  } else {
+    articleBannerUserBadges = []
+  }
+  renderArticleBannerFromCache(url)
 }
 
 async function loadArticleBannerUserReaction(url) {
