@@ -1,8 +1,18 @@
 <script setup>
-import { inject } from 'vue'
+import { inject, ref } from 'vue'
 import { evidenceUploadConfig } from '../../lib/evidenceUpload'
+import { fetchJournalistCache } from '../../lib/api'
 
 const vp = inject('votePanel')
+
+const journalistList = ref([])
+async function loadJournalistList() {
+  if (journalistList.value.length) return
+  try {
+    const data = await fetchJournalistCache()
+    journalistList.value = Array.isArray(data?.journalists) ? data.journalists : []
+  } catch { /* skip */ }
+}
 </script>
 
 <template>
@@ -216,6 +226,59 @@ const vp = inject('votePanel')
       <ul class="mt-2 space-y-1">
         <li v-for="reason in vp.cannotVoteReasons.value" :key="reason">• {{ reason }}</li>
       </ul>
+    </div>
+
+    <!-- 作者確認區塊 -->
+    <div v-if="vp.isLoggedIn.value && vp.isVotingOpen.value" class="rounded-md border border-white/10 bg-white/[0.02] p-3 space-y-2">
+      <p class="text-xs font-semibold text-zinc-300">你知道這篇是誰寫的嗎？<span class="ml-1 font-normal text-zinc-500">（選填，協助確認記者統計）</span></p>
+
+      <!-- 有 suspected / unconfirmed journalist match -->
+      <template v-for="row in vp.journalistContext.value.filter(r => r.review_status !== 'confirmed' && r.review_status !== 'reported')" :key="row.match_id">
+        <div v-if="!vp.journalistVoteActions.value[row.match_id]" class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs text-zinc-300 flex-1 min-w-0 truncate">{{ row.journalist.display_name }}</span>
+          <button
+            class="rounded border border-emerald-300/40 px-2 py-1 text-[11px] font-semibold text-emerald-100 disabled:opacity-50"
+            :disabled="vp.journalistVoteSubmitting.value"
+            @click="vp.submitJournalistVote(row.match_id, 'confirm')"
+          >✓ 對，是他</button>
+          <button
+            class="rounded border border-white/10 px-2 py-1 text-[11px] text-zinc-400 disabled:opacity-50"
+            :disabled="vp.journalistVoteSubmitting.value"
+            @click="vp.submitJournalistVote(row.match_id, 'deny')"
+          >✗ 不是</button>
+        </div>
+        <p v-else class="text-[11px]" :class="vp.journalistVoteActions.value[row.match_id] === 'confirm' ? 'text-emerald-400' : 'text-zinc-500'">
+          {{ vp.journalistVoteActions.value[row.match_id] === 'confirm' ? `✓ 已確認：${row.journalist.display_name}` : `✗ 已回報有誤：${row.journalist.display_name}` }}
+        </p>
+      </template>
+
+      <!-- 已確認的 journalist -->
+      <template v-for="row in vp.journalistContext.value.filter(r => r.review_status === 'confirmed')" :key="`ok-${row.match_id}`">
+        <p class="text-[11px] text-emerald-400">✓ 已確認作者：{{ row.journalist.display_name }}</p>
+      </template>
+
+      <!-- 沒有任何 journalist match → 讓使用者主動指定 -->
+      <div v-if="!vp.journalistContext.value.length" class="space-y-2">
+        <select
+          v-model="vp.selectedJournalistId.value"
+          class="w-full rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-xs text-white"
+          @focus="loadJournalistList"
+        >
+          <option value="">請選擇記者…</option>
+          <option v-for="j in journalistList" :key="j.id" :value="j.id">
+            {{ j.display_name }}{{ j.media_outlet ? `（${j.media_outlet.name}）` : '' }}
+          </option>
+        </select>
+        <button
+          v-if="vp.selectedJournalistId.value"
+          class="rounded-md border border-emerald-300/40 px-3 py-1.5 text-xs font-semibold text-emerald-100 disabled:opacity-50"
+          :disabled="vp.journalistVoteSubmitting.value"
+          @click="vp.submitIdentifyJournalist()"
+        >送出作者回報</button>
+        <p v-if="vp.journalistIdentifyMessage.value" class="text-[11px] text-emerald-300">{{ vp.journalistIdentifyMessage.value }}</p>
+      </div>
+
+      <p v-if="vp.journalistVoteMessage.value" class="text-[11px] text-emerald-300">{{ vp.journalistVoteMessage.value }}</p>
     </div>
 
     <button

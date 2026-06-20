@@ -433,6 +433,20 @@ export async function reportJournalistMatch(matchId, payload = {}) {
   })
 }
 
+export async function voteOnJournalistMatch(matchId, action) {
+  return request(`/api/news/journalist-matches/${encodeURIComponent(matchId)}/vote`, {
+    method: 'POST',
+    body: JSON.stringify({ action }),
+  })
+}
+
+export async function identifyJournalist(url, journalistId, titleSnapshot) {
+  return request('/api/news/journalist-identify', {
+    method: 'POST',
+    body: JSON.stringify({ url, journalist_id: journalistId, title_snapshot: titleSnapshot }),
+  })
+}
+
 export async function reactToEvidence(token, voteId, helpful, verdict = {}) {
   return request(`/api/evidence/${voteId}/reaction`, {
     method: 'POST',
@@ -483,6 +497,10 @@ export async function fetchMediaOutletStats(id) {
   })
 
   return { ...(payload.data || {}), media: payload.media || null }
+}
+
+export async function fetchJournalistCache() {
+  return request('/api/journalists/cache', { headers: { 'Content-Type': undefined } })
 }
 
 export async function fetchJournalists(params = {}) {

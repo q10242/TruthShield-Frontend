@@ -25,6 +25,8 @@ import {
   reactToOfficialResponse,
   reportNewsChange,
   reportJournalistMatch,
+  voteOnJournalistMatch,
+  identifyJournalist,
   reportEvidence,
   createOfficialResponse,
   submitReaderReaction,
@@ -1146,6 +1148,59 @@ export function useVotePanel(route) {
     }
   }
 
+  const journalistVoteSubmitting = ref(false)
+  const journalistVoteMessage = ref('')
+  const journalistVoteActions = ref({}) // { [matchId]: 'confirm' | 'deny' | 'done' }
+  const selectedJournalistId = ref('')
+  const journalistIdentifyMessage = ref('')
+
+  async function submitJournalistVote(matchId, action) {
+    if (!isLoggedIn.value) { openLogin(); return }
+    journalistVoteSubmitting.value = true
+    journalistVoteMessage.value = ''
+    try {
+      const result = await voteOnJournalistMatch(matchId, action)
+      journalistVoteActions.value = { ...journalistVoteActions.value, [matchId]: action }
+      if (result?.review_status === 'confirmed') {
+        journalistVoteMessage.value = '已累積足夠確認票數，記者身份已確認，投票將計入其統計。'
+        await loadData()
+      } else {
+        const remaining = 3 - (result?.confirm_count || 0)
+        journalistVoteMessage.value = action === 'confirm'
+          ? `感謝確認！還需 ${remaining > 0 ? remaining : 0} 票即可正式計入記者統計。`
+          : '已回報作者可能有誤，感謝你的協助。'
+      }
+    } catch {
+      journalistVoteMessage.value = '送出失敗，請稍後再試。'
+    } finally {
+      journalistVoteSubmitting.value = false
+      notifyHeight()
+    }
+  }
+
+  async function submitIdentifyJournalist() {
+    if (!isLoggedIn.value) { openLogin(); return }
+    if (!selectedJournalistId.value) return
+    journalistVoteSubmitting.value = true
+    journalistIdentifyMessage.value = ''
+    try {
+      const result = await identifyJournalist(newsUrl.value, selectedJournalistId.value, pageSnapshot.value?.title_snapshot || undefined)
+      const matchId = result?.match?.id
+      if (matchId) journalistVoteActions.value = { ...journalistVoteActions.value, [matchId]: 'confirm' }
+      const remaining = 3 - (result?.confirm_count || 1)
+      journalistIdentifyMessage.value = remaining > 0
+        ? `感謝回報！還需 ${remaining} 票即可正式計入記者統計。`
+        : '記者身份已確認，投票將計入其統計。'
+      await loadData()
+    } catch (err) {
+      journalistIdentifyMessage.value = err.message || '送出失敗，請稍後再試。'
+    } finally {
+      journalistVoteSubmitting.value = false
+      selectedJournalistId.value = ''
+      notifyHeight()
+    }
+  }
+
   async function react(item, helpful) {
     evidenceError.value = ''
 
@@ -1656,6 +1711,13 @@ export function useVotePanel(route) {
     notifyVoteUpdated,
     shareCurrentResult,
     reportJournalistMismatch,
+    journalistVoteSubmitting,
+    journalistVoteMessage,
+    journalistVoteActions,
+    selectedJournalistId,
+    journalistIdentifyMessage,
+    submitJournalistVote,
+    submitIdentifyJournalist,
     submitOfficialResponse,
     reactOfficial,
     openLogin,
