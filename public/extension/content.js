@@ -167,6 +167,7 @@ let telemetryFlushTimer = null
 let articleBanner = null
 let articleBannerRoot = null
 let articleBannerCoach = null
+let articleBannerCoachDismissed = false
 let articleBannerUrl = ''
 let articleBannerDismissed = false
 const articleBannerStatusCache = new Map()
@@ -240,6 +241,7 @@ const contentMessages = {
     readerReactionVote: '脈絡',
     readerReactionVoteHint: '到面板補充想看的脈絡',
     readerReactionSaved: '已送出',
+    readerReactionRemoved: '已取消',
     readerReactionFailed: '送出失敗',
     readerReactionLogin: '登入後補脈絡',
     eventContext: '事件',
@@ -272,6 +274,7 @@ const contentMessages = {
     readerReactionVote: 'Context',
     readerReactionVoteHint: 'Open the panel to request context',
     readerReactionSaved: 'Saved',
+    readerReactionRemoved: 'Removed',
     readerReactionFailed: 'Failed',
     readerReactionLogin: 'Sign in to request context',
     eventContext: 'Event',
@@ -1848,6 +1851,41 @@ async function fetchArticleBannerReactions(url) {
   return response.json()
 }
 
+async function deleteArticleBannerReaction(targetUrl, auth) {
+  articleBannerReactionSubmittingKey = '__delete__'
+  articleBannerReactionMessage = ''
+  renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+  try {
+    await fetchApiViaBackground(`/api/reactions?news_url=${encodeURIComponent(targetUrl)}`, {
+      method: 'DELETE',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${auth.token}` },
+    })
+    clearBackgroundUrlCache(targetUrl)
+    const currentPayload = articleBannerReactionPayload(targetUrl)
+    setTooltipReactionCache(targetUrl, {
+      state: 'success',
+      payload: {
+        ...(currentPayload || {}),
+        my_reaction: null,
+        reaction: null,
+        hover_reactions: (currentPayload?.hover_reactions || []).filter((r) => false),
+        summary: { ...(currentPayload?.summary || {}), total_users: Math.max(0, (currentPayload?.summary?.total_users || 1) - 1) },
+      },
+    })
+    articleBannerReactionFailed = false
+    articleBannerReactionMessage = t('readerReactionRemoved')
+    reportExtensionEvent('reader_reaction_removed', true, { mode: 'article_banner' })
+  } catch (error) {
+    articleBannerReactionFailed = true
+    articleBannerReactionMessage = t('readerReactionFailed')
+    reportExtensionEvent('reader_reaction_removed', false, { mode: 'article_banner', reason: error?.message || 'failed' })
+  } finally {
+    articleBannerReactionSubmittingKey = ''
+    renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+    scheduleArticleBannerReactionMessageClear()
+  }
+}
+
 async function submitArticleBannerReaction(key) {
   if (articleReadSeconds < 15 && !articleBannerUserVote) return
   const targetUrl = canonicalStatusUrl(articleBannerUrl || window.location.href)
@@ -1864,7 +1902,10 @@ async function submitArticleBannerReaction(key) {
   const feelingIdx = feelings.indexOf(key)
   if (feelingIdx >= 0) feelings.splice(feelingIdx, 1)
   else { feelings.push(key); if (feelings.length > 3) feelings = feelings.slice(-3) }
-  if (feelings.length === 0 && needs.length === 0) return
+  if (feelings.length === 0 && needs.length === 0) {
+    await deleteArticleBannerReaction(targetUrl, auth)
+    return
+  }
 
   articleBannerReactionSubmittingKey = key
   articleBannerReactionMessage = ''
@@ -2209,6 +2250,7 @@ function dismissArticleBanner() {
 
 async function maybeShowArticleBannerCoach() {
   if (!articleBanner || articleBanner.dataset.truthshieldMode !== 'article_bar') return
+  if (articleBannerCoachDismissed) return
   const payload = await readExtensionLocal(ONBOARDING_STORAGE_KEY)
   const current = payload?.[ONBOARDING_STORAGE_KEY] || {}
   if (Array.isArray(current.dismissed_surfaces) && current.dismissed_surfaces.includes('banner_coach')) return
@@ -2242,6 +2284,7 @@ async function maybeShowArticleBannerCoach() {
     ensureVotePanelFrame()
   })
   articleBannerCoach.querySelector('[data-truthshield-onboarding-dismiss]')?.addEventListener('click', () => {
+    articleBannerCoachDismissed = true
     dismissOnboardingSurface('banner_coach').catch(() => null)
     articleBannerCoach?.remove()
     articleBannerCoach = null
@@ -2426,6 +2469,11 @@ function wireArticleBannerMenus() {
   window.clearTimeout(bannerMenuCloseTimer)
   const menus = Array.from(articleBannerRoot?.querySelectorAll('.ts-menu') || [])
 
+  // Capture active menu kind before state clears, so rAF can re-open after re-render
+  const prevActiveKind = bannerMenuActiveMenu
+    ?.querySelector('[data-truthshield-menu-trigger]')?.dataset.truthshieldMenuTrigger || null
+  bannerMenuActiveMenu = null
+
   function cancelClose() { window.clearTimeout(bannerMenuCloseTimer); bannerMenuCloseTimer = null }
 
   function positionPopoverFixed(menu) {
@@ -2461,7 +2509,8 @@ function wireArticleBannerMenus() {
       const mr = menu.getBoundingClientRect()
       const inMenu = mx >= mr.left && mx <= mr.right && my >= mr.top && my <= mr.bottom
       let inPopover = false
-      if (popover) { const pr = popover.getBoundingClientRect(); inPopover = mx >= pr.left && mx <= pr.right && my >= pr.top && my <= pr.bottom }
+      const livePopover = menu.querySelector('.ts-popover')
+      if (livePopover) { const pr = livePopover.getBoundingClientRect(); inPopover = mx >= pr.left && mx <= pr.right && my >= pr.top && my <= pr.bottom }
       if (inMenu || inPopover) { cancelClose() }
       else { cancelClose(); bannerMenuCloseTimer = window.setTimeout(() => bannerMenuCloseActive(), 500) }
     }
@@ -2473,12 +2522,20 @@ function wireArticleBannerMenus() {
     menu.addEventListener('mouseleave', () => { cancelClose(); bannerMenuCloseTimer = window.setTimeout(() => bannerMenuCloseActive(), 500) })
   })
 
-  // Re-open if cursor is already over a menu (handles re-render mid-hover)
+  // Re-open if cursor is already over a menu trigger or its popover (handles re-render mid-hover)
   requestAnimationFrame(() => {
     if (!bannerCursorMoved) return
     for (const menu of menus) {
       const r = menu.getBoundingClientRect()
-      if (bannerCursorX >= r.left && bannerCursorX <= r.right && bannerCursorY >= r.top && bannerCursorY <= r.bottom) { openMenu(menu); break }
+      if (bannerCursorX >= r.left && bannerCursorX <= r.right && bannerCursorY >= r.top && bannerCursorY <= r.bottom) { openMenu(menu); return }
+    }
+    // Cursor may be over popover below bar — re-open the previously active menu
+    if (prevActiveKind) {
+      const barRect = articleBanner?.getBoundingClientRect()
+      if (barRect && bannerCursorY > barRect.bottom && bannerCursorY < barRect.bottom + 520) {
+        const sameMenu = menus.find((m) => m.querySelector(`[data-truthshield-menu-trigger="${prevActiveKind}"]`))
+        if (sameMenu) openMenu(sameMenu)
+      }
     }
   })
 }
