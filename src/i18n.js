@@ -1114,6 +1114,7 @@ export const messages = {
       image: '圖片證據',
       link: '相關連結',
       external: '外部證據',
+      clickToEnlarge: '點擊放大圖片',
       tags: {
         clickbaitTitle: '標題殺人',
         missingContext: '隱瞞事實',
@@ -2953,6 +2954,7 @@ export const messages = {
       image: 'Image evidence',
       link: 'Related link',
       external: 'External evidence',
+      clickToEnlarge: 'Click to enlarge',
       tags: {
         clickbaitTitle: 'Clickbait headline',
         missingContext: 'Missing context',

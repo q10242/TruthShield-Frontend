@@ -1,7 +1,8 @@
 <script setup>
-import { inject } from 'vue'
+import { inject, ref } from 'vue'
 
 const vp = inject('votePanel')
+const lightboxUrl = ref('')
 </script>
 
 <template>
@@ -123,13 +124,38 @@ const vp = inject('votePanel')
         </span>
       </div>
 
-      <img v-if="vp.evidencePreviewUrl(item)" :src="vp.evidencePreviewUrl(item)" alt="" class="max-h-36 w-full rounded-md border border-white/10 object-cover" />
+      <!-- Image thumbnail — click to enlarge -->
+      <button
+        v-if="vp.evidencePreviewUrl(item)"
+        class="block w-full"
+        :aria-label="vp.t('evidence.clickToEnlarge')"
+        @click="lightboxUrl = vp.evidencePreviewUrl(item)"
+      >
+        <img
+          :src="vp.evidencePreviewUrl(item)"
+          alt=""
+          class="max-h-36 w-full cursor-zoom-in rounded-md border border-white/10 object-cover transition-opacity hover:opacity-80"
+        />
+      </button>
 
       <p class="text-sm leading-5 text-zinc-200">{{ item.evidence_note || vp.t('evidence.noNote') }}</p>
 
-      <div class="rounded-md border border-white/10 bg-white/[0.03] p-2">
+      <!-- Link box: image type (preview already shown) -->
+      <div v-if="vp.evidencePreviewUrl(item)" class="rounded-md border border-white/10 bg-white/[0.03] p-2">
         <p class="text-[11px] text-zinc-500">{{ vp.evidenceTypeLabel(item) }}</p>
-        <a :href="item.evidence_url" target="_blank" rel="noreferrer" class="mt-1 block truncate text-xs font-semibold text-cyan-200">
+        <a :href="item.evidence_url" target="_blank" rel="noreferrer noopener" class="mt-1 block truncate text-xs font-semibold text-cyan-200">
+          {{ item.evidence_host || item.evidence_url }}
+        </a>
+      </div>
+
+      <!-- Link box: external URL (no image preview) — show warning -->
+      <div v-else class="rounded-md border border-amber-300/20 bg-amber-300/[0.06] p-2">
+        <div class="mb-1.5 flex items-center gap-1.5">
+          <span class="text-[10px] font-semibold text-amber-200">⚠ 外部連結</span>
+          <span class="text-[10px] text-amber-200/60">請確認網址正確後再前往</span>
+        </div>
+        <p class="text-[11px] text-zinc-500">{{ vp.evidenceTypeLabel(item) }}</p>
+        <a :href="item.evidence_url" target="_blank" rel="noreferrer noopener" class="mt-1 block truncate text-xs font-semibold text-cyan-200">
           {{ item.evidence_host || item.evidence_url }}
         </a>
       </div>
@@ -147,4 +173,33 @@ const vp = inject('votePanel')
       </div>
     </article>
   </section>
+
+  <!-- Lightbox overlay -->
+  <Teleport to="body">
+    <div
+      v-if="lightboxUrl"
+      class="fixed inset-0 z-[2147483646] flex flex-col items-center justify-center bg-black/90 p-4"
+      @click.self="lightboxUrl = ''"
+    >
+      <button
+        class="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-white/10 text-sm text-white hover:bg-white/20"
+        @click="lightboxUrl = ''"
+      >✕</button>
+      <img
+        :src="lightboxUrl"
+        alt=""
+        class="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+        @click.stop
+      />
+      <a
+        :href="lightboxUrl"
+        target="_blank"
+        rel="noreferrer noopener"
+        class="mt-4 rounded-md bg-white/10 px-4 py-2 text-xs font-semibold text-white hover:bg-white/20"
+        @click.stop
+      >
+        原始圖片 ↗
+      </a>
+    </div>
+  </Teleport>
 </template>

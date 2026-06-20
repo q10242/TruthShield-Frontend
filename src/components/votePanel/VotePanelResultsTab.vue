@@ -53,7 +53,7 @@ const vp = inject('votePanel')
           </div>
           <div class="rounded bg-zinc-950/70 px-2 py-2">
             <p class="font-semibold text-orange-100">{{ vp.mediaContext.value.stats.tracked_tag_count }}</p>
-            <p class="text-zinc-500">標題殺人</p>
+            <p class="text-zinc-500">{{ vp.mediaContext.value.stats.tracked_tag?.name || '最高標籤' }}</p>
           </div>
           <div class="rounded bg-zinc-950/70 px-2 py-2">
             <p class="font-semibold text-cyan-100">{{ vp.mediaContext.value.stats.ratio_available ? `${vp.mediaContext.value.stats.tracked_tag_ratio}%` : '樣本不足' }}</p>
@@ -82,7 +82,7 @@ const vp = inject('votePanel')
           </div>
           <div class="rounded bg-zinc-950/70 px-2 py-2">
             <p class="font-semibold text-orange-100">{{ row.stats.tracked_tag_count }}</p>
-            <p class="text-zinc-500">標題殺人</p>
+            <p class="text-zinc-500">{{ row.stats.tracked_tag?.name || '最高標籤' }}</p>
           </div>
           <div class="rounded bg-zinc-950/70 px-2 py-2">
             <p class="font-semibold text-cyan-100">{{ row.stats.ratio_available ? `${row.stats.tracked_tag_ratio}%` : '樣本不足' }}</p>

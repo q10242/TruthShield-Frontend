@@ -10,18 +10,12 @@ const meta = ref(null)
 const loading = ref(false)
 const error = ref('')
 
-function ratioLabel(stats) {
-  if (!stats?.ratio_available) return `樣本不足（至少 ${stats?.min_sample_size || 10} 篇）`
-  return `${stats.tracked_tag_ratio}%`
+function confidenceLabel(value) {
+  return { insufficient: '樣本不足', low: '低', medium: '中', high: '高' }[value] || value || '未知'
 }
 
-function confidenceLabel(value) {
-  return {
-    insufficient: '樣本不足',
-    low: '低',
-    medium: '中',
-    high: '高',
-  }[value] || value || '未知'
+function topTag(stats) {
+  return stats?.tag_distribution?.[0] ?? null
 }
 
 async function load() {
@@ -87,17 +81,36 @@ onMounted(load)
               <p class="mt-1 text-xl font-semibold text-white">{{ row.stats?.article_count || 0 }}</p>
             </div>
             <div class="rounded-md border border-white/10 p-3">
-              <p class="text-xs text-zinc-500">{{ row.stats?.tracked_tag?.name || '標題殺人' }}</p>
-              <p class="mt-1 text-xl font-semibold text-white">{{ row.stats?.tracked_tag_count || 0 }}</p>
+              <p class="text-xs text-zinc-500">最高票標籤</p>
+              <p class="mt-1 flex items-center gap-1.5 text-base font-semibold text-white">
+                <span
+                  v-if="topTag(row.stats)"
+                  class="inline-block size-2 shrink-0 rounded-full"
+                  :style="{ background: topTag(row.stats)?.color || '#67e8f9' }"
+                />
+                {{ topTag(row.stats)?.name || '尚無' }}
+              </p>
             </div>
             <div class="rounded-md border border-white/10 p-3">
-              <p class="text-xs text-zinc-500">比例</p>
-              <p class="mt-1 text-lg font-semibold text-white">{{ ratioLabel(row.stats) }}</p>
+              <p class="text-xs text-zinc-500">占比</p>
+              <p class="mt-1 text-lg font-semibold text-white">
+                {{ topTag(row.stats) ? `${topTag(row.stats).ratio}%` : (row.stats?.ratio_available ? '—' : `樣本不足`) }}
+              </p>
             </div>
             <div class="rounded-md border border-white/10 p-3">
               <p class="text-xs text-zinc-500">樣本信心</p>
               <p class="mt-1 text-lg font-semibold text-white">{{ confidenceLabel(row.stats?.sample_confidence) }}</p>
             </div>
+          </div>
+          <!-- Mini tag distribution bar -->
+          <div v-if="row.stats?.tag_distribution?.length > 1" class="mt-3 flex h-1.5 w-full overflow-hidden rounded-full">
+            <div
+              v-for="tag in row.stats.tag_distribution.slice(0, 8)"
+              :key="tag.tag_id"
+              :title="`${tag.name} ${tag.ratio}%`"
+              class="h-full transition-all"
+              :style="{ width: `${tag.ratio}%`, background: tag.color || '#67e8f9' }"
+            />
           </div>
         </article>
         <div v-if="!loading && !rows.length" class="rounded-lg border border-white/10 bg-white/[0.03] p-5 text-sm text-zinc-400">

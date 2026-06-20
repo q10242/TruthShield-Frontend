@@ -12,7 +12,7 @@ const loading = ref(true)
 const error = ref('')
 
 const articles = computed(() => stats.value?.articles || [])
-const trackedTagName = computed(() => stats.value?.tracked_tag?.name || '標題殺人')
+const trackedTagName = computed(() => stats.value?.tracked_tag?.name || stats.value?.top_tag?.name || '—')
 
 function ratioLabel(payload) {
   if (!payload?.ratio_available) return `樣本不足（至少 ${payload?.min_sample_size || 10} 篇）`
@@ -87,10 +87,11 @@ onMounted(load)
               </div>
               <div class="shrink-0 text-left text-sm md:text-right">
                 <p class="text-zinc-400">有效票數 {{ article.vote_count }}</p>
-                <p class="mt-1 text-zinc-400">最高標籤：{{ article.top_tag?.name || '尚無' }}</p>
-                <p class="mt-1 font-semibold" :class="article.tracked_tag_effective ? 'text-amber-200' : 'text-zinc-500'">
-                  {{ trackedTagName }} {{ article.tracked_tag_effective ? '達門檻' : '未達門檻' }}
+                <p v-if="article.top_tag" class="mt-1 flex items-center justify-end gap-1.5">
+                  <span class="inline-block size-2 rounded-full" :style="{ background: article.top_tag.color || '#67e8f9' }" />
+                  <span class="font-semibold text-white">{{ article.top_tag.name }}</span>
                 </p>
+                <p v-else class="mt-1 text-zinc-500">尚無有效標籤</p>
               </div>
             </div>
           </article>
