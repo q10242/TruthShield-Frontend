@@ -197,6 +197,44 @@ export async function fetchNewsEvidence(url) {
   return payload.data || []
 }
 
+export async function fetchComments(url, cursor = null) {
+  const params = new URLSearchParams({ news_url: url, per_page: '20' })
+  if (cursor) params.set('cursor', String(cursor))
+  const payload = await request(`/api/comments?${params}`, { headers: { 'Content-Type': undefined } })
+  return payload
+}
+
+export async function createComment(token, payload) {
+  return request('/api/comments', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(withChallengePayload(payload)),
+  })
+}
+
+export async function deleteComment(token, commentId) {
+  return request(`/api/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': undefined },
+  })
+}
+
+export async function reactToComment(token, commentId, helpful) {
+  return request(`/api/comments/${commentId}/reaction`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ helpful }),
+  })
+}
+
+export async function reportComment(token, commentId, reason = '') {
+  return request(`/api/comments/${commentId}/report`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ reason }),
+  })
+}
+
 export async function fetchTags() {
   const payload = await cachedRequest(`/api/tags?locale=${encodeURIComponent(currentLocale())}`, {
     headers: { 'Content-Type': undefined },

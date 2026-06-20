@@ -182,6 +182,7 @@ let articleBannerReactionMessage = ''
 let articleBannerReactionMessageTimer = null
 let articleBannerTags = []
 let articleBannerEvidence = []
+let articleBannerCommentTotal = null
 let articleBannerUserVote = null
 let bannerMenuActiveMenu = null
 let bannerMenuCloseTimer = null
@@ -2162,6 +2163,14 @@ function ensureArticleBanner() {
       return
     }
 
+    const commentButton = event.composedPath().find((node) => 'truthshieldCommentPanel' in (node?.dataset || {}))
+    if (commentButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      openVotePanelModal(articleBannerUrl || window.location.href, '/iframe-comment', {}, 'comment_panel_opened')
+      return
+    }
+
     const panelButton = event.composedPath().find((node) => node?.dataset?.truthshieldPanelTab)
     if (panelButton) {
       event.preventDefault()
@@ -2236,6 +2245,7 @@ function removeArticleBanner() {
   articleBannerRoot = null
   articleBannerUrl = ''
   articleBannerUserVote = null
+  articleBannerCommentTotal = null
 }
 
 function dismissArticleBanner() {
@@ -2537,12 +2547,14 @@ function wireArticleBannerMenus() {
 
 async function preloadArticleBannerActions(url) {
   const canonical = canonicalStatusUrl(url)
-  const [tagPayload, evidencePayload] = await Promise.all([
+  const [tagPayload, evidencePayload, commentPayload] = await Promise.all([
     fetchApiViaBackground(`/api/tags?locale=${encodeURIComponent(contentLocale)}`).catch(() => ({ data: [] })),
     fetchApiViaBackground(`/api/news/evidence?url=${encodeURIComponent(canonical)}&locale=${encodeURIComponent(contentLocale)}`).catch(() => ({ data: [] })),
+    fetchApiViaBackground(`/api/comments?news_url=${encodeURIComponent(canonical)}&per_page=1`).catch(() => null),
   ])
   articleBannerTags = Array.isArray(tagPayload) ? tagPayload : tagPayload?.data || []
   articleBannerEvidence = Array.isArray(evidencePayload) ? evidencePayload : evidencePayload?.data || []
+  articleBannerCommentTotal = commentPayload?.meta?.total ?? null
   renderArticleBannerFromCache(url)
   loadArticleBannerUserVote(url)
   loadArticleBannerUserReaction(url)
@@ -2748,6 +2760,10 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
   eventsAllLink.rel = 'noopener noreferrer'
   eventOptions.push(eventsAllLink)
 
+  const commentLabel = articleBannerCommentTotal === null ? '留言' : `留言 ${articleBannerCommentTotal}`
+  const commentButton = barButton(commentLabel, { truthshieldCommentPanel: '' })
+  commentButton.className = 'ts-trigger'
+
   const right = document.createElement('div')
   right.className = 'ts-zone right'
   const fullPanelButton = barButton('完整面板', { truthshieldPanelTab: 'results' })
@@ -2755,6 +2771,7 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
   right.append(
     buildQuickMenu(`證據 ${articleBannerEvidence.length}`, 'evidence', evidenceOptions, false),
     buildQuickMenu(`事件 ${events.length}`, 'events', eventOptions, false),
+    commentButton,
     fullPanelButton,
     buildArticleBannerCloseButton(),
   )
@@ -3441,6 +3458,13 @@ window.addEventListener('message', (event) => {
   if (event.data?.type === 'TRUTH_SHIELD_VOTE_UPDATED') {
     clearBackgroundUrlCache(event.data.url || votePanelUrl || window.location.href)
     refreshArticleBannerStatus(event.data.url || votePanelUrl || window.location.href, event.data.status || null)
+  }
+
+  if (event.data?.type === 'TRUTH_SHIELD_COMMENT_SUBMITTED') {
+    if (typeof event.data.total === 'number') {
+      articleBannerCommentTotal = event.data.total
+      renderArticleBannerFromCache(event.data.url || votePanelUrl || articleBannerUrl || window.location.href)
+    }
   }
 
   if (event.data?.type === 'TRUTH_SHIELD_OPEN_VOTE_PANEL') {

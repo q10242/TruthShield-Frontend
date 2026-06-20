@@ -228,6 +228,7 @@ const router = createRouter({
     { path: '/iframe-challenge', name: 'iframe-challenge', component: () => import('../views/IframeChallengeView.vue') },
     { path: '/iframe-quick-action', name: 'iframe-quick-action', component: () => import('../views/IframeQuickActionView.vue') },
     { path: '/iframe-evidence', name: 'iframe-evidence', component: () => import('../views/IframeEvidenceView.vue') },
+    { path: '/iframe-comment', name: 'iframe-comment', component: () => import('../views/IframeCommentView.vue') },
   ],
 })
 
