@@ -1991,16 +1991,17 @@ function ensureArticleBanner() {
   articleBanner.style.right = youtubeMode ? '16px' : '0'
   articleBanner.style.zIndex = '2147483646'
   articleBanner.style.boxSizing = 'border-box'
-  articleBanner.style.padding = youtubeMode ? '6px 8px' : '8px 14px'
+  articleBanner.style.padding = youtubeMode ? '6px 8px' : '0 14px'
   articleBanner.style.border = youtubeMode ? '1px solid rgba(255, 255, 255, 0.16)' : '0'
   articleBanner.style.borderBottom = '1px solid rgba(255, 255, 255, 0.16)'
   articleBanner.style.borderRadius = youtubeMode ? '999px' : '0'
-  articleBanner.style.background = 'rgba(9, 9, 11, 0.96)'
+  articleBanner.style.background = '#09090b'
   articleBanner.style.color = '#f4f4f5'
   articleBanner.style.boxShadow = youtubeMode ? '0 10px 30px rgba(0, 0, 0, 0.34)' : '0 1px 0 rgba(0, 0, 0, 0.26)'
   articleBanner.style.font = '13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   articleBanner.style.colorScheme = 'normal'
-  articleBanner.style.backdropFilter = 'blur(12px)'
+  articleBanner.style.backdropFilter = 'none'
+  articleBanner.style.minHeight = youtubeMode ? 'auto' : '44px'
   articleBanner.style.cursor = 'default'
   articleBanner.style.maxWidth = youtubeMode ? 'min(360px, calc(100vw - 32px))' : 'none'
   articleBanner.style.marginRight = youtubeContainer ? '8px' : '0'
@@ -2245,15 +2246,14 @@ function buildArticleBannerCloseButton(compact = false) {
 function articleBannerStyleSheet() {
   const style = document.createElement('style')
   style.textContent = `
-    :host { all: initial; }
     *, *::before, *::after { box-sizing: border-box; }
     button, a { font: inherit; }
-    .ts-bar { display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(210px,1fr);align-items:center;gap:12px;max-width:1440px;margin:0 auto; }
-    .ts-zone { display:flex;align-items:center;gap:7px;min-width:0; }
+    .ts-bar { display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(180px,1fr);align-items:center;gap:10px;height:43px;max-width:1440px;margin:0 auto;color:#f4f4f5;background:#09090b;font:13px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .ts-zone { display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap; }
     .ts-zone.center { justify-content:center; }
     .ts-zone.right { justify-content:flex-end; }
     .ts-menu { position:relative; }
-    .ts-trigger { position:relative;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(255,255,255,.045);color:#e4e4e7;padding:6px 9px;font-weight:750;cursor:pointer;white-space:nowrap;overflow:hidden; }
+    .ts-trigger { position:relative;height:30px;border:1px solid rgba(255,255,255,.18);border-radius:7px;background:#18181b;color:#e4e4e7;padding:4px 8px;font-weight:750;cursor:pointer;white-space:nowrap;overflow:hidden; }
     .ts-trigger:hover, .ts-trigger:focus-visible { border-color:rgba(103,232,249,.55);outline:none; }
     .ts-popover { display:none;position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);z-index:10;width:290px;max-height:min(480px,70vh);overflow:auto;border:1px solid rgba(255,255,255,.16);border-radius:11px;background:#18181b;padding:9px;box-shadow:0 18px 55px rgba(0,0,0,.5); }
     .ts-menu:not(.locked):hover > .ts-popover, .ts-menu:not(.locked):focus-within > .ts-popover, .ts-menu:not(.locked).is-pinned > .ts-popover { display:block; }
@@ -2270,12 +2270,19 @@ function articleBannerStyleSheet() {
     .ts-evidence { display:block;padding:8px;border-radius:8px;color:#e4e4e7;text-decoration:none; }
     .ts-evidence:hover { background:rgba(255,255,255,.06); }
     .ts-section { padding:6px 8px;color:#67e8f9;font-size:11px;font-weight:850;letter-spacing:.04em; }
+    @media (max-width:1000px) {
+      .ts-bar { grid-template-columns:minmax(120px,1fr) auto auto;gap:6px; }
+      .ts-muted { display:none; }
+      .ts-zone.right .ts-menu { display:none; }
+    }
     @media (max-width:760px) {
-      .ts-bar { grid-template-columns:1fr auto;gap:7px; }
-      .ts-zone.center { grid-column:1 / -1;grid-row:2;justify-content:stretch; }
-      .ts-zone.center .ts-menu { flex:1; }
-      .ts-zone.center .ts-trigger { width:100%; }
-      .ts-zone.right .ts-trigger span { display:none; }
+      .ts-bar { display:flex;height:43px;gap:5px;overflow:visible; }
+      .ts-zone:first-child { min-width:0;flex:1; }
+      .ts-zone:first-child a strong, .ts-zone:first-child .ts-muted { display:none; }
+      .ts-zone.center { flex:0 0 auto; }
+      .ts-zone.center .ts-trigger { max-width:76px;padding-inline:6px; }
+      .ts-zone.right { flex:0 0 auto; }
+      .ts-zone.right > :not(:last-child) { display:none; }
       .ts-popover { position:fixed;top:72px;left:12px!important;right:12px!important;transform:none!important;width:auto; }
     }
   `
@@ -2374,14 +2381,16 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
   }
 
   if (!articleQuickBarEnabled) {
-    const legacy = styledElement('div', 'display:flex;align-items:center;gap:10px;max-width:1180px;margin:0 auto;flex-wrap:wrap;')
+    const legacy = styledElement('div', 'display:flex;align-items:center;gap:10px;height:43px;max-width:1180px;margin:0 auto;color:#f4f4f5;background:#09090b;font:13px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;white-space:nowrap;')
     legacy.appendChild(buildArticleBannerBrandLink(tone))
     const legacyCopy = styledElement('div', 'min-width:140px;flex:1 1 220px;')
     legacyCopy.appendChild(styledElement('div', 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.35;', displayText))
     legacyCopy.appendChild(styledElement('div', 'margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;', secondaryText))
     legacy.appendChild(legacyCopy)
     if (reactionControls) legacy.appendChild(reactionControls)
-    legacy.appendChild(barButton(t('open'), { truthshieldPanelTab: 'results' }))
+    const legacyOpen = barButton(t('open'), { truthshieldPanelTab: 'results' })
+    legacyOpen.className = 'ts-trigger'
+    legacy.appendChild(legacyOpen)
     legacy.appendChild(buildArticleBannerCloseButton())
     replaceChildren(articleBannerRoot, [articleBannerStyleSheet(), legacy])
     return
@@ -2441,10 +2450,12 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
 
   const right = document.createElement('div')
   right.className = 'ts-zone right'
+  const fullPanelButton = barButton('完整面板', { truthshieldPanelTab: 'results' })
+  fullPanelButton.className = 'ts-trigger'
   right.append(
     buildQuickMenu(`證據 ${articleBannerEvidence.length}`, 'evidence', evidenceOptions, false),
     buildQuickMenu(`事件 ${events.length}`, 'events', eventOptions, false),
-    barButton('完整面板', { truthshieldPanelTab: 'results' }),
+    fullPanelButton,
     buildArticleBannerCloseButton(),
   )
   row.append(left, center, right)
