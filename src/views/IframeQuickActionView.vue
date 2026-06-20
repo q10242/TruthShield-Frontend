@@ -78,6 +78,8 @@ async function submit() {
       type: 'TRUTH_SHIELD_QUICK_ACTION_COMPLETED',
       action: 'vote',
       url: route.query.news_url,
+      tag_id: selectedTag.value?.id,
+      tag: selectedTag.value ? { id: selectedTag.value.id, name: selectedTag.value.name, slug: selectedTag.value.slug, color: selectedTag.value.color } : undefined,
     }, '*')
   } catch (cause) {
     error.value = cause?.message || '送出失敗，請稍後再試。'

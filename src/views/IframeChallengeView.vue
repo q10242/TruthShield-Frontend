@@ -65,7 +65,17 @@ async function runChallenge(action) {
 }
 
 async function handleMessage(event) {
-  if (event.source !== window.parent || event.data?.type !== 'TRUTH_SHIELD_CHALLENGE_REQUEST') return
+  if (event.source !== window.parent) return
+
+  if (event.data?.type === 'TRUTH_SHIELD_AUTH_SYNC_REQUEST') {
+    const token = localStorage.getItem('truthshield_api_token') || ''
+    let user = null
+    try { user = JSON.parse(localStorage.getItem('truthshield_user') || 'null') } catch {}
+    window.parent?.postMessage({ type: 'TRUTH_SHIELD_AUTH_UPDATED', token, user }, event.origin || '*')
+    return
+  }
+
+  if (event.data?.type !== 'TRUTH_SHIELD_CHALLENGE_REQUEST') return
   const port = event.ports?.[0]
   if (!port) return
 
