@@ -184,6 +184,8 @@ let articleBannerTags = []
 let articleBannerEvidence = []
 let articleBannerCommentTotal = null
 let articleBannerUserVote = null
+let articleBannerLatestVersion = null
+let articleBannerInstallUrl = null
 let bannerMenuActiveMenu = null
 let bannerMenuCloseTimer = null
 let bannerMenuMoveHandler = null
@@ -261,6 +263,9 @@ const contentMessages = {
     bannerCoachDesc: '點擊橫幅可開啟投票與證據面板；脈絡需求收在面板與事件頁。',
     bannerCoachOpen: '開面板',
     bannerCoachDismiss: '知道了',
+    settingsMenu: '設定',
+    settingsUpdateAvailable: '更新',
+    settingsUpToDate: '已是最新版',
   },
   en: {
     checkingLink: 'Checking this link...',
@@ -294,6 +299,9 @@ const contentMessages = {
     bannerCoachDesc: 'Click the banner to open voting and evidence. Context requests live in the panel and event pages.',
     bannerCoachOpen: 'Open panel',
     bannerCoachDismiss: 'Got it',
+    settingsMenu: 'Settings',
+    settingsUpdateAvailable: 'Update',
+    settingsUpToDate: 'Up to date',
   },
 }
 
@@ -789,6 +797,10 @@ async function loadNewsDomains() {
       newsDomains = [...new Set([...FALLBACK_NEWS_DOMAINS, ...domains])]
       domainConfigs = mergeDomainConfigs(payload.data, FALLBACK_DOMAIN_CONFIGS, FALLBACK_NEWS_DOMAINS.map((domain) => ({ domain })))
       debugLog('loadNewsDomains:success', { count: newsDomains.length, matched: newsDomains.includes(window.location.hostname) })
+    }
+    if (payload.extension?.latest_version) {
+      articleBannerLatestVersion = payload.extension.latest_version
+      articleBannerInstallUrl = payload.extension.install_url || null
     }
   } catch {
     newsDomains = [...FALLBACK_NEWS_DOMAINS]
@@ -2179,6 +2191,19 @@ function ensureArticleBanner() {
       return
     }
 
+    const localeButton = event.composedPath().find((node) => node?.dataset?.truthshieldLocale)
+    if (localeButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      const newLocale = localeButton.dataset.truthshieldLocale
+      if (newLocale === 'zh-TW' || newLocale === 'en') {
+        contentLocale = newLocale
+        try { chrome.storage?.sync?.set({ locale: newLocale }) } catch {}
+        renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+      }
+      return
+    }
+
     const menuButton = event.composedPath().find((node) => node?.dataset?.truthshieldMenuTrigger)
     if (menuButton) {
       event.preventDefault()
@@ -2430,6 +2455,43 @@ function articleBannerStyleSheet() {
     }
   `
   return style
+}
+
+function semverNewer(a, b) {
+  // returns true if b is newer than a
+  const p = (v) => String(v).split('.').map(Number)
+  const [a1 = 0, a2 = 0, a3 = 0] = p(a)
+  const [b1 = 0, b2 = 0, b3 = 0] = p(b)
+  return b1 !== a1 ? b1 > a1 : b2 !== a2 ? b2 > a2 : b3 > a3
+}
+
+function buildSettingsMenu() {
+  const cur = extensionVersion()
+  const latest = articleBannerLatestVersion
+  const isOutdated = cur && latest && semverNewer(cur, latest)
+
+  const zhBtn = barButton(contentLocale === 'zh-TW' ? '✓ 繁體中文' : '繁體中文', { truthshieldLocale: 'zh-TW' })
+  const enBtn = barButton(contentLocale === 'en' ? '✓ English' : 'English', { truthshieldLocale: 'en' })
+
+  const divider = styledElement('hr', 'border:0;border-top:1px solid rgba(255,255,255,.08);margin:4px 0;')
+
+  let versionItem
+  if (isOutdated) {
+    versionItem = document.createElement('a')
+    versionItem.href = articleBannerInstallUrl || 'https://truth-shield.otus.tw/extension-install'
+    versionItem.target = '_blank'
+    versionItem.rel = 'noopener noreferrer'
+    versionItem.className = 'ts-option'
+    versionItem.setAttribute('style', 'color:#fcd34d;text-decoration:none;display:block;')
+    versionItem.textContent = `${t('settingsUpdateAvailable')} v${cur} → v${latest}`
+  } else {
+    versionItem = barButton(cur ? `v${cur} · ${t('settingsUpToDate')}` : `v? · ${t('settingsUpToDate')}`, {})
+    versionItem.disabled = true
+    versionItem.style.opacity = '0.5'
+  }
+
+  const trigger = t('settingsMenu') + (isOutdated ? ' ●' : '')
+  return buildQuickMenu(trigger, 'settings', [zhBtn, enBtn, divider, versionItem], false)
 }
 
 function barButton(label, data = {}) {
@@ -2773,6 +2835,7 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
     buildQuickMenu(`事件 ${events.length}`, 'events', eventOptions, false),
     commentButton,
     fullPanelButton,
+    buildSettingsMenu(),
     buildArticleBannerCloseButton(),
   )
   row.append(left, center, right)
