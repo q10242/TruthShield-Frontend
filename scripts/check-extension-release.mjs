@@ -123,6 +123,21 @@ for (const path of walk(extensionDir).filter(isTextFile)) {
   }
 }
 
+const contentScriptPath = join(extensionDir, 'content.js')
+if (existsSync(contentScriptPath)) {
+  const contentScript = readFileSync(contentScriptPath, 'utf8')
+  for (const contract of [
+    ['attachShadow({ mode: \'open\' })', 'article bar must render in Shadow DOM'],
+    ['TRUTH_SHIELD_CHALLENGE_REQUEST', 'quick writes must request an invisible challenge'],
+    ['TRUTH_SHIELD_QUICK_ACTION_COMPLETED', 'focused quick actions must refresh the bar'],
+    ['[5, 10, 15].includes(articleReadSeconds)', 'article bar must synchronize reading checkpoints'],
+    ['challenge_retry', 'challenge rejection must support one retry'],
+    ['truthshieldMenuTrigger', 'article bar must expose accessible quick menus'],
+  ]) {
+    if (!contentScript.includes(contract[0])) fail(contract[1])
+  }
+}
+
 if (errors.length) {
   console.error('Extension release check failed:')
   for (const error of errors) {

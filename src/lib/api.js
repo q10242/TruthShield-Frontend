@@ -143,16 +143,8 @@ function forgetPublicReadCacheForUrl(url) {
   }
 }
 
-export function botChallengeToken() {
-  return localStorage.getItem('truthshield_challenge_token') || undefined
-}
-
 function withChallengePayload(payload = {}) {
-  const challengeToken = botChallengeToken()
-
-  return challengeToken
-    ? { ...payload, challenge_token: challengeToken }
-    : payload
+  return payload
 }
 
 export async function fetchBotProtectionConfig() {

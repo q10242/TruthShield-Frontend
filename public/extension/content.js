@@ -155,6 +155,7 @@ const telemetryCache = new Map()
 const telemetryQueue = []
 let telemetryFlushTimer = null
 let articleBanner = null
+let articleBannerRoot = null
 let articleBannerCoach = null
 let articleBannerUrl = ''
 let articleBannerDismissed = false
@@ -168,6 +169,12 @@ let articleBannerReactionFailed = false
 let articleBannerReactionSubmittingKey = ''
 let articleBannerReactionMessage = ''
 let articleBannerReactionMessageTimer = null
+let articleBannerTags = []
+let articleBannerEvidence = []
+let articleQuickBarEnabled = false
+let articleBannerMenuCloseTimer = null
+let pendingQuickAction = null
+let challengeFrame = null
 let votePanelFrame = null
 let votePanelBackdrop = null
 let votePanelShell = null
@@ -418,10 +425,66 @@ async function fetchApiViaBackground(path, options = {}) {
   })
 
   if (!response?.ok) {
-    throw new Error(response?.message || `status ${response?.status || 0}`)
+    const error = new Error(response?.payload?.message || response?.message || `status ${response?.status || 0}`)
+    error.status = Number(response?.status || 0)
+    error.payload = response?.payload || null
+    throw error
   }
 
   return response.payload
+}
+
+function ensureChallengeFrame() {
+  if (challengeFrame?.contentWindow && document.documentElement.contains(challengeFrame)) return challengeFrame
+  challengeFrame = document.createElement('iframe')
+  challengeFrame.src = `${TOOLTIP_ORIGIN}/iframe-challenge`
+  challengeFrame.title = 'TruthShield security verification'
+  challengeFrame.setAttribute('aria-hidden', 'true')
+  challengeFrame.style.cssText = 'position:fixed;width:1px;height:1px;left:-9999px;bottom:0;border:0;opacity:0;pointer-events:none;'
+  document.documentElement.appendChild(challengeFrame)
+  return challengeFrame
+}
+
+async function requestChallengeToken(action) {
+  const frame = ensureChallengeFrame()
+  if (!frame.contentWindow) throw new Error('Security verification is unavailable.')
+  if (!frame.dataset.truthshieldReady) {
+    await new Promise((resolve, reject) => {
+      const timer = window.setTimeout(() => reject(new Error('Security verification timed out.')), 8000)
+      frame.addEventListener('load', () => {
+        window.clearTimeout(timer)
+        frame.dataset.truthshieldReady = '1'
+        resolve()
+      }, { once: true })
+    })
+  }
+
+  return new Promise((resolve, reject) => {
+    const channel = new MessageChannel()
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const timer = window.setTimeout(() => {
+      channel.port1.close()
+      reject(new Error('Security verification timed out.'))
+    }, 12000)
+    channel.port1.onmessage = (event) => {
+      window.clearTimeout(timer)
+      channel.port1.close()
+      if (event.data?.ok) resolve(event.data.token || '')
+      else reject(new Error(event.data?.message || 'Security verification failed.'))
+    }
+    frame.contentWindow.postMessage({ type: 'TRUTH_SHIELD_CHALLENGE_REQUEST', action, requestId }, tooltipOrigin(), [channel.port2])
+  })
+}
+
+async function submitProtectedAction(action, submit) {
+  let token = await requestChallengeToken(action)
+  try {
+    return await submit(token, false)
+  } catch (error) {
+    if (error?.status !== 428 || error?.payload?.bot_protection?.retryable !== true) throw error
+    token = await requestChallengeToken(action)
+    return submit(token, true)
+  }
 }
 
 function clearBackgroundUrlCache(url = window.location.href) {
@@ -1743,10 +1806,11 @@ async function fetchArticleBannerReactions(url) {
 }
 
 async function submitArticleBannerReaction(key) {
+  if (articleReadSeconds < 15) return
   const targetUrl = canonicalStatusUrl(articleBannerUrl || window.location.href)
   const auth = await storedExtensionAuth()
   if (!auth?.token) {
-    openVotePanelModal(window.location.href, '/iframe-vote-panel', { tab: 'reactions' }, 'vote_panel_opened')
+    await deferQuickActionAfterLogin(() => submitArticleBannerReaction(key))
     return
   }
 
@@ -1754,32 +1818,30 @@ async function submitArticleBannerReaction(key) {
   const currentReaction = currentPayload?.my_reaction || currentPayload?.reaction || null
   let feelings = Array.isArray(currentReaction?.feelings) ? [...currentReaction.feelings] : []
   const needs = Array.isArray(currentReaction?.needs) ? [...currentReaction.needs].slice(0, 3) : []
-
-  if (feelings.includes(key)) {
-    const nextFeelings = feelings.filter((item) => item !== key)
-    feelings = nextFeelings.length || needs.length ? nextFeelings : feelings
-  } else {
-    feelings = [key, ...feelings.filter((item) => item !== key)].slice(0, 3)
-  }
+  feelings = [key]
 
   articleBannerReactionSubmittingKey = key
   articleBannerReactionMessage = ''
   renderArticleBannerFromCache(articleBannerUrl || window.location.href)
 
   try {
-    const payload = await fetchApiViaBackground('/api/reactions', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${auth.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: {
-        news_url: targetUrl,
-        feelings,
-        needs,
-      },
-    })
+    const payload = await submitProtectedAction('reader.reaction', (challengeToken, challengeRetry) => (
+      fetchApiViaBackground('/api/reactions', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${auth.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: {
+          news_url: targetUrl,
+          feelings,
+          needs,
+          challenge_token: challengeToken || undefined,
+          challenge_retry: challengeRetry || undefined,
+        },
+      })
+    ))
     const nextPayload = {
       ...payload,
       related_events: currentPayload?.related_events || payload.related_events || [],
@@ -1804,6 +1866,98 @@ async function submitArticleBannerReaction(key) {
   }
 }
 
+async function submitArticleBannerNeed(key) {
+  if (articleReadSeconds < 15) return
+  const targetUrl = canonicalStatusUrl(articleBannerUrl || window.location.href)
+  const auth = await storedExtensionAuth()
+  if (!auth?.token) {
+    await deferQuickActionAfterLogin(() => submitArticleBannerNeed(key))
+    return
+  }
+  const currentPayload = articleBannerReactionPayload(targetUrl)
+  const currentReaction = currentPayload?.my_reaction || currentPayload?.reaction || null
+  const feelings = Array.isArray(currentReaction?.feelings) ? currentReaction.feelings.slice(0, 1) : []
+  articleBannerReactionSubmittingKey = `need:${key}`
+  renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+  try {
+    const payload = await submitProtectedAction('reader.reaction', (challengeToken, challengeRetry) => fetchApiViaBackground('/api/reactions', {
+      method: 'POST',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${auth.token}`, 'Content-Type': 'application/json' },
+      body: { news_url: targetUrl, feelings, needs: [key], challenge_token: challengeToken || undefined, challenge_retry: challengeRetry || undefined },
+    }))
+    const nextPayload = { ...payload, related_events: currentPayload?.related_events || payload.related_events || [], my_reaction: payload.reaction || null }
+    clearBackgroundUrlCache(targetUrl)
+    setTooltipReactionCache(targetUrl, { state: 'success', payload: nextPayload })
+    articleBannerReactionFailed = false
+    articleBannerReactionMessage = t('readerReactionSaved')
+  } catch (error) {
+    articleBannerReactionFailed = true
+    articleBannerReactionMessage = t('readerReactionFailed')
+  } finally {
+    articleBannerReactionSubmittingKey = ''
+    renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+    scheduleArticleBannerReactionMessageClear()
+  }
+}
+
+async function deferQuickActionAfterLogin(callback) {
+  pendingQuickAction = { callback, expiresAt: Date.now() + 5 * 60 * 1000 }
+  window.open(`${TOOLTIP_ORIGIN}/login?redirect=${encodeURIComponent('/extension-auth-sync?close=1')}`, 'truthshield-login', 'width=460,height=720')
+  let attempts = 0
+  const timer = window.setInterval(async () => {
+    attempts += 1
+    const auth = await storedExtensionAuth().catch(() => null)
+    if (auth?.token && pendingQuickAction && pendingQuickAction.expiresAt > Date.now()) {
+      const action = pendingQuickAction.callback
+      pendingQuickAction = null
+      window.clearInterval(timer)
+      await syncArticleReadSession(Math.max(articleReadSeconds, 15))
+      action()
+    } else if (attempts >= 600 || !pendingQuickAction || pendingQuickAction.expiresAt <= Date.now()) {
+      pendingQuickAction = null
+      window.clearInterval(timer)
+    }
+  }, 500)
+}
+
+function tagNeedsFocusedForm(tag) {
+  return Boolean(tag?.evidence_url_required || tag?.evidence_note_required || tag?.requires_evidence || (tag?.evidence_requirement && tag.evidence_requirement !== 'optional'))
+}
+
+async function submitArticleBannerVote(tagId) {
+  if (articleReadSeconds < 15) return
+  const tag = articleBannerTags.find((item) => String(item.id) === String(tagId))
+  if (!tag) return
+  if (tagNeedsFocusedForm(tag)) {
+    openVotePanelModal(articleBannerUrl || window.location.href, '/iframe-quick-action', { tag_id: tag.id }, 'quick_vote_opened')
+    return
+  }
+  const auth = await storedExtensionAuth()
+  if (!auth?.token) {
+    await deferQuickActionAfterLogin(() => submitArticleBannerVote(tag.id))
+    return
+  }
+  articleBannerReactionSubmittingKey = `vote:${tag.id}`
+  renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+  try {
+    await submitProtectedAction('vote.create', (challengeToken, challengeRetry) => fetchApiViaBackground('/api/vote', {
+      method: 'POST',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${auth.token}`, 'Content-Type': 'application/json' },
+      body: { url: canonicalStatusUrl(articleBannerUrl || window.location.href), tag_id: tag.id, challenge_token: challengeToken || undefined, challenge_retry: challengeRetry || undefined },
+    }))
+    articleBannerReactionMessage = '投票已送出'
+    clearBackgroundUrlCache(articleBannerUrl || window.location.href)
+    await refreshArticleBannerStatus(articleBannerUrl || window.location.href)
+  } catch (error) {
+    articleBannerReactionFailed = true
+    articleBannerReactionMessage = error?.message || '投票失敗'
+  } finally {
+    articleBannerReactionSubmittingKey = ''
+    renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+    scheduleArticleBannerReactionMessageClear()
+  }
+}
+
 function ensureArticleBanner() {
   debugLog('ensureArticleBanner:start', { dismissed: articleBannerDismissed, href: window.location.href })
   if (articleBannerDismissed) {
@@ -1824,6 +1978,7 @@ function ensureArticleBanner() {
   removeArticleBanner()
 
   articleBanner = document.createElement('div')
+  articleBannerRoot = articleBanner.attachShadow({ mode: 'open' })
   articleBannerUrl = window.location.href
   const youtubeMode = isYouTubeVideoPage()
   const youtubeContainer = youtubeMode ? youtubeActionContainer() : null
@@ -1846,12 +2001,12 @@ function ensureArticleBanner() {
   articleBanner.style.font = '13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   articleBanner.style.colorScheme = 'normal'
   articleBanner.style.backdropFilter = 'blur(12px)'
-  articleBanner.style.cursor = 'pointer'
+  articleBanner.style.cursor = 'default'
   articleBanner.style.maxWidth = youtubeMode ? 'min(360px, calc(100vw - 32px))' : 'none'
   articleBanner.style.marginRight = youtubeContainer ? '8px' : '0'
   articleBanner.style.width = youtubeMode ? 'auto' : '100%'
   articleBanner.addEventListener('click', (event) => {
-    const target = event.target
+    const target = event.composedPath().find((node) => node?.dataset)
     if (target?.closest?.('[data-truthshield-close-banner]')) {
       event.preventDefault()
       event.stopPropagation()
@@ -1872,6 +2027,42 @@ function ensureArticleBanner() {
       return
     }
 
+    const needButton = event.composedPath().find((node) => node?.dataset?.truthshieldNeedKey)
+    if (needButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      submitArticleBannerNeed(needButton.dataset.truthshieldNeedKey)
+      return
+    }
+
+    const voteButton = event.composedPath().find((node) => node?.dataset?.truthshieldTagId)
+    if (voteButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      submitArticleBannerVote(voteButton.dataset.truthshieldTagId)
+      return
+    }
+
+    const panelButton = event.composedPath().find((node) => node?.dataset?.truthshieldPanelTab)
+    if (panelButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      openVotePanelModal(articleBannerUrl || window.location.href, '/iframe-vote-panel', { tab: panelButton.dataset.truthshieldPanelTab }, 'vote_panel_opened')
+      return
+    }
+
+    const menuButton = event.composedPath().find((node) => node?.dataset?.truthshieldMenuTrigger)
+    if (menuButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      const menu = menuButton.closest('.ts-menu')
+      articleBannerRoot.querySelectorAll('.ts-menu.is-pinned').forEach((item) => {
+        if (item !== menu) item.classList.remove('is-pinned')
+      })
+      menu?.classList.toggle('is-pinned')
+      return
+    }
+
     if (target?.closest?.('[data-truthshield-open-reactions]')) {
       event.preventDefault()
       event.stopPropagation()
@@ -1880,8 +2071,7 @@ function ensureArticleBanner() {
       return
     }
 
-    recordOnboardingStep('open_vote_panel').catch(() => null)
-    ensureVotePanelFrame()
+    if (event.composedPath().some((node) => node === articleBannerRoot)) return
   })
 
   if (youtubeContainer) {
@@ -1891,6 +2081,7 @@ function ensureArticleBanner() {
   }
   debugLog('ensureArticleBanner:inserted', { mode: articleBanner.dataset.truthshieldMode, inDom: document.documentElement.contains(articleBanner) })
   renderArticleBannerFromCache(window.location.href)
+  preloadArticleBannerActions(window.location.href)
   recordOnboardingStep('see_article_banner').catch(() => null)
   maybeShowArticleBannerCoach().catch(() => null)
 
@@ -1915,6 +2106,7 @@ function removeArticleBanner() {
 
   articleBannerCoach = null
   articleBanner = null
+  articleBannerRoot = null
   articleBannerUrl = ''
 }
 
@@ -2050,8 +2242,103 @@ function buildArticleBannerCloseButton(compact = false) {
   return button
 }
 
+function articleBannerStyleSheet() {
+  const style = document.createElement('style')
+  style.textContent = `
+    :host { all: initial; }
+    *, *::before, *::after { box-sizing: border-box; }
+    button, a { font: inherit; }
+    .ts-bar { display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(210px,1fr);align-items:center;gap:12px;max-width:1440px;margin:0 auto; }
+    .ts-zone { display:flex;align-items:center;gap:7px;min-width:0; }
+    .ts-zone.center { justify-content:center; }
+    .ts-zone.right { justify-content:flex-end; }
+    .ts-menu { position:relative; }
+    .ts-trigger { position:relative;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(255,255,255,.045);color:#e4e4e7;padding:6px 9px;font-weight:750;cursor:pointer;white-space:nowrap;overflow:hidden; }
+    .ts-trigger:hover, .ts-trigger:focus-visible { border-color:rgba(103,232,249,.55);outline:none; }
+    .ts-popover { display:none;position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);z-index:10;width:290px;max-height:min(480px,70vh);overflow:auto;border:1px solid rgba(255,255,255,.16);border-radius:11px;background:#18181b;padding:9px;box-shadow:0 18px 55px rgba(0,0,0,.5); }
+    .ts-menu:not(.locked):hover > .ts-popover, .ts-menu:not(.locked):focus-within > .ts-popover, .ts-menu:not(.locked).is-pinned > .ts-popover { display:block; }
+    .ts-zone.right .ts-popover { left:auto;right:0;transform:none; }
+    .ts-option { display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;border:0;border-radius:8px;background:transparent;color:#f4f4f5;padding:8px;text-align:left;cursor:pointer; }
+    .ts-option:hover, .ts-option:focus-visible { background:rgba(103,232,249,.12);outline:none; }
+    .ts-option small { color:#a1a1aa; }
+    .ts-progress { position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(9,9,11,.94);color:#a5f3fc;font-size:11px;pointer-events:auto; }
+    .ts-progress::after { content:'';position:absolute;left:0;bottom:0;height:2px;width:var(--read-progress);background:#22d3ee;transition:width 1s linear; }
+    .ts-status { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800; }
+    .ts-muted { color:#a1a1aa;font-size:11px; }
+    .ts-feedback { color:#86efac;font-size:11px;font-weight:750;white-space:nowrap; }
+    .ts-feedback.error { color:#fda4af; }
+    .ts-evidence { display:block;padding:8px;border-radius:8px;color:#e4e4e7;text-decoration:none; }
+    .ts-evidence:hover { background:rgba(255,255,255,.06); }
+    .ts-section { padding:6px 8px;color:#67e8f9;font-size:11px;font-weight:850;letter-spacing:.04em; }
+    @media (max-width:760px) {
+      .ts-bar { grid-template-columns:1fr auto;gap:7px; }
+      .ts-zone.center { grid-column:1 / -1;grid-row:2;justify-content:stretch; }
+      .ts-zone.center .ts-menu { flex:1; }
+      .ts-zone.center .ts-trigger { width:100%; }
+      .ts-zone.right .ts-trigger span { display:none; }
+      .ts-popover { position:fixed;top:72px;left:12px!important;right:12px!important;transform:none!important;width:auto; }
+    }
+  `
+  return style
+}
+
+function barButton(label, data = {}) {
+  const button = styledElement('button', '', label)
+  button.type = 'button'
+  button.className = 'ts-option'
+  Object.assign(button.dataset, data)
+  return button
+}
+
+function buildQuickMenu(label, kind, options, locked = true) {
+  const menu = document.createElement('div')
+  menu.className = 'ts-menu'
+  const trigger = styledElement('button', '', label)
+  trigger.type = 'button'
+  trigger.className = 'ts-trigger'
+  trigger.dataset.truthshieldMenuTrigger = kind
+  trigger.setAttribute('aria-haspopup', 'menu')
+  const popover = document.createElement('div')
+  popover.className = 'ts-popover'
+  popover.setAttribute('role', 'menu')
+  options.forEach((option) => popover.appendChild(option))
+  if (locked && articleReadSeconds < 15) {
+    menu.classList.add('locked')
+    const progress = styledElement('span', '', `閱讀中 ${articleReadSeconds}/15`)
+    progress.className = 'ts-progress'
+    progress.style.setProperty('--read-progress', `${Math.min(100, articleReadSeconds / 15 * 100)}%`)
+    trigger.disabled = true
+    trigger.appendChild(progress)
+  }
+  menu.append(trigger, popover)
+  return menu
+}
+
+function wireArticleBannerMenus() {
+  articleBannerRoot?.querySelectorAll('.ts-menu').forEach((menu) => {
+    menu.addEventListener('mouseenter', () => window.clearTimeout(articleBannerMenuCloseTimer))
+    menu.addEventListener('mouseleave', () => {
+      window.clearTimeout(articleBannerMenuCloseTimer)
+      articleBannerMenuCloseTimer = window.setTimeout(() => menu.classList.remove('is-pinned'), 250)
+    })
+  })
+}
+
+async function preloadArticleBannerActions(url) {
+  const canonical = canonicalStatusUrl(url)
+  const [tagPayload, evidencePayload, botConfig] = await Promise.all([
+    fetchApiViaBackground(`/api/tags?locale=${encodeURIComponent(contentLocale)}`).catch(() => ({ data: [] })),
+    fetchApiViaBackground(`/api/news/evidence?url=${encodeURIComponent(canonical)}&locale=${encodeURIComponent(contentLocale)}`).catch(() => ({ data: [] })),
+    fetchApiViaBackground('/api/bot/config').catch(() => ({ quick_action_bar_enabled: false })),
+  ])
+  articleBannerTags = Array.isArray(tagPayload) ? tagPayload : tagPayload?.data || []
+  articleBannerEvidence = Array.isArray(evidencePayload) ? evidencePayload : evidencePayload?.data || []
+  articleQuickBarEnabled = Boolean(botConfig?.quick_action_bar_enabled)
+  renderArticleBannerFromCache(url)
+}
+
 function renderArticleBanner(payload, loading = false, failed = false, reactionPayload = null) {
-  if (!articleBanner) {
+  if (!articleBanner || !articleBannerRoot) {
     return
   }
 
@@ -2081,21 +2368,88 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
     if (reactionControls) row.appendChild(reactionControls)
     row.appendChild(buildArticleBannerOpenChip(tone, true))
     row.appendChild(buildArticleBannerCloseButton(true))
-    replaceChildren(articleBanner, [row])
+    replaceChildren(articleBannerRoot, [articleBannerStyleSheet(), row])
     articleBanner.title = `${displayText} · ${secondaryText}`
     return
   }
 
-  const row = styledElement('div', 'display:flex;align-items:center;gap:10px;max-width:1180px;margin:0 auto;flex-wrap:wrap;')
-  row.appendChild(buildArticleBannerBrandLink(tone))
-  const copy = styledElement('div', 'min-width:140px;flex:1 1 220px;')
+  if (!articleQuickBarEnabled) {
+    const legacy = styledElement('div', 'display:flex;align-items:center;gap:10px;max-width:1180px;margin:0 auto;flex-wrap:wrap;')
+    legacy.appendChild(buildArticleBannerBrandLink(tone))
+    const legacyCopy = styledElement('div', 'min-width:140px;flex:1 1 220px;')
+    legacyCopy.appendChild(styledElement('div', 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.35;', displayText))
+    legacyCopy.appendChild(styledElement('div', 'margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;', secondaryText))
+    legacy.appendChild(legacyCopy)
+    if (reactionControls) legacy.appendChild(reactionControls)
+    legacy.appendChild(barButton(t('open'), { truthshieldPanelTab: 'results' }))
+    legacy.appendChild(buildArticleBannerCloseButton())
+    replaceChildren(articleBannerRoot, [articleBannerStyleSheet(), legacy])
+    return
+  }
+
+  const row = document.createElement('div')
+  row.className = 'ts-bar'
+  const left = document.createElement('div')
+  left.className = 'ts-zone'
+  left.appendChild(buildArticleBannerBrandLink(tone))
+  const copy = styledElement('div', 'min-width:80px;overflow:hidden;')
   copy.appendChild(styledElement('div', 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.35;', displayText))
   copy.appendChild(styledElement('div', 'margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;', secondaryText))
-  row.appendChild(copy)
-  if (reactionControls) row.appendChild(reactionControls)
-  row.appendChild(buildArticleBannerOpenChip(tone))
-  row.appendChild(buildArticleBannerCloseButton())
-  replaceChildren(articleBanner, [row])
+  left.appendChild(copy)
+  if (articleBannerReactionMessage) {
+    const feedback = styledElement('span', '', articleBannerReactionMessage)
+    feedback.className = `ts-feedback${articleBannerReactionFailed ? ' error' : ''}`
+    left.appendChild(feedback)
+  }
+
+  const voteOptions = articleBannerTags.map((tag) => {
+    const button = barButton(tag.name || tag.label || tag.slug, { truthshieldTagId: String(tag.id) })
+    if (tagNeedsFocusedForm(tag)) button.appendChild(styledElement('small', '', '需補資料'))
+    return button
+  })
+  const feelingOptions = articleBannerReactionOptions(reactionPayload).map((option) => (
+    barButton(`${option.emoji || ''} ${option.label || option.key}`, { truthshieldReactionKey: option.key })
+  ))
+  const needOptions = (reactionPayload?.options?.needs || []).map((option) => (
+    barButton(option.label || option.key, { truthshieldNeedKey: option.key })
+  ))
+  const center = document.createElement('div')
+  center.className = 'ts-zone center'
+  center.append(
+    buildQuickMenu('快速投票', 'vote', voteOptions),
+    buildQuickMenu('心情', 'feeling', feelingOptions),
+    buildQuickMenu('想看脈絡', 'need', needOptions),
+  )
+
+  const evidenceOptions = []
+  evidenceOptions.push(styledElement('div', '', `證據 ${articleBannerEvidence.length} 筆`))
+  evidenceOptions[0].className = 'ts-section'
+  articleBannerEvidence.slice(0, 3).forEach((item) => {
+    const link = styledElement('a', '', item.evidence_note || item.title || item.evidence_url || '公開證據')
+    link.className = 'ts-evidence'
+    link.href = item.evidence_url || '#'
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+    evidenceOptions.push(link)
+  })
+  evidenceOptions.push(barButton('查看／補證據', { truthshieldPanelTab: 'evidence' }))
+  const eventOptions = []
+  const events = reactionPayload?.related_events || []
+  events.slice(0, 4).forEach((event) => eventOptions.push(barButton(event.name || event.title || '相關事件', { truthshieldPanelTab: 'events' })))
+  if (!eventOptions.length) eventOptions.push(styledElement('div', 'padding:8px;color:#a1a1aa;', '尚無相關事件'))
+  eventOptions.push(barButton('時間線與關係圖', { truthshieldPanelTab: 'events' }))
+
+  const right = document.createElement('div')
+  right.className = 'ts-zone right'
+  right.append(
+    buildQuickMenu(`證據 ${articleBannerEvidence.length}`, 'evidence', evidenceOptions, false),
+    buildQuickMenu(`事件 ${events.length}`, 'events', eventOptions, false),
+    barButton('完整面板', { truthshieldPanelTab: 'results' }),
+    buildArticleBannerCloseButton(),
+  )
+  row.append(left, center, right)
+  replaceChildren(articleBannerRoot, [articleBannerStyleSheet(), row])
+  wireArticleBannerMenus()
 }
 
 function renderArticleBannerFromCache(url) {
@@ -2539,6 +2893,14 @@ function startArticleReadTimer() {
 
     articleReadSeconds += 1
 
+    if (articleReadSeconds <= 15) {
+      renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+    }
+
+    if ([5, 10, 15].includes(articleReadSeconds)) {
+      syncArticleReadSession(articleReadSeconds).catch(() => null)
+    }
+
     if (votePanelFrame?.contentWindow && articleReadSeconds % 5 === 0) {
       votePanelFrame.contentWindow.postMessage(
         {
@@ -2550,6 +2912,23 @@ function startArticleReadTimer() {
       )
     }
   }, 1000)
+}
+
+async function syncArticleReadSession(secondsRead = articleReadSeconds) {
+  if (document.hidden) return null
+  const auth = await storedExtensionAuth()
+  if (!auth?.token) return null
+  return fetchApiViaBackground('/api/news/read-session', {
+    method: 'POST',
+    headers: { Accept: 'application/json', Authorization: `Bearer ${auth.token}`, 'Content-Type': 'application/json' },
+    body: {
+      url: canonicalStatusUrl(articleBannerUrl || window.location.href),
+      title_snapshot: document.title || undefined,
+      canonical_url: document.querySelector('link[rel="canonical"]')?.href || undefined,
+      seconds_read: Number(secondsRead || 0),
+      visible: !document.hidden,
+    },
+  })
 }
 
 function stopArticleReadTimer() {
@@ -2748,6 +3127,24 @@ window.addEventListener('message', (event) => {
     clearBackgroundUrlCache(event.data.url || votePanelUrl || window.location.href)
     refreshArticleBannerStatus(event.data.url || votePanelUrl || window.location.href, event.data.status || null)
   }
+
+  if (event.data?.type === 'TRUTH_SHIELD_QUICK_ACTION_COMPLETED') {
+    clearBackgroundUrlCache(event.data.url || votePanelUrl || window.location.href)
+    refreshArticleBannerStatus(event.data.url || votePanelUrl || window.location.href)
+    closeVotePanelModal()
+  }
+})
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return
+  const pinned = articleBannerRoot?.querySelector('.ts-menu.is-pinned')
+  if (pinned) pinned.classList.remove('is-pinned')
+  else if (votePanelBackdrop) closeVotePanelModal()
+})
+
+document.addEventListener('click', (event) => {
+  if (articleBanner?.contains(event.target)) return
+  articleBannerRoot?.querySelectorAll('.ts-menu.is-pinned').forEach((menu) => menu.classList.remove('is-pinned'))
 })
 
 window.addEventListener('resize', () => {

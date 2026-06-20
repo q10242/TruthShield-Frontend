@@ -30,6 +30,7 @@ import {
   submitReaderReaction,
 } from '../lib/api'
 import { evidenceUploadConfig, uploadEvidenceImage, validateEvidenceImage } from '../lib/evidenceUpload'
+import { submitWithBotChallenge } from '../lib/botChallenge'
 import { trackEvent } from '../lib/traffic'
 import { useI18n } from '../i18n'
 
@@ -789,12 +790,16 @@ export function useVotePanel(route) {
     reactionMessage.value = ''
     try {
       const currentRelatedEvents = reactionSummary.value?.related_events || relatedEvents.value
-      const payload = await submitReaderReaction(token.value, {
-        news_url: newsUrl.value,
-        event_id: selectedReactionEventId.value || undefined,
-        feelings: selectedFeelings.value,
-        needs: selectedNeeds.value,
-      })
+      const payload = await submitWithBotChallenge('reader.reaction', (challengeToken, challengeRetry) => (
+        submitReaderReaction(token.value, {
+          news_url: newsUrl.value,
+          event_id: selectedReactionEventId.value || undefined,
+          feelings: selectedFeelings.value,
+          needs: selectedNeeds.value,
+          challenge_token: challengeToken || undefined,
+          challenge_retry: challengeRetry || undefined,
+        })
+      ))
       applyReactionPayload({ ...payload, related_events: currentRelatedEvents })
       reactionMessage.value = t('votePanel.readerReactionSaved')
       trackEvent('reader_reaction_submitted', {
@@ -961,13 +966,17 @@ export function useVotePanel(route) {
 
     try {
       const previousAchievementCount = achievementCount.value
-      await createVote(token.value, {
-        url: newsUrl.value,
-        tag_id: selectedTagId.value,
-        secondary_tag_ids: selectedSecondaryTagIds.value,
-        evidence_url: evidenceUrl.value.trim() || undefined,
-        evidence_note: evidenceNote.value.trim() || undefined,
-      })
+      await submitWithBotChallenge('vote.create', (challengeToken, challengeRetry) => (
+        createVote(token.value, {
+          url: newsUrl.value,
+          tag_id: selectedTagId.value,
+          secondary_tag_ids: selectedSecondaryTagIds.value,
+          evidence_url: evidenceUrl.value.trim() || undefined,
+          evidence_note: evidenceNote.value.trim() || undefined,
+          challenge_token: challengeToken || undefined,
+          challenge_retry: challengeRetry || undefined,
+        })
+      ))
 
       voteMessage.value = t('votePanel.voteSuccess')
       trackEvent('vote_completed', {
@@ -1082,10 +1091,14 @@ export function useVotePanel(route) {
     }
 
     try {
-      await reportEvidence(token.value, item.id, {
-        reason: 'needs_review',
-        note: reportReasons.value.find((reason) => reason.value === 'needs_review')?.label || t('votePanel.reportNote'),
-      })
+      await submitWithBotChallenge('evidence.report', (challengeToken, challengeRetry) => (
+        reportEvidence(token.value, item.id, {
+          reason: 'needs_review',
+          note: reportReasons.value.find((reason) => reason.value === 'needs_review')?.label || t('votePanel.reportNote'),
+          challenge_token: challengeToken || undefined,
+          challenge_retry: challengeRetry || undefined,
+        })
+      ))
       reportMessage.value = t('votePanel.reportSuccess')
       trackEvent('evidence_report_completed', { feature: 'evidence_report', url: newsUrl.value })
     } catch (err) {
@@ -1152,7 +1165,13 @@ export function useVotePanel(route) {
       const verdict = helpful
         ? { credibility: 4, relevance: 4, direction: 'supports' }
         : { credibility: 2, relevance: 3, direction: 'contextual' }
-      await reactToEvidence(token.value, item.id, helpful, verdict)
+      await submitWithBotChallenge('evidence.react', (challengeToken, challengeRetry) => (
+        reactToEvidence(token.value, item.id, helpful, {
+          ...verdict,
+          challenge_token: challengeToken || undefined,
+          challenge_retry: challengeRetry || undefined,
+        })
+      ))
       evidence.value = await fetchNewsEvidence(newsUrl.value)
       trackEvent('evidence_reaction_completed', { feature: 'evidence_reaction', url: newsUrl.value, metadata: { helpful, direction: verdict.direction } })
     } catch (err) {

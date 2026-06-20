@@ -225,6 +225,8 @@ const router = createRouter({
     { path: '/iframe-tooltip', name: 'iframe-tooltip', component: IframeTooltipView },
     { path: '/iframe-vote-panel', name: 'iframe-vote-panel', component: IframeVotePanelView },
     { path: '/iframe-event-pin', name: 'iframe-event-pin', component: IframeEventPinView },
+    { path: '/iframe-challenge', name: 'iframe-challenge', component: () => import('../views/IframeChallengeView.vue') },
+    { path: '/iframe-quick-action', name: 'iframe-quick-action', component: () => import('../views/IframeQuickActionView.vue') },
   ],
 })
 
