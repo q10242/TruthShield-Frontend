@@ -94,7 +94,7 @@ onMounted(load)
             <div class="rounded-md border border-white/10 p-3">
               <p class="text-xs text-zinc-500">占比</p>
               <p class="mt-1 text-lg font-semibold text-white">
-                {{ topTag(row.stats) ? `${topTag(row.stats).ratio}%` : (row.stats?.ratio_available ? '—' : `樣本不足`) }}
+                {{ !row.stats?.ratio_available ? '樣本不足' : (topTag(row.stats) ? `${topTag(row.stats).ratio}%` : '—') }}
               </p>
             </div>
             <div class="rounded-md border border-white/10 p-3">
@@ -103,7 +103,7 @@ onMounted(load)
             </div>
           </div>
           <!-- Mini tag distribution bar -->
-          <div v-if="row.stats?.tag_distribution?.length > 1" class="mt-3 flex h-1.5 w-full overflow-hidden rounded-full">
+          <div v-if="row.stats?.ratio_available && row.stats?.tag_distribution?.length > 1" class="mt-3 flex h-1.5 w-full overflow-hidden rounded-full">
             <div
               v-for="tag in row.stats.tag_distribution.slice(0, 8)"
               :key="tag.tag_id"

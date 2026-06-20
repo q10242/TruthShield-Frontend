@@ -19,7 +19,11 @@ const periodData = computed(() => {
   if (p) return p
   return {
     article_count: stats.value.article_count,
+    labeled_article_count: stats.value.labeled_article_count,
     tag_distribution: stats.value.tag_distribution || [],
+    sample_confidence: stats.value.sample_confidence,
+    min_sample_size: stats.value.min_sample_size,
+    ratio_available: stats.value.ratio_available,
   }
 })
 
@@ -116,7 +120,7 @@ onMounted(load)
         <div class="mt-4 grid gap-4 lg:grid-cols-[200px_1fr]">
           <!-- Pie chart -->
           <div class="flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] p-4">
-            <div v-if="pieSlices.length">
+            <div v-if="periodData?.ratio_available && pieSlices.length">
               <svg viewBox="0 0 180 180" class="w-[160px] h-[160px]" xmlns="http://www.w3.org/2000/svg">
                 <path
                   v-for="(slice, i) in pieSlices"
@@ -130,6 +134,9 @@ onMounted(load)
               </svg>
               <p class="mt-2 text-center text-xs text-zinc-500">{{ periodData?.article_count || 0 }} 篇</p>
             </div>
+            <p v-else-if="periodData?.tag_distribution?.length" class="text-center text-sm text-zinc-400">
+              樣本不足<br><span class="text-xs text-zinc-500">至少 {{ periodData?.min_sample_size || 10 }} 篇</span>
+            </p>
             <p v-else class="text-sm text-zinc-500">尚無投票資料</p>
           </div>
 
@@ -145,12 +152,12 @@ onMounted(load)
                 <span class="inline-block size-2.5 shrink-0 rounded-full" :style="{ background: tag.color || '#67e8f9' }" />
                 <span class="flex-1 min-w-0 truncate text-sm text-zinc-200">{{ tag.name }}</span>
                 <span class="shrink-0 text-sm text-zinc-400">{{ tag.article_count }} 篇</span>
-                <div class="w-20 shrink-0">
+                <div v-if="periodData?.ratio_available" class="w-20 shrink-0">
                   <div class="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
                     <div class="h-full rounded-full transition-all" :style="{ width: `${tag.ratio}%`, background: tag.color || '#67e8f9' }" />
                   </div>
                 </div>
-                <span class="w-10 shrink-0 text-right text-xs text-zinc-500">{{ tag.ratio }}%</span>
+                <span class="w-16 shrink-0 text-right text-xs text-zinc-500">{{ periodData?.ratio_available ? `${tag.ratio}%` : '樣本不足' }}</span>
               </div>
             </div>
             <p v-else class="text-sm text-zinc-500">此時間段尚無資料</p>
