@@ -2232,11 +2232,12 @@ function ensureArticleBanner() {
       if (!auth?.token) return
       const badgeId = badgeButton.dataset.truthshieldBadgeId
       const badgeIdNum = badgeId ? parseInt(badgeId, 10) : null
-      // Optimistic update
+      // Optimistic update — also persist to chrome.storage so refresh keeps the selection
       if (auth.user) {
         auth.user.selected_badge_id = badgeIdNum
         auth.user.selected_badge = badgeIdNum ? (articleBannerUserBadges.find((b) => b.id === badgeIdNum) || null) : null
       }
+      sendRuntimeMessage({ type: 'TRUTH_SHIELD_SET_AUTH', auth }).catch(() => null)
       renderArticleBannerFromCache(articleBannerUrl || window.location.href)
       fetchApiViaBackground('/api/me/profile', {
         method: 'PUT',
