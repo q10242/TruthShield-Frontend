@@ -966,7 +966,7 @@ export function useVotePanel(route) {
 
     try {
       const previousAchievementCount = achievementCount.value
-      await submitWithBotChallenge('vote.create', (challengeToken, challengeRetry) => (
+      const voteResult = await submitWithBotChallenge('vote.create', (challengeToken, challengeRetry) => (
         createVote(token.value, {
           url: newsUrl.value,
           tag_id: selectedTagId.value,
@@ -978,7 +978,8 @@ export function useVotePanel(route) {
         })
       ))
 
-      voteMessage.value = t('votePanel.voteSuccess')
+      const cancelled = voteResult?.vote === null
+      voteMessage.value = cancelled ? t('votePanel.voteCancelled') : t('votePanel.voteSuccess')
       trackEvent('vote_completed', {
         feature: 'vote',
         url: newsUrl.value,
