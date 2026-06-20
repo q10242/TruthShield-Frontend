@@ -2158,12 +2158,7 @@ function ensureArticleBanner() {
     if (evidenceButton) {
       event.preventDefault()
       event.stopPropagation()
-      const tagId = articleBannerUserVote?.tag?.id
-      if (tagId) {
-        openVotePanelModal(articleBannerUrl || window.location.href, '/iframe-quick-action', { tag_id: tagId }, 'quick_evidence_opened')
-      } else {
-        openVotePanelModal(articleBannerUrl || window.location.href, '/iframe-vote-panel', { tab: 'evidence' }, 'vote_panel_opened')
-      }
+      openVotePanelModal(articleBannerUrl || window.location.href, '/iframe-evidence', {}, 'evidence_panel_opened')
       return
     }
 
@@ -3446,6 +3441,13 @@ window.addEventListener('message', (event) => {
   if (event.data?.type === 'TRUTH_SHIELD_VOTE_UPDATED') {
     clearBackgroundUrlCache(event.data.url || votePanelUrl || window.location.href)
     refreshArticleBannerStatus(event.data.url || votePanelUrl || window.location.href, event.data.status || null)
+  }
+
+  if (event.data?.type === 'TRUTH_SHIELD_OPEN_VOTE_PANEL') {
+    const tab = event.data.tab || 'evidence'
+    const url = votePanelUrl || articleBannerUrl || window.location.href
+    closeVotePanelModal()
+    openVotePanelModal(url, '/iframe-vote-panel', { tab }, 'vote_panel_opened')
   }
 
   if (event.data?.type === 'TRUTH_SHIELD_QUICK_ACTION_COMPLETED') {
