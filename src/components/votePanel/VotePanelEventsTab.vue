@@ -97,7 +97,7 @@ const sourceTypeLabels = {
         <input v-model="vp.pinNewEventName.value" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="vp.t('votePanel.eventName')" />
         <textarea v-model="vp.pinNewEventSummary.value" rows="2" class="w-full resize-none rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300" :placeholder="vp.t('votePanel.eventSummary')"></textarea>
         <select v-model="vp.pinNewEventPrimaryCategory.value" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300">
-          <option value="">{{ vp.locale.value === 'en' ? 'Uncategorized' : '未分類' }}</option>
+          <option value="">{{ vp.t('votePanel.eventUncategorized') }}</option>
           <option v-for="option in vp.pinEventOptions.value.primary_categories" :key="option.value" :value="option.value">{{ option.label }}</option>
         </select>
         <select v-model="vp.pinNewEventProgressStatus.value" class="w-full rounded border border-white/10 bg-zinc-900 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-300">

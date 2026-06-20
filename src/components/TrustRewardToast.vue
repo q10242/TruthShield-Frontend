@@ -1,6 +1,9 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { fetchNotifications, markNotificationRead } from '../lib/api'
+import { useI18n } from '../i18n'
+
+const { t } = useI18n()
 
 const TOKEN_KEY = 'truthshield_api_token'
 const SEEN_KEY = 'truthshield_seen_reward_notifications'
@@ -114,12 +117,12 @@ onBeforeUnmount(() => {
             <p class="text-sm font-semibold text-white">{{ toast.title }}</p>
             <p class="mt-1 text-sm leading-6 text-zinc-300">{{ toast.body }}</p>
           </div>
-          <button class="rounded-md border border-white/10 px-2 py-1 text-xs font-semibold text-zinc-300 hover:border-emerald-300/50 hover:text-emerald-100" @click="dismiss">OK</button>
+          <button class="rounded-md border border-white/10 px-2 py-1 text-xs font-semibold text-zinc-300 hover:border-emerald-300/50 hover:text-emerald-100" @click="dismiss">{{ t('common.dismiss') }}</button>
         </div>
         <div class="mt-4 flex items-center justify-between gap-3">
-          <p class="text-xs text-zinc-500">New trust score {{ rewardScore.toFixed(2) }}</p>
+          <p class="text-xs text-zinc-500">{{ t('common.newTrustScore') }} {{ rewardScore.toFixed(2) }}</p>
           <a v-if="toast.action_url" class="text-xs font-semibold text-emerald-200 hover:text-emerald-100" :href="toast.action_url" target="_blank" rel="noreferrer" @click="dismiss">
-            Open
+            {{ t('common.open') }}
           </a>
         </div>
       </div>

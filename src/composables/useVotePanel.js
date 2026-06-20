@@ -542,9 +542,9 @@ export function useVotePanel(route) {
       profile.value.selected_badge = payload.selected_badge
       user.value = { ...user.value, ...payload.user, selected_badge: payload.selected_badge }
       localStorage.setItem(USER_KEY, JSON.stringify(user.value))
-      selectedBadgeMessage.value = locale.value === 'en' ? 'Badge updated.' : '展示徽章已更新。'
+      selectedBadgeMessage.value = t('votePanel.badgeUpdated')
     } catch (err) {
-      selectedBadgeError.value = err.message || (locale.value === 'en' ? 'Failed to update badge.' : '徽章更新失敗。')
+      selectedBadgeError.value = err.message || t('votePanel.badgeUpdateFailed')
     } finally {
       selectedBadgeSaving.value = false
       notifyHeight()
@@ -1323,7 +1323,7 @@ export function useVotePanel(route) {
         eventGraph.value = await fetchEventGraph(ev.id)
       }
     } catch (err) {
-      eventDetailError.value = err.message || (locale.value === 'en' ? 'Failed to load' : '載入失敗')
+      eventDetailError.value = err.message || t('votePanel.eventLoadFailed')
     } finally {
       eventDetailLoading.value = false
       notifyHeight()
@@ -1373,7 +1373,7 @@ export function useVotePanel(route) {
     try {
       let eventId = pinSelectedEventId.value
       if (!eventId) {
-        if (!pinNewEventName.value.trim()) throw new Error(locale.value === 'en' ? 'Enter an event name.' : '請填寫事件名稱。')
+        if (!pinNewEventName.value.trim()) throw new Error(t('votePanel.pinEnterEventName'))
         const created = await createEvent(token.value, {
           name: pinNewEventName.value.trim(),
           summary: pinNewEventSummary.value.trim() || undefined,
@@ -1389,8 +1389,8 @@ export function useVotePanel(route) {
       if (pinMode.value === 'graph') {
         await loadPinEventGraph(eventId)
         if (pinGraphMode.value === 'relationship') {
-          if (!pinFromEntityId.value || !pinToEntityId.value) throw new Error(locale.value === 'en' ? 'Select both entities.' : '請選擇兩個節點。')
-          if (!pinRelType.value.trim()) throw new Error(locale.value === 'en' ? 'Enter a relationship type.' : '請填寫關係類型。')
+          if (!pinFromEntityId.value || !pinToEntityId.value) throw new Error(t('votePanel.pinSelectBothEntities'))
+          if (!pinRelType.value.trim()) throw new Error(t('votePanel.pinEnterRelType'))
           await createEventRelationship(token.value, eventId, {
             from_entity_id: pinFromEntityId.value,
             to_entity_id: pinToEntityId.value,
@@ -1401,9 +1401,9 @@ export function useVotePanel(route) {
             source_url: pinSourceUrl.value.trim() || newsUrl.value,
             news_url: newsUrl.value,
           })
-          pinMessage.value = locale.value === 'en' ? 'Relationship added.' : '已加入關係。'
+          pinMessage.value = t('votePanel.pinRelationshipAdded')
         } else {
-          if (!pinEntityName.value.trim()) throw new Error(locale.value === 'en' ? 'Enter a person or organization name.' : '請填寫人名或組織名。')
+          if (!pinEntityName.value.trim()) throw new Error(t('votePanel.pinEnterEntityName'))
           if (!pinEventGraph.value.entities?.length) {
             await createEventEntity(token.value, eventId, {
               name: pinEntityName.value.trim(),
@@ -1412,7 +1412,7 @@ export function useVotePanel(route) {
               source_url: pinSourceUrl.value.trim() || newsUrl.value,
             })
           } else {
-            if (!pinRelType.value.trim()) throw new Error(locale.value === 'en' ? 'Enter a relationship type.' : '請填寫關係類型。')
+            if (!pinRelType.value.trim()) throw new Error(t('votePanel.pinEnterRelType'))
             await createEventRelationship(token.value, eventId, {
               from_entity_name: pinEntityName.value.trim(),
               from_entity_type: pinEntityType.value,
@@ -1425,7 +1425,7 @@ export function useVotePanel(route) {
               news_url: newsUrl.value,
             })
           }
-          pinMessage.value = locale.value === 'en' ? 'Added to graph.' : '已加入關係圖。'
+          pinMessage.value = t('votePanel.pinAddedToGraph')
         }
         pinEntityName.value = ''
         pinRelType.value = ''
@@ -1441,7 +1441,7 @@ export function useVotePanel(route) {
           source_url: pinSourceUrl.value.trim() || newsUrl.value,
           news_url: newsUrl.value,
         })
-        pinMessage.value = locale.value === 'en' ? 'Added to event timeline. Edit log saved.' : '已加入事件時間線，編輯紀錄已保存。'
+        pinMessage.value = t('votePanel.pinAddedToTimeline')
         pinEntrySummary.value = ''
       }
       pinNewEventName.value = ''
@@ -1449,7 +1449,7 @@ export function useVotePanel(route) {
       await loadData()
       pinSearchEvents.value = relatedEvents.value
     } catch (err) {
-      pinError.value = err.message || (locale.value === 'en' ? 'Failed to pin.' : '提交失敗。')
+      pinError.value = err.message || t('votePanel.pinFailed')
     } finally {
       pinSubmitting.value = false
       notifyHeight()

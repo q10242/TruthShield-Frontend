@@ -279,6 +279,27 @@ const contentMessages = {
     settingsBadgeLabel: '徽章',
     settingsBadgeNone: '（無）',
     settingsTrust: '信用',
+    fallbackName: '讀者',
+    achievementSoon: '即將解鎖',
+    voteSubmitted: '投票已送出',
+    readRequired: '需閱讀 {n} 秒後才可投票',
+    readProgress: '閱讀中 {current}/{total}',
+    evidenceCount: '證據 {n} 筆',
+    evidencePublic: '公開證據',
+    evidenceViewAdd: '查看／補證據',
+    eventFallback: '相關事件',
+    eventEmpty: '尚無相關事件',
+    eventViewAll: '查看所有事件 →',
+    commentLabel: '留言',
+    fullPanel: '完整面板',
+    evidenceMenuLabel: '證據 {n}',
+    eventMenuLabel: '事件 {n}',
+    quickVote: '快速投票',
+    needsEvidence: '需補資料',
+    voteUserCurrent: '你已投：{name}',
+    feelingDefault: '心情',
+    needDefault: '想看脈絡',
+    needLabelMore: '{label} 等{n}項',
   },
   en: {
     checkingLink: 'Checking this link...',
@@ -323,11 +344,37 @@ const contentMessages = {
     settingsBadgeLabel: 'Badge',
     settingsBadgeNone: '(None)',
     settingsTrust: 'Trust',
+    fallbackName: 'Reader',
+    achievementSoon: 'Coming up',
+    voteSubmitted: 'Vote submitted',
+    readRequired: '{n} more seconds to vote',
+    readProgress: 'Reading {current}/{total}',
+    evidenceCount: '{n} evidence items',
+    evidencePublic: 'Public evidence',
+    evidenceViewAdd: 'View / add evidence',
+    eventFallback: 'Related event',
+    eventEmpty: 'No related events yet',
+    eventViewAll: 'View all events →',
+    commentLabel: 'Comments',
+    fullPanel: 'Full panel',
+    evidenceMenuLabel: 'Evidence {n}',
+    eventMenuLabel: 'Events {n}',
+    quickVote: 'Quick vote',
+    needsEvidence: 'Needs evidence',
+    voteUserCurrent: 'Your vote: {name}',
+    feelingDefault: 'Mood',
+    needDefault: 'Want context',
+    needLabelMore: '{label} and {n} more',
   },
 }
 
 function t(key) {
   return contentMessages[contentLocale]?.[key] || contentMessages['zh-TW'][key] || key
+}
+
+function tf(key, params = {}) {
+  const msg = contentMessages[contentLocale]?.[key] || contentMessages['zh-TW'][key] || key
+  return msg.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ''))
 }
 
 function extensionVersion() {
@@ -2062,7 +2109,7 @@ function tagNeedsFocusedForm(tag) {
 async function submitArticleBannerVote(tagId) {
   if (articleReadSeconds < 15 && !articleBannerUserVote) {
     articleBannerReactionFailed = true
-    articleBannerReactionMessage = `需閱讀 ${15 - articleReadSeconds} 秒後才可投票`
+    articleBannerReactionMessage = tf('readRequired', { n: 15 - articleReadSeconds })
     renderArticleBannerFromCache(articleBannerUrl || window.location.href)
     scheduleArticleBannerReactionMessageClear()
     return
@@ -2087,7 +2134,7 @@ async function submitArticleBannerVote(tagId) {
       body: { url: canonicalStatusUrl(articleBannerUrl || window.location.href), tag_id: tag.id, challenge_token: challengeToken || undefined, challenge_retry: challengeRetry || undefined },
     }))
     articleBannerUserVote = { tag }
-    articleBannerReactionMessage = '投票已送出'
+    articleBannerReactionMessage = t('voteSubmitted')
     articleBannerReactionFailed = false
     renderArticleBannerFromCache(articleBannerUrl || window.location.href)
     clearBackgroundUrlCache(articleBannerUrl || window.location.href)
@@ -2101,7 +2148,7 @@ async function submitArticleBannerVote(tagId) {
     } else if (errorCode === 'read_required' || status === 428) {
       const need = error?.payload?.minimum_read_seconds || 15
       const has = error?.payload?.seconds_read || articleReadSeconds || 0
-      articleBannerReactionMessage = `需閱讀 ${need - has} 秒後才可投票`
+      articleBannerReactionMessage = tf('readRequired', { n: need - has })
     } else {
       articleBannerReactionMessage = error?.message || t('voteFailed')
     }
@@ -2563,7 +2610,7 @@ function buildSettingsMenu() {
 
     const cardInner = styledElement('div', 'padding:10px 12px 8px;')
     const nameRow = styledElement('div', 'display:flex;align-items:center;gap:6px;margin-bottom:4px;')
-    nameRow.appendChild(styledElement('span', 'font-size:14px;font-weight:800;color:#f4f4f5;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', user.display_name || '讀者'))
+    nameRow.appendChild(styledElement('span', 'font-size:14px;font-weight:800;color:#f4f4f5;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', user.display_name || t('fallbackName')))
     if (badge) {
       const chip = styledElement('span', `flex-shrink:0;border-radius:4px;padding:1px 6px;background:${badgeColor};color:#09090b;font-size:10px;font-weight:800;`, badge.name)
       nameRow.appendChild(chip)
@@ -2587,7 +2634,7 @@ function buildSettingsMenu() {
       const achColor = ach.color || '#67e8f9'
       const pct = Math.max(1, Math.min(100, ach.percentage))
       const progressCard = styledElement('div', 'margin:0 0 4px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:9px 12px;')
-      progressCard.appendChild(styledElement('div', 'font-size:10px;font-weight:700;letter-spacing:.06em;color:#52525b;text-transform:uppercase;margin-bottom:5px;', '即將解鎖'))
+      progressCard.appendChild(styledElement('div', 'font-size:10px;font-weight:700;letter-spacing:.06em;color:#52525b;text-transform:uppercase;margin-bottom:5px;', t('achievementSoon')))
       progressCard.appendChild(styledElement('div', 'font-size:12px;font-weight:700;color:#d4d4d8;margin-bottom:2px;', ach.name))
       progressCard.appendChild(styledElement('div', 'font-size:10px;color:#71717a;margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;', ach.description || ''))
       const track = styledElement('div', 'border-radius:99px;background:rgba(255,255,255,.08);height:6px;overflow:hidden;margin-bottom:4px;')
@@ -2921,7 +2968,7 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
   copy.appendChild(styledElement('div', 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;line-height:1.35;', displayText))
   const myVoteName = articleBannerUserVote?.tag?.name
   copy.appendChild(myVoteName
-    ? styledElement('div', 'margin-top:1px;color:#67e8f9;font-size:11px;line-height:1.25;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', `你已投：${myVoteName}`)
+    ? styledElement('div', 'margin-top:1px;color:#67e8f9;font-size:11px;line-height:1.25;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', tf('voteUserCurrent', { name: myVoteName }))
     : styledElement('div', 'margin-top:1px;color:#a1a1aa;font-size:11px;line-height:1.25;', secondaryText))
   left.appendChild(copy)
   if (articleBannerReactionMessage) {
@@ -2932,7 +2979,7 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
 
   const voteOptions = articleBannerTags.map((tag) => {
     const button = barButton(tag.name || tag.label || tag.slug, { truthshieldTagId: String(tag.id) })
-    if (tagNeedsFocusedForm(tag)) button.appendChild(styledElement('small', '', '需補資料'))
+    if (tagNeedsFocusedForm(tag)) button.appendChild(styledElement('small', '', t('needsEvidence')))
     if (articleBannerUserVote?.tag?.id && String(articleBannerUserVote.tag.id) === String(tag.id)) button.classList.add('selected')
     return button
   })
@@ -2971,25 +3018,25 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
       ? `${myFeelingOptions[0].emoji || ''} ${myFeelingOptions[0].label}`
       : topCommunityFeeling
         ? `${topCommunityFeeling.emoji || ''} ${topCommunityFeeling.label} (${topCommunityFeeling.count})`
-        : '心情'
+        : t('feelingDefault')
   const needLabel = myNeedSelectedOptions.length > 1
-    ? `${myNeedSelectedOptions[0].label} 等${myNeedSelectedOptions.length}項`
+    ? tf('needLabelMore', { label: myNeedSelectedOptions[0].label, n: myNeedSelectedOptions.length })
     : myNeedSelectedOptions.length === 1
       ? myNeedSelectedOptions[0].label
       : topCommunityNeed
         ? `${topCommunityNeed.label} (${topCommunityNeed.count})`
-        : '想看脈絡'
+        : t('needDefault')
   const center = document.createElement('div')
   center.className = 'ts-zone center'
   const centerMenus = [
-    buildQuickMenu('快速投票', 'vote', voteOptions),
+    buildQuickMenu(t('quickVote'), 'vote', voteOptions),
     buildQuickMenu(feelingLabel, 'feeling', feelingOptions),
     buildQuickMenu(needLabel, 'need', needOptions),
   ]
   if (articleReadSeconds < 15 && !articleBannerUserVote) {
     const gate = document.createElement('div')
     gate.className = 'ts-read-gate'
-    const prog = styledElement('span', '', `閱讀中 ${articleReadSeconds}/15`)
+    const prog = styledElement('span', '', tf('readProgress', { current: articleReadSeconds, total: 15 }))
     prog.className = 'ts-progress'
     prog.style.setProperty('--read-progress', `${Math.min(100, articleReadSeconds / 15 * 100)}%`)
     gate.append(...centerMenus, prog)
@@ -2999,46 +3046,46 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
   }
 
   const evidenceOptions = []
-  evidenceOptions.push(styledElement('div', '', `證據 ${articleBannerEvidence.length} 筆`))
+  evidenceOptions.push(styledElement('div', '', tf('evidenceCount', { n: articleBannerEvidence.length })))
   evidenceOptions[0].className = 'ts-section'
   articleBannerEvidence.slice(0, 3).forEach((item) => {
-    const link = styledElement('a', '', item.evidence_note || item.title || item.evidence_url || '公開證據')
+    const link = styledElement('a', '', item.evidence_note || item.title || item.evidence_url || t('evidencePublic'))
     link.className = 'ts-evidence'
     link.href = item.evidence_url || '#'
     link.target = '_blank'
     link.rel = 'noopener noreferrer'
     evidenceOptions.push(link)
   })
-  evidenceOptions.push(barButton('查看／補證據', { truthshieldEvidencePanel: '' }))
+  evidenceOptions.push(barButton(t('evidenceViewAdd'), { truthshieldEvidencePanel: '' }))
   const eventOptions = []
   const events = reactionPayload?.related_events || []
   events.slice(0, 4).forEach((event) => {
-    const link = styledElement('a', '', event.name || event.title || '相關事件')
+    const link = styledElement('a', '', event.name || event.title || t('eventFallback'))
     link.className = 'ts-evidence'
     link.href = event.id ? `${TOOLTIP_ORIGIN}/events/${event.id}` : `${TOOLTIP_ORIGIN}/events`
     link.target = '_blank'
     link.rel = 'noopener noreferrer'
     eventOptions.push(link)
   })
-  if (!eventOptions.length) eventOptions.push(styledElement('div', 'padding:8px;color:#a1a1aa;', '尚無相關事件'))
-  const eventsAllLink = styledElement('a', '', '查看所有事件 →')
+  if (!eventOptions.length) eventOptions.push(styledElement('div', 'padding:8px;color:#a1a1aa;', t('eventEmpty')))
+  const eventsAllLink = styledElement('a', '', t('eventViewAll'))
   eventsAllLink.className = 'ts-evidence'
   eventsAllLink.href = `${TOOLTIP_ORIGIN}/events`
   eventsAllLink.target = '_blank'
   eventsAllLink.rel = 'noopener noreferrer'
   eventOptions.push(eventsAllLink)
 
-  const commentLabel = articleBannerCommentTotal === null ? '留言' : `留言 ${articleBannerCommentTotal}`
+  const commentLabel = articleBannerCommentTotal === null ? t('commentLabel') : `${t('commentLabel')} ${articleBannerCommentTotal}`
   const commentButton = barButton(commentLabel, { truthshieldCommentPanel: '' })
   commentButton.className = 'ts-trigger'
 
   const right = document.createElement('div')
   right.className = 'ts-zone right'
-  const fullPanelButton = barButton('完整面板', { truthshieldPanelTab: 'results' })
+  const fullPanelButton = barButton(t('fullPanel'), { truthshieldPanelTab: 'results' })
   fullPanelButton.className = 'ts-trigger'
   right.append(
-    buildQuickMenu(`證據 ${articleBannerEvidence.length}`, 'evidence', evidenceOptions, false),
-    buildQuickMenu(`事件 ${events.length}`, 'events', eventOptions, false),
+    buildQuickMenu(tf('evidenceMenuLabel', { n: articleBannerEvidence.length }), 'evidence', evidenceOptions, false),
+    buildQuickMenu(tf('eventMenuLabel', { n: events.length }), 'events', eventOptions, false),
     commentButton,
     fullPanelButton,
     buildSettingsMenu(),
@@ -3749,7 +3796,7 @@ window.addEventListener('message', (event) => {
       const tag = event.data.tag || (event.data.tag_id ? articleBannerTags.find((t) => String(t.id) === String(event.data.tag_id)) : null)
       if (tag) articleBannerUserVote = { tag }
     }
-    articleBannerReactionMessage = '投票已送出'
+    articleBannerReactionMessage = t('voteSubmitted')
     articleBannerReactionFailed = false
     renderArticleBannerFromCache(event.data.url || votePanelUrl || window.location.href)
     scheduleArticleBannerReactionMessageClear()
