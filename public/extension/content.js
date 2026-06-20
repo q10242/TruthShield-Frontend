@@ -276,6 +276,8 @@ const contentMessages = {
     settingsLogin: '登入 TruthShield',
     settingsLogout: '登出',
     settingsDonate: '💛 贊助 TruthShield',
+    settingsReportMissingSite: '回報未收錄新聞站',
+    settingsReportBug: 'Bug 回報',
     settingsBadgeLabel: '徽章',
     settingsBadgeNone: '（無）',
     settingsTrust: '信用',
@@ -341,6 +343,8 @@ const contentMessages = {
     settingsLogin: 'Sign in to TruthShield',
     settingsLogout: 'Sign out',
     settingsDonate: '💛 Support TruthShield',
+    settingsReportMissingSite: 'Report unlisted site',
+    settingsReportBug: 'Report a bug',
     settingsBadgeLabel: 'Badge',
     settingsBadgeNone: '(None)',
     settingsTrust: 'Trust',
@@ -2702,6 +2706,26 @@ function buildSettingsMenu() {
   donateLink.setAttribute('style', 'color:#fcd34d;text-decoration:none;display:block;font-weight:700;')
   donateLink.textContent = t('settingsDonate')
   options.push(donateLink)
+
+  // ── Report links ──
+  options.push(settingsDivider())
+  const reportOrigin = TOOLTIP_ORIGIN || 'https://truth-shield.otus.tw'
+  const reportMissingLink = document.createElement('a')
+  reportMissingLink.href = `${reportOrigin}/report-domain`
+  reportMissingLink.target = '_blank'
+  reportMissingLink.rel = 'noopener noreferrer'
+  reportMissingLink.className = 'ts-option'
+  reportMissingLink.setAttribute('style', 'text-decoration:none;display:block;')
+  reportMissingLink.textContent = t('settingsReportMissingSite')
+  options.push(reportMissingLink)
+  const reportBugLink = document.createElement('a')
+  reportBugLink.href = `${reportOrigin}/bug-report`
+  reportBugLink.target = '_blank'
+  reportBugLink.rel = 'noopener noreferrer'
+  reportBugLink.className = 'ts-option'
+  reportBugLink.setAttribute('style', 'text-decoration:none;display:block;')
+  reportBugLink.textContent = t('settingsReportBug')
+  options.push(reportBugLink)
 
   // ── Logout (bottom, always visible) ──
   if (user) {
