@@ -2094,10 +2094,11 @@ async function submitArticleBannerVote(tagId) {
     await refreshArticleBannerStatus(articleBannerUrl || window.location.href)
   } catch (error) {
     articleBannerReactionFailed = true
+    const errorCode = error?.payload?.error_code
     const status = error?.status
-    if (status === 409) {
+    if (errorCode === 'voting_window_closed' || status === 409) {
       articleBannerReactionMessage = t('voteWindowClosed')
-    } else if (status === 428) {
+    } else if (errorCode === 'read_required' || status === 428) {
       const need = error?.payload?.minimum_read_seconds || 15
       const has = error?.payload?.seconds_read || articleReadSeconds || 0
       articleBannerReactionMessage = `需閱讀 ${need - has} 秒後才可投票`

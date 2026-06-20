@@ -1274,6 +1274,15 @@ export function useVotePanel(route) {
   }
 
   function friendlyError(err, fallback = '') {
+    const errorCode = err?.payload?.error_code
+    if (errorCode === 'voting_window_closed') return t('votePanel.voteWindowClosedError')
+    if (errorCode === 'read_required') {
+      return t('votePanel.readRequiredError', {
+        minimum: err.payload?.minimum_read_seconds || readMinimum.value,
+        current: err.payload?.seconds_read ?? readSeconds.value,
+      })
+    }
+
     const statusCode = err?.status || err?.payload?.status
     if (statusCode === 401) return t('votePanel.errorUnauthorized')
     if (statusCode === 403) return t('votePanel.errorForbidden')

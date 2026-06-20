@@ -312,9 +312,10 @@ async function submitVote() {
     await loadData(true)
     trackEvent('mobile_vote_completed', { source: 'mobile_pwa', feature: 'mobile_vote', url: newsUrl.value })
   } catch (err) {
-    voteError.value = err.status === 428
+    const errorCode = err?.payload?.error_code
+    voteError.value = (errorCode === 'read_required' || err.status === 428)
       ? t('mobile.readRequired', { minimum: err.payload?.minimum_read_seconds || readMinimum.value, current: err.payload?.seconds_read ?? readSeconds.value })
-      : err.status === 409
+      : (errorCode === 'voting_window_closed' || err.status === 409)
         ? t('mobile.voteClosed')
         : err.errors?.evidence_url?.[0] || err.errors?.evidence_note?.[0] || err.message || t('mobile.voteFailed')
   } finally {
