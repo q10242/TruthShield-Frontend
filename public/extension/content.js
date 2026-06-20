@@ -271,6 +271,8 @@ const contentMessages = {
     settingsMenu: '設定',
     settingsUpdateAvailable: '更新',
     settingsUpToDate: '已是最新版',
+    voteWindowClosed: '這則新聞的投票窗口已截止，結果已定案。',
+    voteFailed: '投票失敗',
     settingsLogin: '登入 TruthShield',
     settingsLogout: '登出',
     settingsDonate: '💛 贊助 TruthShield',
@@ -313,6 +315,8 @@ const contentMessages = {
     settingsMenu: 'Settings',
     settingsUpdateAvailable: 'Update',
     settingsUpToDate: 'Up to date',
+    voteWindowClosed: 'Voting window has closed. The result is finalized.',
+    voteFailed: 'Vote failed',
     settingsLogin: 'Sign in to TruthShield',
     settingsLogout: 'Sign out',
     settingsDonate: '💛 Support TruthShield',
@@ -2090,7 +2094,16 @@ async function submitArticleBannerVote(tagId) {
     await refreshArticleBannerStatus(articleBannerUrl || window.location.href)
   } catch (error) {
     articleBannerReactionFailed = true
-    articleBannerReactionMessage = error?.message || '投票失敗'
+    const status = error?.status
+    if (status === 409) {
+      articleBannerReactionMessage = t('voteWindowClosed')
+    } else if (status === 428) {
+      const need = error?.payload?.minimum_read_seconds || 15
+      const has = error?.payload?.seconds_read || articleReadSeconds || 0
+      articleBannerReactionMessage = `需閱讀 ${need - has} 秒後才可投票`
+    } else {
+      articleBannerReactionMessage = error?.message || t('voteFailed')
+    }
   } finally {
     articleBannerReactionSubmittingKey = ''
     renderArticleBannerFromCache(articleBannerUrl || window.location.href)
