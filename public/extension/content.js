@@ -2677,9 +2677,10 @@ function wireArticleBannerMenus() {
   window.clearTimeout(bannerMenuCloseTimer)
   const menus = Array.from(articleBannerRoot?.querySelectorAll('.ts-menu') || [])
 
-  // Capture active menu kind before state clears, so rAF can re-open after re-render
+  // Capture active menu kind and scroll before state clears, so rAF can re-open after re-render
   const prevActiveKind = bannerMenuActiveMenu
     ?.querySelector('[data-truthshield-menu-trigger]')?.dataset.truthshieldMenuTrigger || null
+  const prevScrollTop = bannerMenuActiveMenu?.querySelector('.ts-popover')?.scrollTop || 0
   bannerMenuActiveMenu = null
 
   function cancelClose() { window.clearTimeout(bannerMenuCloseTimer); bannerMenuCloseTimer = null }
@@ -2735,14 +2736,21 @@ function wireArticleBannerMenus() {
     if (!bannerCursorMoved) return
     for (const menu of menus) {
       const r = menu.getBoundingClientRect()
-      if (bannerCursorX >= r.left && bannerCursorX <= r.right && bannerCursorY >= r.top && bannerCursorY <= r.bottom) { openMenu(menu); return }
+      if (bannerCursorX >= r.left && bannerCursorX <= r.right && bannerCursorY >= r.top && bannerCursorY <= r.bottom) {
+        openMenu(menu)
+        if (prevScrollTop > 0) { const p = menu.querySelector('.ts-popover'); if (p) p.scrollTop = prevScrollTop }
+        return
+      }
     }
     // Cursor may be over popover below bar — re-open the previously active menu
     if (prevActiveKind) {
       const barRect = articleBanner?.getBoundingClientRect()
       if (barRect && bannerCursorY > barRect.bottom && bannerCursorY < barRect.bottom + 520) {
         const sameMenu = menus.find((m) => m.querySelector(`[data-truthshield-menu-trigger="${prevActiveKind}"]`))
-        if (sameMenu) openMenu(sameMenu)
+        if (sameMenu) {
+          openMenu(sameMenu)
+          if (prevScrollTop > 0) { const p = sameMenu.querySelector('.ts-popover'); if (p) p.scrollTop = prevScrollTop }
+        }
       }
     }
   })
