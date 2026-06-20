@@ -191,6 +191,7 @@ let articleBannerUserBadges = []
 let articleBannerUserTitle = null
 let articleBannerProgressAchievement = null
 let bannerMenuActiveMenu = null
+let bannerMenuSavedScrollTop = 0
 let bannerMenuCloseTimer = null
 let bannerMenuMoveHandler = null
 let bannerCursorX = 0
@@ -2695,10 +2696,12 @@ function wireArticleBannerMenus() {
   window.clearTimeout(bannerMenuCloseTimer)
   const menus = Array.from(articleBannerRoot?.querySelectorAll('.ts-menu') || [])
 
-  // Capture active menu kind and scroll before state clears, so rAF can re-open after re-render
+  // Capture active menu kind before state clears so rAF can re-open after re-render.
+  // scrollTop was saved in bannerMenuSavedScrollTop before replaceChildren destroyed the DOM.
   const prevActiveKind = bannerMenuActiveMenu
     ?.querySelector('[data-truthshield-menu-trigger]')?.dataset.truthshieldMenuTrigger || null
-  const prevScrollTop = bannerMenuActiveMenu?.querySelector('.ts-popover')?.scrollTop || 0
+  const prevScrollTop = bannerMenuSavedScrollTop
+  bannerMenuSavedScrollTop = 0
   bannerMenuActiveMenu = null
 
   function cancelClose() { window.clearTimeout(bannerMenuCloseTimer); bannerMenuCloseTimer = null }
@@ -3028,6 +3031,7 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
     buildArticleBannerCloseButton(),
   )
   row.append(left, center, right)
+  bannerMenuSavedScrollTop = bannerMenuActiveMenu?.querySelector('.ts-popover')?.scrollTop || 0
   replaceChildren(articleBannerRoot, [articleBannerStyleSheet(), row])
   wireArticleBannerMenus()
 }
