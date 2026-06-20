@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { createComment, deleteComment, fetchComments, reactToComment, reportComment } from '../lib/api'
 import { submitWithBotChallenge } from '../lib/botChallenge'
@@ -10,6 +10,8 @@ const USER_KEY = 'truthshield_user'
 
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
 const myUserId = ref(null)
+const myUser = ref(null)
+const myInitial = computed(() => String(myUser.value?.display_name || '讀').slice(0, 1).toUpperCase())
 const comments = ref([])
 const total = ref(0)
 const nextCursor = ref(null)
@@ -48,6 +50,7 @@ function handleMessage(event) {
   }
   if (event.data.user?.id) {
     myUserId.value = event.data.user.id
+    myUser.value = event.data.user
   }
 }
 
@@ -211,7 +214,7 @@ onMounted(async () => {
   requestAuth()
   try {
     const stored = JSON.parse(localStorage.getItem(USER_KEY) || 'null')
-    if (stored?.id) myUserId.value = stored.id
+    if (stored?.id) { myUserId.value = stored.id; myUser.value = stored }
   } catch {}
   await load()
 })
@@ -220,149 +223,144 @@ onBeforeUnmount(() => window.removeEventListener('message', handleMessage))
 </script>
 
 <template>
-  <main class="comment-panel">
-    <header class="panel-header">
-      <div>
-        <span class="eyebrow">留言板</span>
-        <strong>{{ loading ? '讀取中…' : `共 ${total} 則留言` }}</strong>
+  <main class="panel">
+
+    <!-- ── Header ── -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <span class="top-label">留言板</span>
+        <span v-if="!loading" class="count-pill">{{ total }}</span>
       </div>
     </header>
 
-    <!-- Compose -->
-    <div class="compose">
-      <textarea
-        v-model="body"
-        class="compose-input"
-        placeholder="分享你對這篇文章的想法…（最多 500 字）"
-        maxlength="500"
-        rows="3"
-        :disabled="submitting"
-        @input="notifyHeight"
-      ></textarea>
-      <div class="compose-footer">
-        <span class="char-count" :class="{ warn: body.length > 450 }">{{ body.length }}/500</span>
-        <button class="send-btn" :disabled="submitting || !body.trim()" @click="submit">
-          {{ submitting ? '送出中…' : token ? '送出留言' : '登入後留言' }}
-        </button>
+    <!-- ── Compose card ── -->
+    <section class="compose-card">
+      <div class="compose-avatar">{{ myInitial }}</div>
+      <div class="compose-body">
+        <textarea
+          v-model="body"
+          class="compose-ta"
+          placeholder="分享你對這篇文章的想法…"
+          maxlength="500"
+          rows="3"
+          :disabled="submitting"
+          @input="notifyHeight"
+        ></textarea>
+        <div class="compose-bar">
+          <span class="char-hint" :class="{ warn: body.length > 450 }">{{ body.length }}/500</span>
+          <button class="send-btn" :disabled="submitting || !body.trim()" @click="submit">
+            {{ submitting ? '送出中…' : token ? '送出留言' : '登入後留言' }}
+          </button>
+        </div>
       </div>
+    </section>
+
+    <p v-if="error" class="err-bar">{{ error }}</p>
+
+    <!-- ── Loading skeletons ── -->
+    <template v-if="loading">
+      <div v-for="i in 3" :key="i" class="sk-card">
+        <div class="sk-row">
+          <div class="sk-circle"></div>
+          <div class="sk-lines">
+            <div class="sk-line short"></div>
+            <div class="sk-line long"></div>
+          </div>
+        </div>
+        <div class="sk-block"></div>
+        <div class="sk-block thin"></div>
+      </div>
+    </template>
+
+    <!-- ── Empty state ── -->
+    <div v-else-if="!comments.length" class="empty-state">
+      <div class="empty-icon">💬</div>
+      <p class="empty-title">還沒有留言</p>
+      <p class="empty-sub">成為第一個分享想法的讀者，在上方輸入你的看法。</p>
     </div>
 
-    <p v-if="error" class="global-error">{{ error }}</p>
-
-    <div v-if="loading" class="state">載入中…</div>
-    <div v-else-if="!comments.length" class="empty">
-      <p>還沒有留言，成為第一個留言的讀者。</p>
-    </div>
-
+    <!-- ── Comment list ── -->
     <template v-else>
+      <div class="list-label">最新留言</div>
+
       <article
         v-for="comment in comments"
         :key="comment.id"
-        class="comment"
-        :class="{ deleted: deletedIds.has(comment.id), dimmed: comment.weight_score < 0.2 }"
+        class="card"
+        :class="{ dimmed: comment.weight_score < 0.2 }"
       >
-        <template v-if="deletedIds.has(comment.id)">
-          <p class="deleted-msg">留言已刪除</p>
-        </template>
+        <!-- Deleted -->
+        <p v-if="deletedIds.has(comment.id)" class="deleted-msg">留言已刪除</p>
+
         <template v-else>
-          <div class="comment-head">
+          <!-- Author row -->
+          <div class="card-head">
             <div class="avatar">{{ authorInitial(comment) }}</div>
-            <div class="author-info">
-              <span class="author-name">{{ comment.author?.display_name || 'TruthShield 讀者' }}</span>
-              <span v-if="comment.author?.identity_label" class="identity-badge">{{ comment.author.identity_label }}</span>
-              <span v-if="comment.author?.badge" class="identity-badge" :style="{ backgroundColor: comment.author.badge.color, color: '#09090b' }">{{ comment.author.badge.name }}</span>
+            <div class="card-meta">
+              <div class="name-row">
+                <span class="author-name">{{ comment.author?.display_name || 'TruthShield 讀者' }}</span>
+                <span v-if="comment.author?.identity_label" class="badge id-badge">{{ comment.author.identity_label }}</span>
+                <span v-if="comment.author?.badge" class="badge" :style="{ background: comment.author.badge.color, color: '#09090b' }">{{ comment.author.badge.name }}</span>
+              </div>
+              <span class="time-line">{{ formatTime(comment.created_at) }}</span>
             </div>
-            <span class="time">{{ formatTime(comment.created_at) }}</span>
           </div>
-          <p class="comment-body" :class="{ folded: comment.weight_score < 0.2 }">{{ comment.body }}</p>
-          <div class="comment-actions">
-            <button
-              class="act-btn"
-              :class="{ active: myReactions[comment.id] === 'helpful' }"
-              :disabled="reactingId === comment.id"
-              @click="react(comment, true)"
-            >👍 {{ comment.helpful_count }}</button>
-            <button
-              class="act-btn"
-              :class="{ active: myReactions[comment.id] === 'unhelpful' }"
-              :disabled="reactingId === comment.id"
-              @click="react(comment, false)"
-            >👎 {{ comment.unhelpful_count }}</button>
-            <button class="act-btn" @click="startReply(comment.id)">回覆</button>
-            <button
-              v-if="myUserId && comment.author && comment.author.id === myUserId"
-              class="act-btn danger"
-              @click="removeComment(comment)"
-            >刪除</button>
-            <button
-              v-else-if="!reportedIds.has(comment.id)"
-              class="act-btn muted"
-              @click="report(comment)"
-            >檢舉</button>
-            <span v-else class="act-btn muted" style="cursor:default">已檢舉</span>
+
+          <!-- Body -->
+          <p class="card-body" :class="{ folded: comment.weight_score < 0.2 }">{{ comment.body }}</p>
+
+          <!-- Actions -->
+          <div class="card-actions">
+            <button class="act" :class="{ lit: myReactions[comment.id] === 'helpful' }" :disabled="reactingId === comment.id" @click="react(comment, true)">
+              👍 <span>{{ comment.helpful_count || '' }}</span>
+            </button>
+            <button class="act" :class="{ dim: myReactions[comment.id] === 'unhelpful' }" :disabled="reactingId === comment.id" @click="react(comment, false)">
+              👎 <span>{{ comment.unhelpful_count || '' }}</span>
+            </button>
+            <button class="act reply-btn" @click="startReply(comment.id)">
+              ↩ 回覆
+            </button>
+            <button v-if="myUserId && comment.author?.id === myUserId" class="act danger-btn" @click="removeComment(comment)">刪除</button>
+            <button v-else-if="!reportedIds.has(comment.id)" class="act ghost-btn" @click="report(comment)">檢舉</button>
+            <span v-else class="act ghost-btn" style="cursor:default;opacity:.4">已檢舉</span>
           </div>
 
           <!-- Reply compose -->
           <div v-if="replyingTo === comment.id" class="reply-compose">
             <textarea
               v-model="replyBody[comment.id]"
-              class="compose-input small"
-              :placeholder="`回覆 ${comment.author?.display_name || '留言'}…`"
+              class="reply-ta"
+              :placeholder="`回覆 ${comment.author?.display_name || '這則留言'}…`"
               maxlength="500"
               rows="2"
               @input="notifyHeight"
             ></textarea>
-            <div class="compose-footer">
-              <button class="act-btn" @click="replyingTo = null; notifyHeight()">取消</button>
-              <button
-                class="send-btn small"
-                :disabled="submittingReply === comment.id || !replyBody[comment.id]?.trim()"
-                @click="submitReply(comment.id)"
-              >{{ submittingReply === comment.id ? '送出中…' : '送出回覆' }}</button>
+            <div class="reply-bar">
+              <button class="act ghost-btn" @click="replyingTo = null; notifyHeight()">取消</button>
+              <button class="send-btn sm" :disabled="submittingReply === comment.id || !replyBody[comment.id]?.trim()" @click="submitReply(comment.id)">
+                {{ submittingReply === comment.id ? '送出中…' : '送出回覆' }}
+              </button>
             </div>
           </div>
 
           <!-- Replies -->
           <div v-if="comment.replies?.length" class="replies">
-            <article
-              v-for="reply in comment.replies"
-              :key="reply.id"
-              class="comment reply"
-              :class="{ deleted: deletedIds.has(reply.id) }"
-            >
-              <template v-if="deletedIds.has(reply.id)">
-                <p class="deleted-msg">留言已刪除</p>
-              </template>
+            <article v-for="reply in comment.replies" :key="reply.id" class="reply-card">
+              <p v-if="deletedIds.has(reply.id)" class="deleted-msg">留言已刪除</p>
               <template v-else>
-                <div class="comment-head">
-                  <div class="avatar small">{{ authorInitial(reply) }}</div>
-                  <span class="author-name">{{ reply.author?.display_name || 'TruthShield 讀者' }}</span>
-                  <span class="time">{{ formatTime(reply.created_at) }}</span>
+                <div class="card-head">
+                  <div class="avatar sm">{{ authorInitial(reply) }}</div>
+                  <div class="card-meta">
+                    <span class="author-name">{{ reply.author?.display_name || 'TruthShield 讀者' }}</span>
+                    <span class="time-line">{{ formatTime(reply.created_at) }}</span>
+                  </div>
                 </div>
-                <p class="comment-body">{{ reply.body }}</p>
-                <div class="comment-actions">
-                  <button
-                    class="act-btn"
-                    :class="{ active: myReactions[reply.id] === 'helpful' }"
-                    :disabled="reactingId === reply.id"
-                    @click="react(reply, true)"
-                  >👍 {{ reply.helpful_count }}</button>
-                  <button
-                    class="act-btn"
-                    :class="{ active: myReactions[reply.id] === 'unhelpful' }"
-                    :disabled="reactingId === reply.id"
-                    @click="react(reply, false)"
-                  >👎 {{ reply.unhelpful_count }}</button>
-                  <button
-                    v-if="myUserId && reply.author && reply.author.id === myUserId"
-                    class="act-btn danger"
-                    @click="removeComment(reply)"
-                  >刪除</button>
-                  <button
-                    v-else-if="!reportedIds.has(reply.id)"
-                    class="act-btn muted"
-                    @click="report(reply)"
-                  >檢舉</button>
+                <p class="card-body reply-body">{{ reply.body }}</p>
+                <div class="card-actions">
+                  <button class="act" :class="{ lit: myReactions[reply.id] === 'helpful' }" :disabled="reactingId === reply.id" @click="react(reply, true)">👍 <span>{{ reply.helpful_count || '' }}</span></button>
+                  <button class="act" :class="{ dim: myReactions[reply.id] === 'unhelpful' }" :disabled="reactingId === reply.id" @click="react(reply, false)">👎 <span>{{ reply.unhelpful_count || '' }}</span></button>
+                  <button v-if="myUserId && reply.author?.id === myUserId" class="act danger-btn" @click="removeComment(reply)">刪除</button>
+                  <button v-else-if="!reportedIds.has(reply.id)" class="act ghost-btn" @click="report(reply)">檢舉</button>
                 </div>
               </template>
             </article>
@@ -379,57 +377,97 @@ onBeforeUnmount(() => window.removeEventListener('message', handleMessage))
 
 <style scoped>
 :global(html), :global(body), :global(#app) { margin: 0; min-height: 100%; background: transparent; }
-.comment-panel { box-sizing: border-box; width: 100%; padding: 14px; color: #f4f4f5; background: #18181b; font: 13px/1.5 system-ui, sans-serif; }
-.panel-header { margin-bottom: 12px; }
-.eyebrow { display: block; margin-bottom: 3px; color: #67e8f9; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
-strong { display: block; font-size: 15px; }
+* { box-sizing: border-box; }
+.panel { width: 100%; padding: 0; color: #e4e4e7; background: #18181b; font: 14px/1.55 system-ui, sans-serif; }
 
-/* Compose */
-.compose { margin-bottom: 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: #09090b; overflow: hidden; }
-.compose-input { display: block; width: 100%; box-sizing: border-box; border: 0; border-bottom: 1px solid rgba(255,255,255,.08); padding: 10px 12px; background: transparent; color: #f4f4f5; font: 13px/1.5 system-ui, sans-serif; resize: none; }
-.compose-input:focus { outline: none; border-bottom-color: rgba(103,232,249,.4); }
-.compose-input.small { font-size: 12px; }
-.compose-input::placeholder { color: #3f3f46; }
-.compose-footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 7px 10px; }
-.char-count { font-size: 11px; color: #3f3f46; margin-right: auto; }
-.char-count.warn { color: #fcd34d; }
-.send-btn { border: 0; border-radius: 8px; padding: 6px 14px; background: #67e8f9; color: #083344; font-weight: 800; font-size: 12px; cursor: pointer; }
-.send-btn:disabled { opacity: .45; cursor: not-allowed; }
-.send-btn.small { padding: 4px 10px; font-size: 11px; }
+/* ── Header ── */
+.top-bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.top-bar-left { display: flex; align-items: center; gap: 8px; }
+.top-label { font-size: 15px; font-weight: 800; color: #fff; }
+.count-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; background: rgba(103,232,249,.15); color: #67e8f9; font-size: 11px; font-weight: 800; }
 
-/* Comments */
-.state, .empty { padding: 18px 0; text-align: center; color: #52525b; font-size: 13px; }
-.global-error { margin-bottom: 10px; color: #fda4af; font-size: 12px; }
+/* ── Compose ── */
+.compose-card { display: flex; gap: 10px; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.02); }
+.compose-avatar { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, rgba(103,232,249,.25), rgba(103,232,249,.08)); color: #67e8f9; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+.compose-body { flex: 1; min-width: 0; }
+.compose-ta { display: block; width: 100%; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 10px 12px; background: #09090b; color: #f4f4f5; font: 13px/1.55 system-ui, sans-serif; resize: none; transition: border-color .15s; }
+.compose-ta:focus { outline: none; border-color: rgba(103,232,249,.45); box-shadow: 0 0 0 3px rgba(103,232,249,.06); }
+.compose-ta::placeholder { color: #52525b; }
+.compose-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.char-hint { font-size: 11px; color: #3f3f46; }
+.char-hint.warn { color: #fcd34d; }
+.send-btn { border: 0; border-radius: 8px; padding: 7px 16px; background: #67e8f9; color: #083344; font-size: 12px; font-weight: 800; cursor: pointer; transition: opacity .15s; }
+.send-btn:disabled { opacity: .4; cursor: not-allowed; }
+.send-btn.sm { padding: 5px 12px; font-size: 11px; }
 
-.comment { padding: 10px 0; border-top: 1px solid rgba(255,255,255,.07); }
-.comment.reply { padding: 8px 0 4px; border-top: 1px solid rgba(255,255,255,.05); }
-.comment.dimmed { opacity: .55; }
-.deleted-msg { color: #3f3f46; font-size: 12px; font-style: italic; }
+.err-bar { margin: 10px 16px 0; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(251,113,133,.3); background: rgba(251,113,133,.08); color: #fda4af; font-size: 12px; }
 
-.comment-head { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
-.avatar { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: rgba(103,232,249,.15); color: #67e8f9; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
-.avatar.small { width: 20px; height: 20px; font-size: 10px; }
-.author-info { display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1; }
-.author-name { font-weight: 700; font-size: 12px; color: #d4d4d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.identity-badge { flex-shrink: 0; border-radius: 4px; padding: 1px 5px; background: rgba(255,255,255,.08); color: #a1a1aa; font-size: 10px; font-weight: 700; }
-.time { flex-shrink: 0; font-size: 11px; color: #52525b; margin-left: auto; }
+/* ── Skeletons ── */
+.sk-card { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.05); }
+.sk-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.sk-circle { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.06); animation: pulse 1.4s ease infinite; }
+.sk-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+.sk-line { height: 10px; border-radius: 5px; background: rgba(255,255,255,.06); animation: pulse 1.4s ease infinite; }
+.sk-line.short { width: 40%; }
+.sk-line.long { width: 70%; }
+.sk-block { height: 12px; border-radius: 5px; background: rgba(255,255,255,.06); margin-bottom: 6px; animation: pulse 1.4s ease infinite; }
+.sk-block.thin { width: 55%; }
+@keyframes pulse { 0%,100% { opacity:.5 } 50% { opacity:1 } }
 
-.comment-body { margin: 0 0 8px; color: #d4d4d8; font-size: 13px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
-.comment-body.folded { color: #71717a; font-size: 12px; }
+/* ── Empty state ── */
+.empty-state { padding: 48px 24px 40px; text-align: center; }
+.empty-icon { font-size: 44px; line-height: 1; margin-bottom: 16px; opacity: .6; }
+.empty-title { font-size: 16px; font-weight: 700; color: #d4d4d8; margin: 0 0 8px; }
+.empty-sub { font-size: 13px; color: #71717a; line-height: 1.6; max-width: 260px; margin: 0 auto; }
 
-.comment-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px; }
-.act-btn { border: 1px solid rgba(255,255,255,.1); border-radius: 6px; padding: 2px 8px; background: transparent; color: #71717a; font-size: 11px; cursor: pointer; }
-.act-btn:hover:not(:disabled) { color: #d4d4d8; border-color: rgba(255,255,255,.22); }
-.act-btn.active { border-color: rgba(103,232,249,.4); color: #67e8f9; }
-.act-btn.danger { border-color: rgba(251,113,133,.25); color: #fda4af; }
-.act-btn.muted { border-color: transparent; color: #3f3f46; }
-.act-btn:disabled { opacity: .45; cursor: not-allowed; }
+/* ── List ── */
+.list-label { padding: 10px 16px 6px; font-size: 11px; font-weight: 800; letter-spacing: .06em; color: #52525b; text-transform: uppercase; }
 
-.replies { margin-top: 6px; margin-left: 18px; padding-left: 12px; border-left: 2px solid rgba(255,255,255,.07); }
+.card { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.06); transition: background .1s; }
+.card:hover { background: rgba(255,255,255,.015); }
+.card.dimmed { opacity: .5; }
 
-.reply-compose { margin-top: 8px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; background: #09090b; overflow: hidden; }
+.card-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.avatar { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, rgba(103,232,249,.25), rgba(103,232,249,.08)); color: #67e8f9; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.avatar.sm { width: 26px; height: 26px; font-size: 10px; }
+.card-meta { flex: 1; min-width: 0; }
+.name-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-bottom: 2px; }
+.author-name { font-weight: 700; font-size: 13px; color: #d4d4d8; }
+.badge { flex-shrink: 0; border-radius: 4px; padding: 2px 6px; background: rgba(255,255,255,.09); color: #a1a1aa; font-size: 10px; font-weight: 700; }
+.id-badge { background: rgba(103,232,249,.12); color: #67e8f9; }
+.time-line { font-size: 11px; color: #52525b; }
 
-.load-more { display: block; width: 100%; margin-top: 14px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 9px; background: transparent; color: #71717a; font-size: 12px; cursor: pointer; }
+.card-body { margin: 0 0 10px; color: #d4d4d8; font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.card-body.folded { color: #71717a; font-size: 13px; }
+.reply-body { font-size: 13px; }
+
+.card-actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.act { display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(255,255,255,.09); border-radius: 6px; padding: 3px 9px; background: transparent; color: #71717a; font-size: 11px; cursor: pointer; transition: color .12s, border-color .12s; }
+.act:hover:not(:disabled) { color: #d4d4d8; border-color: rgba(255,255,255,.2); }
+.act.lit { border-color: rgba(103,232,249,.4); color: #67e8f9; }
+.act.dim { border-color: rgba(251,113,133,.3); color: #fda4af; }
+.act:disabled { opacity: .4; cursor: not-allowed; }
+.reply-btn { margin-left: 4px; }
+.danger-btn { border-color: transparent; color: #ef4444; font-size: 11px; }
+.ghost-btn { border-color: transparent; color: #3f3f46; font-size: 11px; }
+.ghost-btn:hover:not(:disabled) { color: #71717a; border-color: transparent; }
+
+/* ── Reply compose ── */
+.reply-compose { margin: 10px 0 4px 44px; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; background: #09090b; overflow: hidden; }
+.reply-ta { display: block; width: 100%; border: 0; border-bottom: 1px solid rgba(255,255,255,.07); padding: 9px 12px; background: transparent; color: #f4f4f5; font: 13px/1.5 system-ui, sans-serif; resize: none; }
+.reply-ta:focus { outline: none; border-bottom-color: rgba(103,232,249,.35); }
+.reply-ta::placeholder { color: #3f3f46; }
+.reply-bar { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 7px 10px; }
+
+/* ── Replies ── */
+.replies { margin: 8px 0 2px 44px; border-left: 2px solid rgba(255,255,255,.07); padding-left: 12px; }
+.reply-card { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+.reply-card:last-child { border-bottom: 0; }
+
+.deleted-msg { color: #3f3f46; font-size: 12px; font-style: italic; padding: 6px 0; }
+
+/* ── Load more ── */
+.load-more { display: block; width: calc(100% - 32px); margin: 12px 16px 16px; border: 1px solid rgba(255,255,255,.1); border-radius: 9px; padding: 10px; background: transparent; color: #71717a; font-size: 12px; cursor: pointer; transition: color .12s, border-color .12s; }
 .load-more:hover:not(:disabled) { color: #d4d4d8; border-color: rgba(255,255,255,.2); }
-.load-more:disabled { opacity: .45; cursor: not-allowed; }
+.load-more:disabled { opacity: .4; cursor: not-allowed; }
 </style>
