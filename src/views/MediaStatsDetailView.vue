@@ -112,14 +112,6 @@ onMounted(load)
           </button>
         </div>
 
-        <!-- debug: remove after confirming pie works -->
-        <p v-if="!stats?.tag_distribution" class="mt-4 rounded border border-red-400/30 bg-red-500/10 p-2 text-xs text-red-200">
-          ⚠ API 回傳沒有 tag_distribution，請確認後端已重新啟動
-        </p>
-        <p v-else-if="!pieSlices.length" class="mt-4 rounded border border-amber-400/30 bg-amber-500/10 p-2 text-xs text-amber-200">
-          tag_distribution 有 {{ stats.tag_distribution.length }} 筆但圓餅圖無法計算（文章數皆為 0？）
-        </p>
-
         <!-- Charts row -->
         <div class="mt-4 grid gap-4 lg:grid-cols-[200px_1fr]">
           <!-- Pie chart -->
