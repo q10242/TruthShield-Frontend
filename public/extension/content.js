@@ -272,6 +272,7 @@ const contentMessages = {
     settingsUpToDate: '已是最新版',
     settingsLogin: '登入 TruthShield',
     settingsLogout: '登出',
+    settingsDonate: '💛 贊助 TruthShield',
     settingsBadgeLabel: '徽章',
     settingsBadgeNone: '（無）',
     settingsTrust: '信用',
@@ -313,6 +314,7 @@ const contentMessages = {
     settingsUpToDate: 'Up to date',
     settingsLogin: 'Sign in to TruthShield',
     settingsLogout: 'Sign out',
+    settingsDonate: '💛 Support TruthShield',
     settingsBadgeLabel: 'Badge',
     settingsBadgeNone: '(None)',
     settingsTrust: 'Trust',
@@ -2580,10 +2582,6 @@ function buildSettingsMenu() {
       options.push(progressCard)
     }
 
-    options.push(settingsDivider())
-    const logoutBtn = barButton(t('settingsLogout'), { truthshieldLogout: '' })
-    logoutBtn.setAttribute('style', 'color:#fda4af;')
-    options.push(logoutBtn)
   } else {
     const loginBtn = barButton(t('settingsLogin'), { truthshieldLogin: '' })
     loginBtn.setAttribute('style', 'color:#67e8f9;')
@@ -2630,6 +2628,26 @@ function buildSettingsMenu() {
     versionItem.setAttribute('style', 'opacity:.45;')
   }
   options.push(versionItem)
+
+  // ── Donate ──
+  options.push(settingsDivider())
+  const donateLink = document.createElement('a')
+  const donateOrigin = TOOLTIP_ORIGIN || 'https://truth-shield.otus.tw'
+  donateLink.href = `${donateOrigin}/donate`
+  donateLink.target = '_blank'
+  donateLink.rel = 'noopener noreferrer'
+  donateLink.className = 'ts-option'
+  donateLink.setAttribute('style', 'color:#fcd34d;text-decoration:none;display:block;font-weight:700;')
+  donateLink.textContent = t('settingsDonate')
+  options.push(donateLink)
+
+  // ── Logout (bottom, always visible) ──
+  if (user) {
+    options.push(settingsDivider())
+    const logoutBtnBottom = barButton(t('settingsLogout'), { truthshieldLogout: '' })
+    logoutBtnBottom.setAttribute('style', 'color:#fda4af;')
+    options.push(logoutBtnBottom)
+  }
 
   const trigger = t('settingsMenu') + (isOutdated ? ' ●' : '')
   return buildQuickMenu(trigger, 'settings', options, false)
