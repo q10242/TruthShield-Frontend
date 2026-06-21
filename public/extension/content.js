@@ -14,7 +14,7 @@ const AUTH_USER_KEY = 'truthshield_user'
 const ONBOARDING_STORAGE_KEY = 'truthshield_onboarding_state_v1'
 const JOURNALIST_CACHE_STORAGE_KEY = 'truthshield_journalist_cache_v1'
 const JOURNALIST_CACHE_TTL_MS = 24 * 60 * 60 * 1000
-const BANNER_REACTION_KEYS = ['confused', 'worried', 'absurd', 'angry', 'sad', 'happy', 'indifferent', 'clear', 'credible']
+const BANNER_REACTION_KEYS = ['confused', 'worried', 'absurd', 'angry', 'sad', 'happy', 'indifferent', 'clear', 'credible', 'shocked', 'heartwarming', 'exaggerated', 'frightened', 'terrifying', 'resigned', 'facepalm', 'funny', 'regret', 'clown_self']
 const FALLBACK_REACTION_FEELINGS = [
   { key: 'confused', emoji: '😕', label: '資訊混亂' },
   { key: 'worried', emoji: '😟', label: '擔心' },
@@ -25,6 +25,16 @@ const FALLBACK_REACTION_FEELINGS = [
   { key: 'indifferent', emoji: '😐', label: '無所謂' },
   { key: 'clear', emoji: '🙂', label: '覺得清楚' },
   { key: 'credible', emoji: '✅', label: '覺得可信' },
+  { key: 'shocked', emoji: '😮', label: '震驚' },
+  { key: 'heartwarming', emoji: '🥰', label: '溫馨' },
+  { key: 'exaggerated', emoji: '🤯', label: '誇張' },
+  { key: 'frightened', emoji: '😨', label: '驚嚇' },
+  { key: 'terrifying', emoji: '😰', label: '可怕' },
+  { key: 'resigned', emoji: '😑', label: '無奈' },
+  { key: 'facepalm', emoji: '🤦', label: '智障' },
+  { key: 'funny', emoji: '😂', label: '搞笑' },
+  { key: 'regret', emoji: '😣', label: '後悔' },
+  { key: 'clown_self', emoji: '🤡', label: '小丑竟是我自己' },
 ]
 let enableTooltip = true
 let enablePanel = true
