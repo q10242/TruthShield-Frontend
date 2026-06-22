@@ -68,7 +68,11 @@ async function submit() {
     message.value = t('remaining.reportReceived')
     trackEvent('domain_report_completed', { feature: 'domain_report', url: url.value, domain: domain.value })
   } catch (err) {
-    error.value = err.errors?.url?.[0] || err.message || t('remaining.reportFailed')
+    if (err.payload?.error_code === 'domain_already_covered') {
+      message.value = `✓ ${err.message}`
+    } else {
+      error.value = err.errors?.url?.[0] || err.message || t('remaining.reportFailed')
+    }
   } finally {
     submitting.value = false
   }
