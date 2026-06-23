@@ -625,7 +625,7 @@ async function submitProtectedAction(action, submit) {
 }
 
 function clearBackgroundUrlCache(url = window.location.href) {
-  sendRuntimeMessage({
+  return sendRuntimeMessage({
     type: 'TRUTH_SHIELD_CLEAR_URL_CACHE',
     url: canonicalStatusUrl(url),
   }).catch(() => null)
@@ -3807,8 +3807,12 @@ window.addEventListener('message', (event) => {
   }
 
   if (event.data?.type === 'TRUTH_SHIELD_VOTE_UPDATED') {
-    clearBackgroundUrlCache(event.data.url || votePanelUrl || window.location.href)
-    refreshArticleBannerStatus(event.data.url || votePanelUrl || window.location.href, event.data.status || null)
+    const voteUrl = event.data.url || votePanelUrl || window.location.href
+    if (event.data.status) refreshArticleBannerStatus(voteUrl, event.data.status)
+    clearBackgroundUrlCache(voteUrl).then(() => {
+      refreshArticleBannerStatus(voteUrl)
+      loadArticleBannerUserVote(voteUrl)
+    })
   }
 
   if (event.data?.type === 'TRUTH_SHIELD_COMMENT_SUBMITTED') {
