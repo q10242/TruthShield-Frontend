@@ -434,15 +434,21 @@ export async function reportJournalistMatch(matchId, payload = {}) {
 }
 
 export async function voteOnJournalistMatch(matchId, action) {
+  const token = localStorage.getItem('truthshield_api_token')
+
   return request(`/api/news/journalist-matches/${encodeURIComponent(matchId)}/vote`, {
     method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: JSON.stringify({ action }),
   })
 }
 
 export async function identifyJournalist(url, journalistId, titleSnapshot) {
+  const token = localStorage.getItem('truthshield_api_token')
+
   return request('/api/news/journalist-identify', {
     method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: JSON.stringify({ url, journalist_id: journalistId, title_snapshot: titleSnapshot }),
   })
 }

@@ -200,6 +200,9 @@ let articleBannerAuth = null
 let articleBannerUserBadges = []
 let articleBannerUserTitle = null
 let articleBannerProgressAchievement = null
+let articleBannerJournalistName = ''
+let articleBannerDetectedJournalistName = ''
+let articleBannerJournalistScanned = false
 let bannerMenuActiveMenu = null
 let bannerMenuSavedScrollTop = 0
 let bannerMenuCloseTimer = null
@@ -307,6 +310,11 @@ const contentMessages = {
     evidenceMenuLabel: '證據 {n}',
     eventMenuLabel: '事件 {n}',
     quickVote: '快速投票',
+    journalistDetected: '記者：{name}',
+    journalistMissing: '補記者',
+    journalistEdit: '更正',
+    journalistPrompt: '請輸入這篇新聞的記者姓名',
+    journalistSaved: '記者已暫存，投票時會一併送出',
     needsEvidence: '需補資料',
     voteUserCurrent: '你已投：{name}',
     feelingDefault: '心情',
@@ -374,6 +382,11 @@ const contentMessages = {
     evidenceMenuLabel: 'Evidence {n}',
     eventMenuLabel: 'Events {n}',
     quickVote: 'Quick vote',
+    journalistDetected: 'Reporter: {name}',
+    journalistMissing: 'Add reporter',
+    journalistEdit: 'Correct',
+    journalistPrompt: 'Enter the reporter name for this article',
+    journalistSaved: 'Reporter saved for the next vote',
     needsEvidence: 'Needs evidence',
     voteUserCurrent: 'Your vote: {name}',
     feelingDefault: 'Mood',
@@ -1445,12 +1458,39 @@ function localJournalistMatches() {
   return [...matches.values()].slice(0, 3)
 }
 
+function cleanArticleAuthorName(value) {
+  return String(value || '')
+    .split(/[／\/,，、|｜]/u)[0]
+    .replace(/^(記者|作者|文)\s*/u, '')
+    .replace(/\s*(報導|撰文)$/u, '')
+    .replace(/\s+/g, '')
+    .trim()
+    .slice(0, 80)
+}
+
+function detectedArticleAuthorName() {
+  if (articleBannerJournalistScanned) return articleBannerDetectedJournalistName
+  articleBannerJournalistScanned = true
+
+  const match = localJournalistMatches()[0]
+  if (match?.matched_text) {
+    articleBannerDetectedJournalistName = cleanArticleAuthorName(match.matched_text)
+    return articleBannerDetectedJournalistName
+  }
+
+  const candidate = articleAuthorCandidates().find((item) => item.source !== 'full_text' && normalizeJournalistText(item.text).length >= 2)
+  articleBannerDetectedJournalistName = cleanArticleAuthorName(candidate?.text)
+  return articleBannerDetectedJournalistName
+}
+
 async function reportJournalistMatchesOnce(url = window.location.href) {
   const cacheKey = canonicalStatusUrl(url)
   if (journalistMatchReportedUrls.has(cacheKey) || !isCurrentNewsPage() || !isLikelyArticlePage()) return
   journalistMatchReportedUrls.add(cacheKey)
 
   await loadJournalistCache()
+  articleBannerJournalistScanned = false
+  if (articleBannerUrl === url) renderArticleBannerFromCache(url)
   const matches = localJournalistMatches()
   if (!matches.length) return
 
@@ -2145,7 +2185,13 @@ async function submitArticleBannerVote(tagId) {
     await submitProtectedAction('vote.create', (challengeToken, challengeRetry) => fetchApiViaBackground('/api/vote', {
       method: 'POST',
       headers: { Accept: 'application/json', Authorization: `Bearer ${auth.token}`, 'Content-Type': 'application/json' },
-      body: { url: canonicalStatusUrl(articleBannerUrl || window.location.href), tag_id: tag.id, challenge_token: challengeToken || undefined, challenge_retry: challengeRetry || undefined },
+      body: {
+        url: canonicalStatusUrl(articleBannerUrl || window.location.href),
+        tag_id: tag.id,
+        journalist_name: articleBannerJournalistName || detectedArticleAuthorName() || undefined,
+        challenge_token: challengeToken || undefined,
+        challenge_retry: challengeRetry || undefined,
+      },
     }))
     articleBannerUserVote = { tag }
     articleBannerReactionMessage = t('voteSubmitted')
@@ -2171,6 +2217,17 @@ async function submitArticleBannerVote(tagId) {
     renderArticleBannerFromCache(articleBannerUrl || window.location.href)
     scheduleArticleBannerReactionMessageClear()
   }
+}
+
+function editArticleBannerJournalistName() {
+  const value = window.prompt(t('journalistPrompt'), articleBannerJournalistName || detectedArticleAuthorName() || '')
+  if (value === null) return
+
+  articleBannerJournalistName = cleanArticleAuthorName(value)
+  articleBannerReactionFailed = false
+  articleBannerReactionMessage = articleBannerJournalistName ? t('journalistSaved') : ''
+  renderArticleBannerFromCache(articleBannerUrl || window.location.href)
+  if (articleBannerReactionMessage) scheduleArticleBannerReactionMessageClear()
 }
 
 function ensureArticleBanner() {
@@ -2256,6 +2313,14 @@ function ensureArticleBanner() {
       event.preventDefault()
       event.stopPropagation()
       submitArticleBannerVote(voteButton.dataset.truthshieldTagId)
+      return
+    }
+
+    const journalistButton = event.composedPath().find((node) => 'truthshieldJournalistEdit' in (node?.dataset || {}))
+    if (journalistButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      editArticleBannerJournalistName()
       return
     }
 
@@ -2409,6 +2474,9 @@ function removeArticleBanner() {
   articleBannerUserBadges = []
   articleBannerUserTitle = null
   articleBannerProgressAchievement = null
+  articleBannerJournalistName = ''
+  articleBannerDetectedJournalistName = ''
+  articleBannerJournalistScanned = false
 }
 
 function dismissArticleBanner() {
@@ -3010,6 +3078,13 @@ function renderArticleBanner(payload, loading = false, failed = false, reactionP
     feedback.className = `ts-feedback${articleBannerReactionFailed ? ' error' : ''}`
     left.appendChild(feedback)
   }
+  const journalistName = articleBannerJournalistName || detectedArticleAuthorName()
+  const journalistButton = barButton(
+    journalistName ? `${tf('journalistDetected', { name: journalistName })} · ${t('journalistEdit')}` : t('journalistMissing'),
+    { truthshieldJournalistEdit: '' },
+  )
+  journalistButton.classList.add('ghost')
+  left.appendChild(journalistButton)
 
   const voteOptions = articleBannerTags.map((tag) => {
     const button = barButton(tag.name || tag.label || tag.slug, { truthshieldTagId: String(tag.id) })
@@ -3488,6 +3563,8 @@ function openVotePanelModal(targetUrl = window.location.href, panelPath = '/ifra
   panelUrl.searchParams.set('news_url', targetUrl)
   panelUrl.searchParams.set('expanded', '1')
   panelUrl.searchParams.set('locale', contentLocale)
+  const journalistName = articleBannerJournalistName || detectedArticleAuthorName()
+  if (journalistName) panelUrl.searchParams.set('detected_author_text', journalistName)
   Object.entries(extraParams || {}).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') panelUrl.searchParams.set(key, String(value))
   })

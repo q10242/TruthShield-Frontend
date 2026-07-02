@@ -148,6 +148,7 @@ export function useVotePanel(route) {
   })
 
   const newsUrl = computed(() => route.query.news_url || '')
+  const detectedAuthorText = computed(() => String(route.query.detected_author_text || '').trim().slice(0, 80))
   const pageSnapshot = computed(() => ({
     url: newsUrl.value,
     title_snapshot: route.query.title_snapshot || undefined,
@@ -975,6 +976,7 @@ export function useVotePanel(route) {
           secondary_tag_ids: selectedSecondaryTagIds.value,
           evidence_url: evidenceUrl.value.trim() || undefined,
           evidence_note: evidenceNote.value.trim() || undefined,
+          journalist_name: detectedAuthorText.value || undefined,
           challenge_token: challengeToken || undefined,
           challenge_retry: challengeRetry || undefined,
         })
